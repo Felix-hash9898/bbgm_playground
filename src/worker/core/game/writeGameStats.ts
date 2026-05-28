@@ -292,6 +292,15 @@ export const gameSimToBoxScore = async (results: GameResults, att: number) => {
 			}
 			p.jerseyNumber = p0.jerseyNumber;
 
+			if (isSport("basketball")) {
+				if (typeof (p0 as any).form === "number") {
+					p.form = (p0 as any).form;
+				}
+				if (typeof (p0 as any).gameForm === "number") {
+					p.gameForm = (p0 as any).gameForm;
+				}
+			}
+
 			if (isSport("baseball")) {
 				p.seasonStats = p0.seasonStats;
 

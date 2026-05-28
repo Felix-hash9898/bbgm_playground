@@ -2,6 +2,10 @@ import loadStatsBasketball, {
 	type BasketballStats,
 } from "./loadStats.basketball.ts";
 import { PHASE, PLAYER, REAL_PLAYERS_INFO } from "../../../common/index.ts";
+import {
+	getShotTendenciesFromObservedStats,
+	getShotTendenciesFromRatings,
+} from "../../../common/shotTendencies.basketball.ts";
 import type {
 	GetLeagueOptions,
 	PlayerContract,
@@ -467,6 +471,46 @@ const formatPlayerFactory = async (
 			retiredYear = tid === PLAYER.RETIRED ? ratings.season : Infinity;
 		}
 
+		const shotTendenciesPrior = getShotTendenciesFromRatings(ratings);
+		let shotTendencies = shotTendenciesPrior;
+		if (stats) {
+			const regularSeasonStats = stats.filter((row) => !row.playoffs);
+			const latestRegularSeason = regularSeasonStats.reduce<number | undefined>(
+				(maxSeason, row) =>
+					maxSeason === undefined || row.season > maxSeason
+						? row.season
+						: maxSeason,
+				undefined,
+			);
+
+			if (latestRegularSeason !== undefined) {
+				const latestRows = regularSeasonStats.filter(
+					(row) => row.season === latestRegularSeason,
+				);
+				const aggregatedStats = latestRows.reduce(
+					(totals, row) => ({
+						fga: totals.fga + (row.fga ?? 0),
+						fgaAtRim: totals.fgaAtRim + (row.fgaAtRim ?? 0),
+						fgaLowPost: totals.fgaLowPost + (row.fgaLowPost ?? 0),
+						fgaMidRange: totals.fgaMidRange + (row.fgaMidRange ?? 0),
+						tpa: totals.tpa + (row.tpa ?? 0),
+					}),
+					{
+						fga: 0,
+						fgaAtRim: 0,
+						fgaLowPost: 0,
+						fgaMidRange: 0,
+						tpa: 0,
+					},
+				);
+
+				shotTendencies = getShotTendenciesFromObservedStats(
+					aggregatedStats,
+					shotTendenciesPrior,
+				);
+			}
+		}
+
 		pid += 1;
 
 		const p = {
@@ -495,8 +539,12 @@ const formatPlayerFactory = async (
 			awards,
 			jerseyNumber,
 			hof,
+			atRimTendency: shotTendencies.atRimTendency,
+			lowPostTendency: shotTendencies.lowPostTendency,
+			midRangeTendency: shotTendencies.midRangeTendency,
 			retiredYear,
 			srID: ratings.slug,
+			threePointTendency: shotTendencies.threePointTendency,
 		};
 
 		if (!p.hof) {

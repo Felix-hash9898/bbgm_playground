@@ -273,7 +273,16 @@ const moodComponents = async (
 		}
 
 		if (wantsToReSign) {
-			components.loyalty += isSport("football") ? 5 : 2;
+			components.loyalty += isSport("football") ? 5 : 3;
+		}
+
+		// Extra loyalty bonus if this team drafted the player — models the
+		// real-world tendency for players to feel attached to the team that
+		// believed in them. Applies in basketball/hockey only.
+		if (isSport("basketball") || isSport("hockey")) {
+			if (p.draft.tid === tid && p.draft.round > 0) {
+				components.loyalty += 1;
+			}
 		}
 	}
 

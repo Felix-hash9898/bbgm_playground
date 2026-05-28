@@ -58,6 +58,7 @@ type Props = {
 	defaultWatch?: number;
 	disableNameLink?: boolean;
 	pid: number;
+	playoffsCombined?: "regularSeason" | "playoffs" | "combined";
 	season?: number;
 };
 
@@ -65,6 +66,7 @@ const RatingsStatsPopover = ({
 	defaultWatch,
 	disableNameLink,
 	pid,
+	playoffsCombined,
 	season,
 }: Props) => {
 	const [loadingData, setLoadingData] = useState<boolean>(false);
@@ -88,10 +90,14 @@ const RatingsStatsPopover = ({
 			[key: string]: number;
 		};
 		pid: number;
+		playoffsCombined?: "regularSeason" | "playoffs" | "combined";
+		season?: number;
 		type?: "career" | "current" | "draft" | number;
 		note?: string;
 	}>({
 		pid,
+		playoffsCombined,
+		season,
 	});
 
 	const [watch, setWatch] = useState(defaultWatch ?? 0);
@@ -118,16 +124,23 @@ const RatingsStatsPopover = ({
 	}, [defaultWatch, pid]);
 
 	// Object.is to handle NaN
-	if (!Object.is(player.pid, pid)) {
+	if (
+		!Object.is(player.pid, pid) ||
+		player.season !== season ||
+		player.playoffsCombined !== playoffsCombined
+	) {
 		setLoadingData(false);
 		setPlayer({
 			pid,
+			playoffsCombined,
+			season,
 		});
 	}
 
 	const loadData = useCallback(async () => {
 		const p = await toWorker("main", "ratingsStatsPopoverInfo", {
 			pid,
+			playoffsCombined,
 			season,
 		});
 		setPlayer({
@@ -139,11 +152,13 @@ const RatingsStatsPopover = ({
 			ratings: p.ratings,
 			stats: p.stats,
 			pid,
+			playoffsCombined,
+			season,
 			type: p.type,
 			note: p.note,
 		});
 		setLoadingData(false);
-	}, [pid, season]);
+	}, [pid, playoffsCombined, season]);
 
 	const toggle = useCallback(() => {
 		if (!loadingData) {

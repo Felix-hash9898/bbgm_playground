@@ -30,7 +30,9 @@ const VALUE_BY_PICK = [
 ];
 const VALUE_UNDRAFTED = 36.6;
 
-const getValue = (ratings: Record<RatingKey, number>, age: number) => {
+type DraftProspectRatings = Partial<Record<RatingKey, number>>;
+
+const getValue = (ratings: DraftProspectRatings, age: number) => {
 	const ovr = player.ovr(ratings as any);
 	const pot = potEstimator(ovr, age);
 
@@ -38,7 +40,7 @@ const getValue = (ratings: Record<RatingKey, number>, age: number) => {
 };
 
 const setDraftProspectRatingsBasedOnDraftPosition = (
-	ratings: Record<RatingKey, number>,
+	ratings: DraftProspectRatings,
 	age: number,
 	bio: { draftRound?: number; draftPick?: number },
 ) => {
@@ -88,7 +90,9 @@ const setDraftProspectRatingsBasedOnDraftPosition = (
 	while (true) {
 		for (const rating of RATINGS) {
 			if (rating !== "hgt") {
-				ratings[rating] = player.limitRating(ratings[rating] + direction);
+				ratings[rating] = player.limitRating(
+					(ratings[rating] ?? 50) + direction,
+				);
 			}
 		}
 

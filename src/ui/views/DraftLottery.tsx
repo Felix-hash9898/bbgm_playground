@@ -41,6 +41,8 @@ export const getDraftTypeDescription = (
 ) => {
 	const types: Record<MyDraftType, ReactNode> = {
 		nba2019: "Weighted lottery for the top 4 picks, like the NBA since 2019",
+		nba321:
+			"Weighted 16-team anti-tanking lottery based on the NBA's current 3-2-1 proposal, with all 16 lottery spots drawn and the three worst teams unable to fall below pick 12",
 		nba1994:
 			"Weighted lottery for the top 3 picks, like the NBA from 1994-2018",
 		nba1990:
@@ -210,6 +212,7 @@ const Row = ({
 	indRevealed,
 	toReveal,
 	probs,
+	roundProbabilities,
 	spectator,
 	teams,
 }: Pick<Props, "teams" | "usePts" | "userTid"> & {
@@ -222,6 +225,7 @@ const Row = ({
 	toReveal: State["toReveal"];
 	probs: NonNullable<ReturnType<typeof getDraftLotteryProbs>["probs"]>;
 	spectator: boolean;
+	roundProbabilities: boolean;
 }) => {
 	const { clicked, toggleClicked } = useClickable();
 
@@ -232,7 +236,12 @@ const Row = ({
 	let revealedPickNumber = null;
 	const pickCols = range(NUM_PICKS).map((j) => {
 		const prob = probs[i]![j]!;
-		const pct = prob !== undefined ? `${(prob * 100).toFixed(1)}%` : undefined;
+		const pct =
+			prob !== undefined
+				? roundProbabilities
+					? `${Math.round(prob * 100)}%`
+					: `${(prob * 100).toFixed(1)}%`
+				: undefined;
 
 		let highlighted = false;
 
@@ -602,6 +611,7 @@ const DraftLotteryTable = (props: Props) => {
 	const NUM_PICKS = result !== undefined ? result.length : 14;
 
 	const [showAll, setShowAll] = useState(false);
+	const [roundProbabilities, setRoundProbabilities] = useState(false);
 
 	const showStartButton =
 		type === "readyToRun" &&
@@ -723,6 +733,7 @@ const DraftLotteryTable = (props: Props) => {
 								indRevealed={state.indRevealed}
 								toReveal={state.toReveal}
 								probs={probs}
+								roundProbabilities={roundProbabilities}
 								spectator={props.spectator}
 								teams={teams}
 								usePts={usePts}
@@ -836,6 +847,22 @@ const DraftLotteryTable = (props: Props) => {
 					<b>Warning:</b> Computing exact odds for so many teams and picks is
 					slow, so estimates are shown below. When the actual lottery occurs it
 					is simulated with complete accuracy.
+				</div>
+			) : null}
+			{result && probs ? (
+				<div className="form-check mb-3">
+					<input
+						checked={roundProbabilities}
+						className="form-check-input"
+						id="round-probabilities"
+						onChange={() => {
+							setRoundProbabilities(!roundProbabilities);
+						}}
+						type="checkbox"
+					/>
+					<label className="form-check-label" htmlFor="round-probabilities">
+						Round pick probabilities to whole percentages
+					</label>
 				</div>
 			) : null}
 

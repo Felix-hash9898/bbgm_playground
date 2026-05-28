@@ -23,6 +23,8 @@ import {
 	useLocalPartial,
 } from "../../util/index.ts";
 import PlayingTime, { ptStyles } from "./PlayingTime.tsx";
+import ShotProfile from "./ShotProfile.tsx";
+import UsageBias, { usageBiasStyles } from "./UsageBias.tsx";
 import TopStuff from "./TopStuff.tsx";
 import type {
 	GameAttributesLeague,
@@ -167,11 +169,17 @@ const Roster = ({
 			"Age",
 			"Ovr",
 			"Pot",
+			...(isSport("basketball") && season === currentSeason
+				? ["Form", "GameForm"]
+				: []),
 			...(season === currentSeason ? ["Contract"] : []),
 			"stat:yearsWithTeam",
 			"Country",
 			...stats.map((stat) => `stat:${stat}`),
 			...(editable ? ["PT"] : []),
+			...(editable && isSport("basketball") && season === currentSeason
+				? ["Usage", "ShotProfile"]
+				: []),
 			...(showMood ? ["Mood"] : []),
 			...(showRelease ? ["Release"] : []),
 			...(showTradeFor || showTradingBlock ? ["Trade"] : []),
@@ -204,6 +212,47 @@ const Roster = ({
 								<span style={ptStyles["1.25"]}>+ More Playing Time</span>
 								<br />
 								<span style={ptStyles["1.5"]}>++ Even More Playing Time</span>
+							</p>
+						</HelpPopover>
+					</>
+				),
+			},
+			Usage: {
+				titleReact: (
+					<>
+						Usage{" "}
+						<HelpPopover title="Usage bias">
+							<p>
+								This biases who your offense runs through. It affects how often
+								a player is selected to finish possessions, without changing{" "}
+								{helpers.pronoun(gender, "his")} underlying ratings.
+							</p>
+							<p>
+								<span style={usageBiasStyles["0.85"]}>Low</span>
+								<br />
+								<span style={usageBiasStyles["1"]}>Normal</span>
+								<br />
+								<span style={usageBiasStyles["1.1"]}>High</span>
+								<br />
+								<span style={usageBiasStyles["1.25"]}>Featured</span>
+							</p>
+						</HelpPopover>
+					</>
+				),
+			},
+			ShotProfile: {
+				titleReact: (
+					<>
+						Shot Profile{" "}
+						<HelpPopover title="Shot profile tendency">
+							<p>
+								This changes where a player looks to shoot from without
+								improving {helpers.pronoun(gender, "his")} shooting ratings.
+							</p>
+							<p>
+								Use it to make a player behave more like a spacer, slasher, post
+								scorer, or shot creator while keeping make/miss results driven
+								by ability.
 							</p>
 						</HelpPopover>
 					</>
@@ -292,6 +341,7 @@ const Roster = ({
 					pid: p.pid,
 					injury: p.injury,
 					jerseyNumber: p.stats.jerseyNumber,
+					playoffsCombined: playoffs,
 					season,
 					skills: p.ratings.skills,
 					defaultWatch: p.watch,
@@ -309,6 +359,16 @@ const Roster = ({
 				showRatings
 					? wrappedRatingWithChange(p.ratings.pot, p.ratings.dpot)
 					: null,
+				...(isSport("basketball") && season === currentSeason
+					? [
+							(p as any).form != null
+								? ((p as any).form as number).toFixed(1)
+								: "0.0",
+							(p as any).gameForm != null
+								? ((p as any).gameForm as number).toFixed(1)
+								: "0.0",
+						]
+					: []),
 				...(season === currentSeason ? [wrappedContract(p)] : []),
 				playoffs === "playoffs" ? null : p.stats.yearsWithTeam,
 				{
@@ -331,6 +391,12 @@ const Roster = ({
 				},
 				...stats.map((stat) => helpers.roundStat(p.stats[stat], stat)),
 				...(editable ? [<PlayingTime p={p} userTid={userTid} />] : []),
+				...(editable && isSport("basketball") && season === currentSeason
+					? [
+							<UsageBias p={p} userTid={userTid} />,
+							<ShotProfile p={p} userTid={userTid} />,
+						]
+					: []),
 				...(showMood
 					? [
 							dataTableWrappedMood({

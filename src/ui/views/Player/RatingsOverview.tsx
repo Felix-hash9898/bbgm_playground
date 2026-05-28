@@ -28,6 +28,7 @@ const RatingsOverview = ({
 			{
 				label: ReactNode;
 				rating: string;
+				invert?: boolean;
 			}[]
 		>[]
 	>({
@@ -494,18 +495,22 @@ const RatingsOverview = ({
 										</tr>
 									</thead>
 									<tbody>
-										{categories.map(({ label, rating }, j) => (
-											<tr key={j}>
-												<td className="p-0">{label}:</td>
-												<td className="p-0 ps-1">
-													<RatingWithChange
-														change={currentSeason[rating] - lastSeason[rating]}
-													>
-														{currentSeason[rating]}
-													</RatingWithChange>
-												</td>
-											</tr>
-										))}
+										{categories.map(({ label, rating, invert }, j) => {
+											const cur = currentSeason[rating] ?? 50;
+											const prev = lastSeason[rating] ?? 50;
+											const displayCur = invert ? 100 - cur : cur;
+											const displayChange = invert ? -(cur - prev) : cur - prev;
+											return (
+												<tr key={j}>
+													<td className="p-0">{label}:</td>
+													<td className="p-0 ps-1">
+														<RatingWithChange change={displayChange}>
+															{displayCur}
+														</RatingWithChange>
+													</td>
+												</tr>
+											);
+										})}
 									</tbody>
 								</table>
 							</div>

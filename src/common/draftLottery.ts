@@ -63,6 +63,57 @@ const draftLotteryProbsTooSlow = (numTeams: number, numToPick: number) => {
 	return count >= 1e7;
 };
 
+const NBA_321_PROTECTED_TEAM_COUNT = 3;
+const NBA_321_PROTECTED_FLOOR_PICK = 12;
+const NBA_321_PROBS_BOTTOM_3_ROW = [
+	0.05405405405405406, 0.054922149039796114, 0.05585391510438948,
+	0.05685790183189245, 0.057944281499865996, 0.05912519419506432,
+	0.06041511633594074, 0.06183115105783181, 0.06339293156481175,
+	0.08090336748336252, 0.1440502734437296, 0.250649664389266, 0, 0, 0, 0,
+] as const;
+const NBA_321_PROBS_MIDDLE_7_ROW = [
+	0.08108108108108109, 0.07986221515633282, 0.07853678088497826,
+	0.07708715437319168, 0.07549121906414369, 0.0737207552875886,
+	0.07173905779457222, 0.06949730060899864, 0.06692878586168434,
+	0.060416892360137, 0.043697476825686817, 0.01837335519743505,
+	0.06992337748506659, 0.06104643422248315, 0.04716365352851264,
+	0.025434460268122534,
+] as const;
+const NBA_321_PROBS_PLAY_IN_9_10_ROW = [
+	0.05405405405405406, 0.054922149039796114, 0.05585391510438949,
+	0.05685790183189243, 0.05794428149986599, 0.05912519419506437,
+	0.06041511633594066, 0.06183115105783178, 0.06339293156481182,
+	0.06116134183583759, 0.04728946818000915, 0.021331554084851243,
+	0.08800543533229924, 0.09237559882004276, 0.09256550600713385,
+	0.07287440105619726,
+] as const;
+const NBA_321_PROBS_PLAY_IN_7_8_LOSER_ROW = [
+	0.02702702702702703, 0.02825472531354885, 0.029632564037212986,
+	0.031192303282206974, 0.03297574802596748, 0.035039176810723,
+	0.037460390543226814, 0.04035041916616404, 0.04387398900728053,
+	0.04486314184279274, 0.03640448458446347, 0.0170556520553755,
+	0.07925730813766714, 0.10158628258122415, 0.14979620063593815,
+	0.2652305869491766,
+] as const;
+const NBA_321_PROBS = [
+	[...NBA_321_PROBS_BOTTOM_3_ROW],
+	[...NBA_321_PROBS_BOTTOM_3_ROW],
+	[...NBA_321_PROBS_BOTTOM_3_ROW],
+	[...NBA_321_PROBS_MIDDLE_7_ROW],
+	[...NBA_321_PROBS_MIDDLE_7_ROW],
+	[...NBA_321_PROBS_MIDDLE_7_ROW],
+	[...NBA_321_PROBS_MIDDLE_7_ROW],
+	[...NBA_321_PROBS_MIDDLE_7_ROW],
+	[...NBA_321_PROBS_MIDDLE_7_ROW],
+	[...NBA_321_PROBS_MIDDLE_7_ROW],
+	[...NBA_321_PROBS_PLAY_IN_9_10_ROW],
+	[...NBA_321_PROBS_PLAY_IN_9_10_ROW],
+	[...NBA_321_PROBS_PLAY_IN_9_10_ROW],
+	[...NBA_321_PROBS_PLAY_IN_9_10_ROW],
+	[...NBA_321_PROBS_PLAY_IN_7_8_LOSER_ROW],
+	[...NBA_321_PROBS_PLAY_IN_7_8_LOSER_ROW],
+];
+
 const simLottery = (chances: number[], numToPick: number) => {
 	let teams = chances.map((chance, index) => ({
 		chances: chance,
@@ -94,10 +145,51 @@ const simLottery = (chances: number[], numToPick: number) => {
 	return pickIndexes;
 };
 
+const simNba321Lottery = (chances: number[]) => {
+	let teams = chances.map((chance, index) => ({
+		chances: chance,
+		index,
+	}));
+
+	const pickIndexes: number[] = [];
+
+	while (teams.length > 0) {
+		const remainingProtected = teams.filter(
+			(team) => team.index < NBA_321_PROTECTED_TEAM_COUNT,
+		);
+		const remainingSlotsBeforeFloor =
+			NBA_321_PROTECTED_FLOOR_PICK - pickIndexes.length;
+		const candidates =
+			remainingSlotsBeforeFloor > 0 &&
+			remainingProtected.length >= remainingSlotsBeforeFloor
+				? remainingProtected
+				: teams;
+
+		let sum = 0;
+		for (const t of candidates) {
+			sum += t.chances;
+		}
+		const rand = Math.random() * sum;
+		let sum2 = 0;
+		for (const t of candidates) {
+			sum2 += t.chances;
+			if (rand < sum2) {
+				pickIndexes.push(t.index);
+				teams = teams.filter((t2) => t2 !== t);
+
+				break;
+			}
+		}
+	}
+
+	return pickIndexes;
+};
+
 // If it's too slow to calculate the precise probability, just estimate
 const monteCarloLotteryProbs = (
 	result: DraftLotteryResultArray,
 	numToPick: number,
+	draftType: DraftType,
 ) => {
 	const ITERATIONS = 100000;
 
@@ -106,7 +198,10 @@ const monteCarloLotteryProbs = (
 	const chances = result.map((row) => row.chances);
 
 	for (let i = 0; i < ITERATIONS; i++) {
-		const result = simLottery(chances, numToPick);
+		const result =
+			draftType === "nba321"
+				? simNba321Lottery(chances)
+				: simLottery(chances, numToPick);
 		for (let j = 0; j < result.length; j++) {
 			const k = result[j]!;
 			if (!probs[k]) {
@@ -183,6 +278,13 @@ export const getDraftLotteryProbs = (
 		return {
 			tooSlow: false,
 			probs,
+		};
+	}
+
+	if (draftType === "nba321" && result.length === NBA_321_PROBS.length) {
+		return {
+			tooSlow: false,
+			probs: NBA_321_PROBS.map((row) => [...row]),
 		};
 	}
 
@@ -453,7 +555,7 @@ export const getDraftLotteryProbs = (
 			// Estimate probs
 			return {
 				tooSlow,
-				probs: monteCarloLotteryProbs(result, numToPick),
+				probs: monteCarloLotteryProbs(result, numToPick, draftType),
 			};
 		}
 	}

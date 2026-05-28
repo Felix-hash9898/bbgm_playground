@@ -26,12 +26,15 @@ const doInjury = async (
 	pidsInjuredOneGameOrLess: Set<number>,
 	injuryTexts: string[],
 	conditions: Conditions,
+	occurrence: "inGame" | "postGame" = "inGame",
 ) => {
 	const healthLevel = await finances.getLevelLastThree("health", {
 		tid: p2.tid,
 	});
 
-	p2.injury = player.injury(healthLevel);
+	p2.injury = player.injury(healthLevel, {
+		occurrence,
+	});
 
 	// Is this a reinjury or not?
 	let reaggravateExtraDays;
@@ -47,18 +50,22 @@ const doInjury = async (
 		}
 	}
 
-	// So it gets written to box score... save the old injury (if playing through injury
-	if (p.injury.playingThrough) {
-		p.injuryAtStart = {
-			type: p.injury.type,
-			gamesRemaining: p.injury.gamesRemaining,
+	if (occurrence === "inGame") {
+		// So it gets written to box score... save the old injury (if playing through injury
+		if (p.injury.playingThrough) {
+			p.injuryAtStart = {
+				type: p.injury.type,
+				gamesRemaining: p.injury.gamesRemaining,
+			};
+		}
+		p.injury = {
+			type: p2.injury.type,
+			gamesRemaining: p2.injury.gamesRemaining,
+			newThisGame: true,
 		};
+	} else {
+		p2.injury.skipDailyCountdown = true;
 	}
-	p.injury = {
-		type: p2.injury.type,
-		gamesRemaining: p2.injury.gamesRemaining,
-		newThisGame: true,
-	};
 
 	if (p2.injury.gamesRemaining <= 1) {
 		pidsInjuredOneGameOrLess.add(p2.pid);
@@ -74,12 +81,20 @@ const doInjury = async (
 		type: p2.injury.type,
 	});
 	let stopPlay = false;
+	const gamesMissedAfterThis =
+		occurrence === "inGame"
+			? p2.injury.gamesRemaining - 1
+			: p2.injury.gamesRemaining;
 	const injuryText = `${p.pos} <a href="${helpers.leagueUrl([
 		"player",
 		p2.pid,
-	])}">${p2.firstName} ${p2.lastName}</a> - ${p2.injury.type}, ${
-		p2.injury.gamesRemaining - 1
-	} ${p2.injury.gamesRemaining - 1 === 1 ? gameOrWeek : `${gameOrWeek}s`}`;
+	])}">${p2.firstName} ${p2.lastName}</a> - ${
+		occurrence === "inGame"
+			? p2.injury.type
+			: `diagnosed with ${p2.injury.type}`
+	}, ${gamesMissedAfterThis} ${
+		gamesMissedAfterThis === 1 ? gameOrWeek : `${gameOrWeek}s`
+	}`;
 
 	if (g.get("userTid") === p2.tid) {
 		if (p2.injury.gamesRemaining > 1) {
@@ -88,7 +103,7 @@ const doInjury = async (
 
 		stopPlay =
 			g.get("stopOnInjury") &&
-			p2.injury.gamesRemaining > g.get("stopOnInjuryGames") &&
+			p2.injury.gamesRemaining >= g.get("stopOnInjuryGames") &&
 			!local.autoPlayUntil;
 	}
 
@@ -151,15 +166,26 @@ const doInjury = async (
 	logEvent(
 		{
 			type: "injured",
-			text: `${p.pos} <a href="${helpers.leagueUrl(["player", p2.pid])}">${
-				p2.firstName
-			} ${p2.lastName}</a> ${
-				reaggravateExtraDays === undefined
-					? "was injured"
-					: `reaggravated ${helpers.pronoun(g.get("gender"), "his")} injury`
-			}! (${p2.injury.type}, out for ${p2.injury.gamesRemaining} ${
-				p2.injury.gamesRemaining === 1 ? gameOrWeek : `${gameOrWeek}s`
-			})`,
+			text:
+				occurrence === "inGame"
+					? `${p.pos} <a href="${helpers.leagueUrl(["player", p2.pid])}">${
+							p2.firstName
+						} ${p2.lastName}</a> ${
+							reaggravateExtraDays === undefined
+								? "was injured"
+								: `reaggravated ${helpers.pronoun(g.get("gender"), "his")} injury`
+						}! (${p2.injury.type}, out for ${p2.injury.gamesRemaining} ${
+							p2.injury.gamesRemaining === 1 ? gameOrWeek : `${gameOrWeek}s`
+						})`
+					: `${p.pos} <a href="${helpers.leagueUrl(["player", p2.pid])}">${
+							p2.firstName
+						} ${p2.lastName}</a> ${
+							reaggravateExtraDays === undefined
+								? "was diagnosed after the game"
+								: `reaggravated ${helpers.pronoun(g.get("gender"), "his")} injury after the game`
+						}! (${p2.injury.type}, out for ${p2.injury.gamesRemaining} ${
+							p2.injury.gamesRemaining === 1 ? gameOrWeek : `${gameOrWeek}s`
+						})`,
 			showNotification: false,
 			pids: [p2.pid],
 			tids: [p2.tid],
@@ -180,18 +206,24 @@ const doInjury = async (
 		hockey: p2.injury.gamesRemaining,
 	});
 
+	// These injuries should not cause permanent rating drops
+	const noRatingDropInjuries = ["Torn Meniscus", "Fractured Foot"];
+
 	if (
 		gamesRemainingNormalized > 25 &&
 		Math.random() < gamesRemainingNormalized / 82 &&
-		!p2.ratings.at(-1).locked
+		!p2.ratings.at(-1).locked &&
+		!noRatingDropInjuries.includes(p2.injury.type)
 	) {
 		ratingsLoss = true;
-		let biggestRatingsLoss = 20;
-
-		// Small chance of horrible things
-		if (biggestRatingsLoss === 10 && Math.random() < 0.01) {
-			biggestRatingsLoss = 50;
-		}
+		// Modern medicine reduces long-term impact of these injuries
+		const reducedImpactInjuries = [
+			"Torn ACL",
+			"Torn Achilles Tendon",
+			"Torn MCL",
+		];
+		const isReducedImpact = reducedImpactInjuries.includes(p2.injury.type);
+		let biggestRatingsLoss = isReducedImpact ? 10 : 20;
 
 		player.addRatingsRow(p2, undefined, p2.injuries.length - 1);
 		const r = p2.ratings.length - 1; // New ratings row
@@ -505,7 +537,10 @@ const writePlayerStats = async (
 					}
 				}
 
-				const injuredThisGame = p.newInjury;
+				const injuredThisGame =
+					p.newInjury &&
+					(p.newInjuryMode === undefined || p.newInjuryMode === "inGame");
+				const injuredAfterGame = !injuredThisGame && p.pendingPostGameInjury;
 
 				let ratingsLoss = false;
 
@@ -516,6 +551,7 @@ const writePlayerStats = async (
 						pidsInjuredOneGameOrLess,
 						injuryTexts,
 						conditions,
+						"inGame",
 					);
 					ratingsLoss = output.ratingsLoss;
 
@@ -523,6 +559,51 @@ const writePlayerStats = async (
 						await lock.set("stopGameSim", true);
 						stopPlay = true;
 					}
+				} else if (injuredAfterGame) {
+					const output = await doInjury(
+						p,
+						p2,
+						pidsInjuredOneGameOrLess,
+						injuryTexts,
+						conditions,
+						"postGame",
+					);
+					ratingsLoss = output.ratingsLoss;
+
+					if (output.stopPlay && !stopPlay) {
+						await lock.set("stopGameSim", true);
+						stopPlay = true;
+					}
+				}
+
+				// Update cross-game form streak (basketball only)
+				// Compare this game's efficiency to the player's own season average,
+				// so stars are judged against their own baseline, not a fixed formula.
+				if (isSport("basketball") && p.stat.min > 5 && ps.min > 0) {
+					const gameEff =
+						((p.stat.pts +
+							p.stat.ast * 1.5 +
+							(p.stat.orb + p.stat.drb) * 0.8 -
+							p.stat.tov * 2) *
+							36) /
+						p.stat.min;
+					// Season average including this game (self-calibrating baseline)
+					const seasonEff =
+						((ps.pts + ps.ast * 1.5 + (ps.orb + ps.drb) * 0.8 - ps.tov * 2) *
+							36) /
+						ps.min;
+					const delta = (gameEff - seasonEff) * 0.15;
+					const noise = random.uniform(-0.5, 0.5);
+					p2.form = helpers.bound(
+						(p2.form ?? 0) * 0.85 + delta + noise,
+						-10,
+						10,
+					);
+				}
+
+				if (isSport("basketball")) {
+					(p as any).form = p2.form ?? 0;
+					p2.gameForm = (p as any).gameForm ?? 0;
 				}
 
 				// Player value depends on ratings and regular season stats, neither of which can change in the playoffs (except for severe injuries)

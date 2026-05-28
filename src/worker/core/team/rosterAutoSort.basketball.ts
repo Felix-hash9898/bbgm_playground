@@ -1,5 +1,6 @@
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
+import updateValues from "../player/updateValues.ts";
 
 /**
  * Given a list of players sorted by ability, find the starters.
@@ -113,6 +114,11 @@ const rosterAutoSort = async (tid: number, onlyNewPlayers?: boolean) => {
 		"playersByTid",
 		tid,
 	);
+
+	for (const p of playersFromCache) {
+		await updateValues(p);
+	}
+
 	const players = await idb.getCopies.playersPlus(playersFromCache, {
 		attrs: ["pid", "valueNoPot", "valueNoPotFuzz"],
 		ratings: ["pos"],

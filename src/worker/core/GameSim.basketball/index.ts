@@ -1,7 +1,9 @@
 import { g, helpers, random } from "../../util/index.ts";
 import { PHASE, STARTING_NUM_TIMEOUTS } from "../../../common/index.ts";
+import { getShotTendencyEffect } from "../../../common/shotTendencies.basketball.ts";
 import jumpBallWinnerStartsThisPeriodWithPossession from "./jumpBallWinnerStartsThisPeriodWithPossession.ts";
-import getInjuryRate from "./getInjuryRate.ts";
+import getInjuryRate, { getInjuryOverloadFactor } from "./getInjuryRate.ts";
+import getMinutesLimitFactor from "./getMinutesLimitFactor.ts";
 import type {
 	GameAttributesLeague,
 	PlayerInjury,
@@ -27,6 +29,7 @@ const NUM_TIMEOUTS_OVERTIME = 2;
 const TIMEOUTS_STOP_CLOCK = 2; // [minutes]
 
 const TIP_IN_ONLY_LIMIT = 0.2; // [seconds] - only tip-ins from an inbound with less than this much time
+const IN_GAME_INJURY_SHARE = 0.35;
 
 type ShotType =
 	| "atRim"
@@ -68,7 +71,9 @@ type Stat =
 	| "sPts";
 type CompositeRating =
 	| "blocking"
+	| "defensiveRebounding"
 	| "fouling"
+	| "offensiveRebounding"
 	| "passing"
 	| "rebounding"
 	| "stealing"
@@ -89,7 +94,15 @@ type PlayerGameSim = {
 	injury: PlayerInjury & {
 		playingThrough: boolean;
 	};
+	atRimTendency?: number;
+	lowPostTendency?: number;
+	midRangeTendency?: number;
 	ptModifier: number;
+	threePointTendency?: number;
+	usageBias: number;
+	gameForm: number; // Within-game random form factor (-5 to +5)
+	pendingPostGameInjury?: boolean;
+	newInjuryMode?: "inGame" | "postGame";
 };
 type TeamGameSim = {
 	id: number;
@@ -864,6 +877,109 @@ class GameSim extends GameSimBase {
 		return energy;
 	}
 
+	// Usage bias is meant to redistribute touches. When a player is pushed above
+	// baseline, model a modest shot-quality cost and ball-handling burden.
+	getUsageBiasOverload(p: PlayerGameSim) {
+		return Math.max(0, Math.min((p.usageBias ?? 1) - 1, 0.25));
+	}
+
+	// Lowered usage can help a bit, but keep the relief smaller than overload to
+	// avoid gaming the sim by dialing everyone down.
+	getUsageBiasRelief(p: PlayerGameSim) {
+		return Math.max(0, Math.min(1 - (p.usageBias ?? 1), 0.15));
+	}
+
+	getTeamUsageOverload() {
+		const playersOnCourt = this.playersOnCourt[this.o];
+		let weightedOverload = 0;
+		let totalWeight = 0;
+
+		for (const p of playersOnCourt) {
+			const usage = Math.max(0.05, p.compositeRating.usage ?? 0);
+			weightedOverload += usage * this.getUsageBiasOverload(p);
+			totalWeight += usage;
+		}
+
+		if (totalWeight <= 0) {
+			return 0;
+		}
+
+		return weightedOverload / totalWeight;
+	}
+
+	getLineupSpacingGravity() {
+		const playersOnCourt = this.playersOnCourt[this.o];
+		let totalWeight = 0;
+		let weightedGravity = 0;
+
+		for (const p of playersOnCourt) {
+			const usage = Math.max(0.05, p.compositeRating.usage ?? 0);
+			const weight = 0.85 + 0.3 * usage;
+			const threeSkill = helpers.bound(
+				p.compositeRating.shootingThreePointer ?? 0,
+				0,
+				1,
+			);
+			const threeTendencyAdjustment =
+				1 + 0.1 * (getShotTendencyEffect(p.threePointTendency) - 1);
+
+			weightedGravity += threeSkill * threeTendencyAdjustment * weight;
+			totalWeight += weight;
+		}
+
+		if (totalWeight <= 0) {
+			return 0;
+		}
+
+		return weightedGravity / totalWeight;
+	}
+
+	getLineupPaintPressure() {
+		const playersOnCourt = this.playersOnCourt[this.o];
+		let totalWeight = 0;
+		let weightedPressure = 0;
+
+		for (const p of playersOnCourt) {
+			const usage = Math.max(0.05, p.compositeRating.usage ?? 0);
+			const weight = 0.85 + 0.3 * usage;
+			const atRimBias = Math.max(0, getShotTendencyEffect(p.atRimTendency) - 1);
+			const lowPostBias = Math.max(
+				0,
+				getShotTendencyEffect(p.lowPostTendency) - 1,
+			);
+
+			weightedPressure += (0.75 * atRimBias + lowPostBias) * weight;
+			totalWeight += weight;
+		}
+
+		if (totalWeight <= 0) {
+			return 0;
+		}
+
+		return weightedPressure / totalWeight;
+	}
+
+	getPaintDamping() {
+		const paintPressure = this.getLineupPaintPressure();
+		if (paintPressure <= 0) {
+			return 1;
+		}
+
+		const spacingGravity = this.getLineupSpacingGravity();
+		const spacingRelief = 0.55 + 0.9 * spacingGravity;
+		const congestion = paintPressure / spacingRelief;
+
+		return helpers.bound(1 - 1.35 * congestion, 0.4, 1);
+	}
+
+	getAdjustedPaintTendencyEffect(personalEffect: number, paintDamping: number) {
+		if (personalEffect <= 1) {
+			return personalEffect;
+		}
+
+		return 1 + (personalEffect - 1) * paintDamping;
+	}
+
 	getFoulTroubleLimit() {
 		const foulsNeededToFoulOut = g.get("foulsNeededToFoulOut");
 
@@ -951,8 +1067,14 @@ class GameSim extends GameSimBase {
 		}
 
 		const foulLimit = this.getFoulTroubleLimit();
+		const playoffs = g.get("phase") === PHASE.PLAYOFFS;
+		const regulationMinutes = g.get("quarterLength") * g.get("numPeriods");
 
 		for (const t of teamNums) {
+			const availablePlayers = this.team[t].player.filter(
+				(p) => !p.injured,
+			).length;
+
 			const getOvrs = (includeFouledOut: boolean) => {
 				// Overall values scaled by fatigue, etc
 				const ovrs: Record<number, number> = {};
@@ -975,6 +1097,17 @@ class GameSim extends GameSimBase {
 						if (!this.allStarGame) {
 							ovrs[p.id]! *= p.ptModifier;
 						}
+
+						ovrs[p.id]! *= getMinutesLimitFactor({
+							availablePlayers,
+							endurance: p.compositeRating.endurance,
+							lateGame,
+							minutes: p.stat.min ?? 0,
+							playoffs,
+							ptModifier: p.ptModifier,
+							regulationMinutes,
+							rosterIndex: i,
+						});
 
 						// Also scale based on margin late in games, so stars play less in blowouts (this doesn't really work that well, but better than nothing)
 						if (blowout) {
@@ -1263,7 +1396,8 @@ class GameSim extends GameSimBase {
 		const toUpdate = [
 			"dribbling",
 			"passing",
-			"rebounding",
+			"offensiveRebounding",
+			"defensiveRebounding",
 			"defense",
 			"defensePerimeter",
 			"blocking",
@@ -1313,7 +1447,9 @@ class GameSim extends GameSimBase {
 				this.synergyFactor * this.team[t].synergy.off;
 			this.team[t].compositeRating.passing +=
 				this.synergyFactor * this.team[t].synergy.off;
-			this.team[t].compositeRating.rebounding +=
+			this.team[t].compositeRating.offensiveRebounding +=
+				this.synergyFactor * this.team[t].synergy.reb;
+			this.team[t].compositeRating.defensiveRebounding +=
 				this.synergyFactor * this.team[t].synergy.reb;
 			this.team[t].compositeRating.defense +=
 				this.synergyFactor * this.team[t].synergy.def;
@@ -1380,16 +1516,23 @@ class GameSim extends GameSimBase {
 		for (const t of teamNums) {
 			for (const p of this.team[t].player) {
 				// Only players on the court can be injured
-				if (this.playersOnCourt[t].includes(p)) {
-					const injuryRate = getInjuryRate(
-						baseRate,
-						p.age,
-						p.injury.gamesRemaining > 0,
-					);
+				if (
+					this.playersOnCourt[t].includes(p) &&
+					!p.injured &&
+					!p.pendingPostGameInjury
+				) {
+					const injuryRate =
+						getInjuryRate(baseRate, p.age, p.injury.gamesRemaining > 0) *
+						getInjuryOverloadFactor(p.stat.min ?? 0);
 
-					if (Math.random() < injuryRate) {
+					const inGameInjuryRate = injuryRate * IN_GAME_INJURY_SHARE;
+					const postGameInjuryRate = injuryRate - inGameInjuryRate;
+					const rand = Math.random();
+
+					if (rand < inGameInjuryRate) {
 						p.injured = true;
 						p.newInjury = true;
+						p.newInjuryMode = "inGame";
 						newInjury = true;
 						this.playByPlay.logEvent({
 							type: "injury",
@@ -1397,6 +1540,9 @@ class GameSim extends GameSimBase {
 							pid: p.id,
 							clock: this.t,
 						});
+					} else if (rand < inGameInjuryRate + postGameInjuryRate) {
+						p.pendingPostGameInjury = true;
+						p.newInjuryMode = "postGame";
 					}
 				}
 			}
@@ -1684,13 +1830,18 @@ class GameSim extends GameSimBase {
 	 * @return {number} Probability from 0 to 1.
 	 */
 	probTov() {
-		return boundProb(
+		const baseProb =
 			(g.get("turnoverFactor") *
 				(0.14 * this.team[this.d].compositeRating.defense)) /
-				(0.5 *
-					(this.team[this.o].compositeRating.dribbling +
-						this.team[this.o].compositeRating.passing)),
-		);
+			(0.5 *
+				(this.team[this.o].compositeRating.dribbling +
+					this.team[this.o].compositeRating.passing));
+
+		// Keep the team-wide TO effect small. The main cost should be who absorbs
+		// the turnovers, not a huge jump in raw turnover rate.
+		const usageOverloadFactor = 1 + 0.35 * this.getTeamUsageOverload();
+
+		return boundProb(baseProb * usageOverloadFactor);
 	}
 
 	/**
@@ -1699,7 +1850,7 @@ class GameSim extends GameSimBase {
 	 * @return {string} Either "tov" or "stl" depending on whether the turnover was caused by a steal or not.
 	 */
 	doTov(pOverride?: PlayerGameSim) {
-		const p = pOverride ?? this.pickPlayer("turnovers", this.o, 2);
+		const p = pOverride ?? this.pickTurnoverPlayer();
 		this.recordStat(this.o, p, "tov");
 
 		if (this.probStl() > Math.random()) {
@@ -1720,6 +1871,106 @@ class GameSim extends GameSimBase {
 			clock: this.t,
 		});
 		return outOfBounds ? "outOfBoundsOffense" : ("tov" as const);
+	}
+
+	pickTurnoverPlayer() {
+		const playersOnCourt = this.playersOnCourt[this.o];
+		const weights = playersOnCourt.map((p) => {
+			const usage = p.compositeRating.usage ?? 0;
+			const usageLoad = usage * (p.usageBias ?? 1);
+			const turnovers = p.compositeRating.turnovers ?? 0;
+			const dribbling = p.compositeRating.dribbling ?? 0;
+
+			// Assign turnovers based on a mix of offensive burden and ball security.
+			// High-usage players should commit more turnovers, but good dribblers
+			// should shed some of that risk rather than pure passing burden causing
+			// them to "inherit" turnovers.
+			const burden = (0.2 + usageLoad) ** 1.5;
+			const ballSecurityRisk = (0.15 + turnovers) / (0.35 + dribbling);
+
+			return burden * ballSecurityRisk * this.fatigue(p.stat.energy);
+		});
+
+		let total = 0;
+		for (const weight of weights) {
+			total += weight;
+		}
+
+		if (total <= 0) {
+			return random.choice(playersOnCourt);
+		}
+
+		const floor = 0.05 * total;
+		for (let i = 0; i < weights.length; i++) {
+			if (weights[i]! < floor) {
+				weights[i] = floor;
+			}
+		}
+
+		let adjustedTotal = 0;
+		for (const weight of weights) {
+			adjustedTotal += weight;
+		}
+
+		let runningSum = 0;
+		const rand = Math.random() * adjustedTotal;
+		for (const [i, weight] of weights.entries()) {
+			runningSum += weight;
+			if (rand < runningSum) {
+				return playersOnCourt[i]!;
+			}
+		}
+
+		return playersOnCourt[0]!;
+	}
+
+	pickDefensiveReboundPlayer() {
+		const playersOnCourt = this.playersOnCourt[this.d];
+		const weights = playersOnCourt.map((p) => {
+			const defensiveRebounding = p.compositeRating.defensiveRebounding ?? 0;
+			const passing = p.compositeRating.passing ?? 0;
+
+			// Some teams intentionally funnel easy defensive boards to players
+			// who can immediately start the break. Keep that effect small so this
+			// influences who gets credited with a DRB, not whether the team secures it.
+			const outletBias = 0.85 + 0.35 * passing;
+
+			return (
+				(defensiveRebounding * outletBias * this.fatigue(p.stat.energy)) ** 3
+			);
+		});
+
+		let total = 0;
+		for (const weight of weights) {
+			total += weight;
+		}
+
+		if (total <= 0) {
+			return random.choice(playersOnCourt);
+		}
+
+		const floor = 0.05 * total;
+		for (let i = 0; i < weights.length; i++) {
+			if (weights[i]! < floor) {
+				weights[i] = floor;
+			}
+		}
+
+		let adjustedTotal = 0;
+		for (const weight of weights) {
+			adjustedTotal += weight;
+		}
+
+		let runningSum = 0;
+		const rand = Math.random() * adjustedTotal;
+		for (const [i, weight] of weights.entries()) {
+			runningSum += weight;
+			if (rand < runningSum) {
+				return playersOnCourt[i]!;
+			}
+		}
+
+		return playersOnCourt[0]!;
 	}
 
 	/**
@@ -1852,7 +2103,10 @@ class GameSim extends GameSimBase {
 		} else if (
 			forceThreePointer ||
 			Math.random() <
-				0.67 * shootingThreePointerScaled2 * g.get("threePointTendencyFactor")
+				0.67 *
+					shootingThreePointerScaled2 *
+					g.get("threePointTendencyFactor") *
+					getShotTendencyEffect(p.threePointTendency)
 		) {
 			// Three pointer
 			type = "threePointer";
@@ -1867,18 +2121,40 @@ class GameSim extends GameSimBase {
 			}
 			probMake *= g.get("threePointAccuracyFactor");
 		} else {
-			const r1 = 0.8 * Math.random() * p.compositeRating.shootingMidRange;
-			const r2 =
+			let r1 = 0.8 * Math.random() * p.compositeRating.shootingMidRange;
+			let r2 =
 				Math.random() *
 				(p.compositeRating.shootingAtRim +
 					this.synergyFactor *
 						(this.team[this.o].synergy.off - this.team[this.d].synergy.def)); // Synergy makes easy shots either more likely or less likely
 
-			const r3 =
+			let r3 =
 				Math.random() *
 				(p.compositeRating.shootingLowPost +
 					this.synergyFactor *
 						(this.team[this.o].synergy.off - this.team[this.d].synergy.def)); // Synergy makes easy shots either more likely or less likely
+
+			const usageOverload = this.getUsageBiasOverload(p);
+			const usageRelief = this.getUsageBiasRelief(p);
+			const midRangeTendencyEffect = getShotTendencyEffect(p.midRangeTendency);
+			const paintDamping = this.getPaintDamping();
+			const atRimTendencyEffect = this.getAdjustedPaintTendencyEffect(
+				getShotTendencyEffect(p.atRimTendency),
+				paintDamping,
+			);
+			const lowPostTendencyEffect = this.getAdjustedPaintTendencyEffect(
+				getShotTendencyEffect(p.lowPostTendency),
+				paintDamping,
+			);
+
+			// Higher usage bias should make clean interior touches a bit harder to
+			// come by, nudging the player toward more bailout 2s.
+			r1 *=
+				(1 + 0.75 * usageOverload - 0.2 * usageRelief) * midRangeTendencyEffect;
+			r2 *=
+				(1 - 0.32 * usageOverload + 0.08 * usageRelief) * atRimTendencyEffect;
+			r3 *=
+				(1 - 0.2 * usageOverload + 0.05 * usageRelief) * lowPostTendencyEffect;
 
 			if (r1 > r2 && r1 > r3) {
 				// Two point jumper
@@ -2727,12 +3003,12 @@ class GameSim extends GameSimBase {
 		}
 
 		if (
-			(0.75 * (2 + this.team[this.d].compositeRating.rebounding)) /
+			(0.75 * (2 + this.team[this.d].compositeRating.defensiveRebounding)) /
 				(g.get("orbFactor") *
-					(2 + this.team[this.o].compositeRating.rebounding)) >
+					(2 + this.team[this.o].compositeRating.offensiveRebounding)) >
 			Math.random()
 		) {
-			p = this.pickPlayer("rebounding", this.d, 3);
+			p = this.pickDefensiveReboundPlayer();
 			this.recordStat(this.d, p, "drb");
 			this.playByPlay.logEvent({
 				type: "drb",
@@ -2743,7 +3019,7 @@ class GameSim extends GameSimBase {
 			return "drb" as const;
 		}
 
-		this.lastOrbPlayer = this.pickPlayer("rebounding", this.o, 5);
+		this.lastOrbPlayer = this.pickPlayer("offensiveRebounding", this.o, 5);
 		p = this.lastOrbPlayer;
 		this.recordStat(this.o, p, "orb");
 		this.playByPlay.logEvent({
@@ -2770,6 +3046,10 @@ class GameSim extends GameSimBase {
 		// Scale composite ratings
 		const array = this.playersOnCourt[t].map((p, i) => {
 			let compositeRating = p.compositeRating[rating];
+
+			if (rating === "usage") {
+				compositeRating *= p.usageBias ?? 1;
+			}
 
 			if (rating === "fouling") {
 				const pf = p.stat.pf;

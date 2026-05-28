@@ -621,9 +621,14 @@ if (isSport("hockey")) {
 			games: 8.28,
 		},
 		{
+			name: "Torn MCL",
+			frequency: 20,
+			games: 20,
+		},
+		{
 			name: "Torn ACL",
-			frequency: 40,
-			games: 100,
+			frequency: 25,
+			games: 120,
 		},
 		{
 			name: "Fractured Ankle",
@@ -632,8 +637,8 @@ if (isSport("hockey")) {
 		},
 		{
 			name: "Torn Achilles Tendon",
-			frequency: 10,
-			games: 100,
+			frequency: 15,
+			games: 120,
 		},
 	];
 }

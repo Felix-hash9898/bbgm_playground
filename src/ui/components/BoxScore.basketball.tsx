@@ -65,6 +65,9 @@ const StatsTable = ({
 		"pts",
 		"pm",
 		"gmsc",
+		"form",
+		"gameForm",
+		"formTot",
 	];
 	const cols = getCols(
 		stats.map((stat) => `stat:${stat}`),
@@ -77,6 +80,9 @@ const StatsTable = ({
 			},
 			"stat:ft": {
 				desc: "Free Throws",
+			},
+			"stat:trb": {
+				desc: "Total Rebounds",
 			},
 		},
 	);
@@ -119,6 +125,10 @@ const StatsTable = ({
 						p[stat] / (p[`${stat}a`] + 1) +
 						(1000 - p[`${stat}a`]) / 1000
 					);
+				}
+
+				if (stat === "formTot") {
+					return (p.form ?? 0) + (p.gameForm ?? 0);
 				}
 
 				return p[stat];
@@ -185,6 +195,9 @@ const StatsTable = ({
 						<th>{t.pts}</th>
 						<th />
 						<th />
+						<th />
+						<th />
+						<th />
 					</tr>
 					<tr>
 						<th>Percentages</th>
@@ -194,6 +207,8 @@ const StatsTable = ({
 						<th>{helpers.roundStat((100 * t.fg) / t.fga, "fgp")}%</th>
 						<th>{helpers.roundStat((100 * t.tp) / t.tpa, "tpp")}%</th>
 						<th>{helpers.roundStat((100 * t.ft) / t.fta, "ftp")}%</th>
+						<th />
+						<th />
 						<th />
 						<th />
 						<th />

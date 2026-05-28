@@ -3011,6 +3011,13 @@ const cols: {
 	Age: {
 		sortType: "number",
 	},
+	Usage: {},
+	ShotProfile: {
+		desc: "Shot profile tendency preset",
+		noSearch: true,
+		sortSequence: [],
+		title: "Shot Profile",
+	},
 	Amount: {
 		sortSequence: ["desc", "asc"],
 		sortType: "number",
@@ -3287,6 +3294,35 @@ const cols: {
 		desc: "Overall Rating",
 		sortSequence: ["desc", "asc"],
 		sortType: "number",
+	},
+	Form: {
+		desc: "Cross-game streak: -10 (cold) to +10 (hot). Decays each game.",
+		sortSequence: ["desc", "asc"],
+		sortType: "number",
+	},
+	GameForm: {
+		desc: "Within-game random form factor from last game: -5 to +5.",
+		sortSequence: ["desc", "asc"],
+		sortType: "number",
+		title: "GForm",
+	},
+	"stat:form": {
+		desc: "Cross-game form streak: -10 (cold) to +10 (hot). Decays each game.",
+		sortSequence: ["desc", "asc"],
+		sortType: "number",
+		title: "Form",
+	},
+	"stat:gameForm": {
+		desc: "Within-game form factor from last game: -5 to +5.",
+		sortSequence: ["desc", "asc"],
+		sortType: "number",
+		title: "GForm",
+	},
+	"stat:formTot": {
+		desc: "Total form effect (Form + GForm, -15 to +15). Directly determines the ±8% attribute multiplier.",
+		sortSequence: ["desc", "asc"],
+		sortType: "number",
+		title: "FormTot",
 	},
 	"Ovr Drop": {
 		desc: "Decrease in Overall Rating",

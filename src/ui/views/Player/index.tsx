@@ -10,7 +10,7 @@ import { getCols, helpers, groupAwards } from "../../util/index.ts";
 import type { View } from "../../../common/types.ts";
 import SeasonIcons from "./SeasonIcons.tsx";
 import TopStuff from "./TopStuff.tsx";
-import { PLAYER } from "../../../common/index.ts";
+import { isSport, PLAYER, PLAYER_STATS_TABLES } from "../../../common/index.ts";
 import HideableSection from "../../components/HideableSection.tsx";
 import { StatsTable } from "./StatsTable.tsx";
 import { highlightLeaderText, MaybeBold, SeasonLink } from "./common.tsx";
@@ -126,6 +126,26 @@ const Player2 = ({
 					leaders={leaders}
 				/>
 			))}
+
+			{isSport("basketball") &&
+			player.per36Stats &&
+			player.per36CareerStats &&
+			player.per36CareerStatsCombined &&
+			player.per36CareerStatsPlayoffs ? (
+				<StatsTable
+					name="Per 36"
+					p={player}
+					stats={PLAYER_STATS_TABLES.regular!.stats}
+					statsSource={{
+						stats: player.per36Stats,
+						careerStats: player.per36CareerStats,
+						careerStatsCombined: player.per36CareerStatsCombined,
+						careerStatsPlayoffs: player.per36CareerStatsPlayoffs,
+					}}
+					tableStatType="per36"
+					leaders={leaders}
+				/>
+			) : null}
 
 			<HideableSection
 				title="Ratings"

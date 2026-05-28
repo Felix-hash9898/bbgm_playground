@@ -123,9 +123,10 @@ export const makeAbbrevsUnique = <T extends { abbrev: string }>(
  *
  * @memberOf views.gameLog
  * @param {number} gid Integer game ID for the box score (a negative number means no box score).
+ * @param {number} tid Team ID for the current game log page.
  * @return {Promise.Object} Resolves to an object containing the box score data (or a blank object).
  */
-const boxScore = async (gid: number) => {
+const boxScore = async (gid: number, tid: number) => {
 	const game = await idb.getCopy.games({ gid });
 
 	// If game doesn't exist (bad gid or deleted box scores), show nothing
@@ -155,6 +156,15 @@ const boxScore = async (gid: number) => {
 
 		// Floating point errors make this off a bit
 		t.min = Math.round(t.min);
+
+		// Attach form/gameForm from player cache (accurate for most recently simulated game)
+		for (const p of t.players) {
+			const playerFromCache = await idb.cache.players.get(p.pid);
+			if (playerFromCache) {
+				p.form = playerFromCache.form ?? 0;
+				p.gameForm = playerFromCache.gameForm ?? 0;
+			}
+		}
 
 		// Put injured players at the bottom, then sort by GS and roster position
 		t.players.sort((a: any, b: any) => {
@@ -212,12 +222,17 @@ const boxScore = async (gid: number) => {
 		},
 	};
 
-	// Swap teams order, so home team is at bottom in box score
-	game2.teams.reverse();
+	const userTeamIndex = game2.teams.findIndex((t) => t.tid === tid);
+	const reverseTeams =
+		userTeamIndex === 1 || (tid < 0 && game2.teams.length === 2);
 
-	if (game2.scoringSummary) {
-		for (const event of game2.scoringSummary) {
-			event.t = event.t === 0 ? 1 : 0;
+	if (reverseTeams) {
+		game2.teams.reverse();
+
+		if (game2.scoringSummary) {
+			for (const event of game2.scoringSummary) {
+				event.t = event.t === 0 ? 1 : 0;
+			}
 		}
 	}
 
@@ -243,7 +258,7 @@ const updateTeamSeason = async (inputs: ViewInput<"gameLog">) => {
  * @param {number} inputs.gid Integer game ID for the box score (a negative number means no box score).
  */
 const updateBoxScore = async (
-	{ gid }: ViewInput<"gameLog">,
+	{ gid, tid }: ViewInput<"gameLog">,
 	updateEvents: UpdateEvents,
 	state: any,
 ) => {
@@ -252,7 +267,7 @@ const updateBoxScore = async (
 		!state.boxScore ||
 		gid !== state.boxScore.gid
 	) {
-		const game = await boxScore(gid);
+		const game = await boxScore(gid, tid);
 		return { boxScore: game };
 	}
 };

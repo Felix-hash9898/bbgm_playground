@@ -11,3 +11,18 @@
 /foo
 /.vscode
 /tools/names-groups-html
+
+# Local / sensitive / build artifacts
+.DS_Store
+.env
+.env.*
+*.key
+*.pem
+dist/
+build/
+coverage/
+.cache/
+.vite/
+.turbo/
+data/
+outputs/

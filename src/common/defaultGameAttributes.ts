@@ -186,10 +186,10 @@ const defaultGameAttributes: GameAttributesLeagueWithHistory = {
 	numGamesPlayoffSeries: wrap([7, 7, 7, 7]),
 	numPlayoffByes: wrap(0),
 	aiTradesFactor: 1,
-	stopOnInjury: false,
-	stopOnInjuryGames: 20,
-	// According to data/injuries.ods, 0.25 injuries occur every game. Divided over 10 players and ~200 possessions, that means each player on the court has P = 0.25 / 10 / 200 = 0.000125 probability of being injured this play.
-	injuryRate: 0.25 / 10 / 200,
+	stopOnInjury: true,
+	stopOnInjuryGames: 5,
+	// Default was 0.25 / 10 / 200 = 0.000125 (0.25 injuries/game). Raised to 0.0004 (~0.8/game at default possession count).
+	injuryRate: 0.0004,
 	homeCourtAdvantage: 1,
 	// The tragic death rate is the probability that a player will die a tragic death on a given regular season day. Yes, this only happens in the regular season. With roughly 100 days in a season, the default is about one death every 50 years.
 	tragicDeathRate: 1 / (100 * 50),
@@ -229,8 +229,8 @@ const defaultGameAttributes: GameAttributesLeagueWithHistory = {
 	foulRateFactor: 1,
 	foulsNeededToFoulOut: 6,
 	foulsUntilBonus: [5, 4, 2],
-	rookieContractLengths: [3, 2],
-	rookiesCanRefuse: true,
+	rookieContractLengths: [4, 2],
+	rookiesCanRefuse: false,
 
 	pace: 100,
 	threePointers: true,
@@ -295,7 +295,7 @@ const defaultGameAttributes: GameAttributesLeagueWithHistory = {
 	numPlayersDunk: 4,
 	numPlayersThree: 8,
 	draftPickAutoContract: true,
-	draftPickAutoContractPercent: 25,
+	draftPickAutoContractPercent: 30,
 	draftPickAutoContractRounds: 1,
 	dh: "all",
 	gender: "male",

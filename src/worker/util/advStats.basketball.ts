@@ -7,6 +7,7 @@ import { groupByUnique } from "../../common/utils.ts";
 import helpers from "./helpers.ts";
 import defaultGameAttributes from "../../common/defaultGameAttributes.ts";
 import statsRowIsCurrent from "../core/player/statsRowIsCurrent.ts";
+import processTeamStats from "../core/team/processStats.basketball.ts";
 
 type Team = TeamFiltered<
 	["tid"],
@@ -733,6 +734,103 @@ const calculateRatings = (
 		dws,
 		ortg,
 		ows,
+	};
+};
+
+const TEAM_STATS_FOR_ADVANCED = [
+	"gp",
+	"ft",
+	"pf",
+	"ast",
+	"fg",
+	"pts",
+	"fga",
+	"orb",
+	"tov",
+	"fta",
+	"trb",
+	"oppPts",
+	"pace",
+	"min",
+	"oppFga",
+	"oppTpa",
+	"drb",
+	"oppOrb",
+	"oppDrb",
+	"oppFta",
+	"oppFg",
+	"oppTov",
+	"oppTrb",
+	"blk",
+	"drtg",
+	"ortg",
+	"oppFt",
+	"stl",
+	"tp",
+	"poss",
+] as const;
+
+export const calculateAdvancedStatsFromRawGameData = (
+	players: any[],
+	teamsRaw: Array<{
+		tid: number;
+		stats: any;
+	}>,
+) => {
+	const teams = teamsRaw.map((t) => ({
+		tid: t.tid,
+		stats: {
+			...t.stats,
+			...processTeamStats(t.stats, TEAM_STATS_FOR_ADVANCED, false, "totals"),
+		},
+	})) as Team[];
+
+	const leagueStats = [
+		"gp",
+		"ft",
+		"pf",
+		"ast",
+		"fg",
+		"pts",
+		"fga",
+		"orb",
+		"tov",
+		"fta",
+		"trb",
+		"pace",
+		"poss",
+		"drtg",
+		"ortg",
+	] as const;
+
+	const league: any = teams.reduce((memo: any, t) => {
+		for (const key of leagueStats) {
+			const value = key === "pace" ? t.stats.pace * t.stats.gp : t.stats[key];
+
+			if (Object.hasOwn(memo, key)) {
+				memo[key] += value;
+			} else {
+				memo[key] = value;
+			}
+		}
+
+		return memo;
+	}, {});
+
+	if (!league.gp || league.gp <= 0) {
+		return undefined;
+	}
+
+	league.pace /= league.gp;
+
+	const teamsByTid = groupByUnique(teams, "tid");
+
+	return {
+		...calculateOnOff(players, teamsByTid),
+		...calculatePER(players, teamsByTid, league),
+		...calculatePercentages(players, teamsByTid),
+		...calculateRatings(players, teamsByTid, league),
+		...calculateBPM(players, teamsByTid, league),
 	};
 };
 

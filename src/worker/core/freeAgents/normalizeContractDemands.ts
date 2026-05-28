@@ -1,6 +1,7 @@
 import { idb } from "../../db/index.ts";
 import { PLAYER, PHASE, bySport, isSport } from "../../../common/index.ts";
 import { team, player, draft } from "../index.ts";
+import { getContractValue } from "../player/genContract.ts";
 import { g, helpers, random } from "../../util/index.ts";
 import type { Player } from "../../../common/types.ts";
 import { TOO_MANY_TEAMS_TOO_SLOW } from "../season/getInitialNumGamesConfDivSettings.ts";
@@ -151,10 +152,14 @@ const normalizeContractDemands = async ({
 			dummy = true;
 		}
 
+		const marketValue = getContractValue(p);
+		const valueExponent = isSport("basketball") ? 1.4 : 2;
+
 		return {
 			pid: p.pid,
 			dummy,
-			value: (p.value < 0 ? -1 : 1) * p.value ** 2,
+			value:
+				(marketValue < 0 ? -1 : 1) * Math.abs(marketValue) ** valueExponent,
 			contractAmount: helpers.bound(
 				p.contract.amount,
 				minContract,

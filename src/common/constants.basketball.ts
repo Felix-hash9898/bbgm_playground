@@ -68,6 +68,14 @@ const COMPOSITE_WEIGHTS: CompositeWeights<RatingKey> = {
 			cutoff: 0.61,
 		},
 	},
+	offensiveRebounding: {
+		ratings: ["hgt", "stre", "jmp", "reb", "oiq", "spd"],
+		weights: [1.7, 0.9, 0.9, 2, 0.25, 0.2],
+	},
+	defensiveRebounding: {
+		ratings: ["hgt", "stre", "jmp", "reb", "oiq", "diq"],
+		weights: [1.9, 0.5, 0.25, 2, 0.8, 0.6],
+	},
 	stealing: {
 		ratings: [50, "spd", "diq"],
 		weights: [1, 1, 2],

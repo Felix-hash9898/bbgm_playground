@@ -1,6 +1,6 @@
 import { allStar, player, season, team } from "../index.ts";
 import { idb } from "../../db/index.ts";
-import { g, helpers } from "../../util/index.ts";
+import { g, helpers, random } from "../../util/index.ts";
 import type {
 	Player,
 	MinimalPlayerRatings,
@@ -143,6 +143,12 @@ export const processTeam = async (
 		players.sort((a, b) => a.rosterOrder - b.rosterOrder);
 	}
 
+	if (isSport("basketball")) {
+		for (const p of players) {
+			await player.updateValues(p);
+		}
+	}
+
 	// Initialize team composite rating object
 	const compositeRating: any = {};
 
@@ -228,12 +234,19 @@ export const processTeam = async (
 			injured: p.injury.gamesRemaining > playThroughInjuries,
 			jerseyNumber,
 			ptModifier: p.ptModifier,
+			atRimTendency: p.atRimTendency,
+			lowPostTendency: p.lowPostTendency,
+			midRangeTendency: p.midRangeTendency,
+			threePointTendency: p.threePointTendency,
+			usageBias: p.usageBias ?? 1,
 			ovrs: rating.ovrs,
+			gameForm: 0,
 		};
 
 		// Reset ptModifier for AI teams. This should not be necessary since it should always be 1, but let's be safe.
 		if (!g.get("userTids").includes(t.id) || g.get("spectator")) {
 			p2.ptModifier = 1;
+			p2.usageBias = 1;
 		}
 		const seasonStats: Record<string, number> = {};
 
@@ -273,6 +286,46 @@ export const processTeam = async (
 
 		if (isSport("basketball")) {
 			p2.compositeRating.usage = p2.compositeRating.usage ** 1.9;
+
+			// Hot streak form multiplier
+			const crossGameForm = (p as any).form ?? 0; // -10 to +10
+			// Most results cluster around -3 to +3, with occasional bigger swings.
+			const withinGameForm = random.truncGauss(0, 2.25, -5, 5);
+			p2.gameForm = withinGameForm;
+
+			const combined = helpers.bound(crossGameForm + withinGameForm, -15, 15);
+			const formFactor = combined / 15; // -1 to +1
+
+			// Full effect (±8%): skill/confidence-driven composites
+			const FORM_FULL = [
+				"usage",
+				"passing",
+				"shootingMidRange",
+				"shootingThreePointer",
+				"shootingFT",
+				"shootingLowPost",
+				"drawingFouls",
+			];
+			// Weak effect (±4%): effort/IQ-mixed composites
+			const FORM_WEAK = [
+				"shootingAtRim",
+				"rebounding",
+				"stealing",
+				"defense",
+				"defenseInterior",
+				"defensePerimeter",
+				"turnovers",
+			];
+			for (const k of FORM_FULL) {
+				if (p2.compositeRating[k] !== undefined) {
+					p2.compositeRating[k] *= 1 + formFactor * 0.08;
+				}
+			}
+			for (const k of FORM_WEAK) {
+				if (p2.compositeRating[k] !== undefined) {
+					p2.compositeRating[k] *= 1 + formFactor * 0.04;
+				}
+			}
 		}
 		const seasonStatsKeys = bySport({
 			baseball: [

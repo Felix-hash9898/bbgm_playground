@@ -51,6 +51,9 @@ export const getPlayer = async (
 	} & Record<string, number>;
 
 	const stats = getPlayerProfileStats();
+	const per36Stats = isSport("basketball")
+		? (PLAYER_STATS_TABLES.regular?.stats ?? [])
+		: [];
 
 	const p:
 		| (Pick<
@@ -91,9 +94,13 @@ export const getPlayer = async (
 					tid: number;
 				})[];
 				stats: Stats[];
+				per36Stats?: Stats[];
 				careerStats: Stats;
 				careerStatsCombined: Stats;
 				careerStatsPlayoffs: Stats;
+				per36CareerStats?: Stats;
+				per36CareerStatsCombined?: Stats;
+				per36CareerStatsPlayoffs?: Stats;
 				jerseyNumber?: string;
 				experience: number;
 				note?: string;
@@ -157,6 +164,28 @@ export const getPlayer = async (
 
 	// Filter out rows with no games played
 	p.stats = p.stats.filter((row) => row.gp! > 0);
+
+	if (per36Stats.length > 0) {
+		const pPer36 = await idb.getCopy.playersPlus(pRaw, {
+			attrs: [],
+			ratings: [],
+			stats: ["season", "tid", "abbrev", "age", "jerseyNumber", ...per36Stats],
+			playoffs: true,
+			combined: true,
+			showRookies: true,
+			fuzz: true,
+			mergeStats: "totAndTeams",
+			seasonRange,
+			statType: "per36",
+		});
+
+		if (pPer36) {
+			p.per36Stats = pPer36.stats.filter((row: Stats) => row.gp! > 0);
+			p.per36CareerStats = pPer36.careerStats;
+			p.per36CareerStatsCombined = pPer36.careerStatsCombined;
+			p.per36CareerStatsPlayoffs = pPer36.careerStatsPlayoffs;
+		}
+	}
 
 	return p;
 };

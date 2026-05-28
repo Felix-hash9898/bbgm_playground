@@ -15,6 +15,10 @@ import {
 	LEAGUE_DATABASE_VERSION,
 	REAL_PLAYERS_INFO,
 } from "../../common/index.ts";
+import {
+	getShotTendencies,
+	type ShotTendencies,
+} from "../../common/shotTendencies.basketball.ts";
 import actions from "./actions.ts";
 import leagueFileUpload, {
 	decompressStreamIfNecessary,
@@ -2793,9 +2797,11 @@ const ovr = async ({
 
 const ratingsStatsPopoverInfo = async ({
 	pid,
+	playoffsCombined = "regularSeason",
 	season,
 }: {
 	pid: number;
+	playoffsCombined?: "playoffs" | "regularSeason" | "combined";
 	season?: number;
 }) => {
 	const blankObj = {
@@ -2891,6 +2897,9 @@ const ratingsStatsPopoverInfo = async ({
 		attrs,
 		ratings,
 		stats: ["tid", "season", "playoffs", ...stats],
+		combined: playoffsCombined === "combined",
+		playoffs: playoffsCombined === "playoffs",
+		regularSeason: playoffsCombined === "regularSeason",
 		season: actualSeason,
 		showNoStats: true,
 		showRetired: true,
@@ -2906,8 +2915,15 @@ const ratingsStatsPopoverInfo = async ({
 		}
 		p2.age = p2.ratings.season - p.born.year;
 
-		p2.stats = p2.careerStats;
+		p2.stats =
+			playoffsCombined === "combined"
+				? p2.careerStatsCombined
+				: playoffsCombined === "playoffs"
+					? p2.careerStatsPlayoffs
+					: p2.careerStats;
 		delete p2.careerStats;
+		delete p2.careerStatsCombined;
+		delete p2.careerStatsPlayoffs;
 	}
 	if (actualSeason === undefined || actualSeason < currentSeason) {
 		p2.abbrev = p2.ratings.abbrev;
@@ -3242,6 +3258,24 @@ const resetPlayingTime = async (tids: number[] | undefined) => {
 	for (const p of players) {
 		if (tids2.includes(p.tid)) {
 			p.ptModifier = 1;
+			await idb.cache.players.put(p);
+		}
+	}
+
+	await toUI("realtimeUpdate", [["playerMovement"]]);
+};
+
+const resetUsageBias = async (tids: number[] | undefined) => {
+	const tids2 = tids ?? [g.get("userTid")];
+
+	const players = await idb.cache.players.indexGetAll("playersByTid", [
+		0,
+		Infinity,
+	]);
+
+	for (const p of players) {
+		if (tids2.includes(p.tid)) {
+			p.usageBias = 1;
 			await idb.cache.players.put(p);
 		}
 	}
@@ -4244,6 +4278,44 @@ const updatePlayingTime = async ({
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 };
 
+const updateUsageBias = async ({
+	pid,
+	usageBias,
+}: {
+	pid: number;
+	usageBias: number;
+}) => {
+	const p = await idb.cache.players.get(pid);
+	if (!p) {
+		throw new Error("Invalid pid");
+	}
+	p.usageBias = usageBias;
+	await idb.cache.players.put(p);
+	await toUI("realtimeUpdate", [["playerMovement"]]);
+};
+
+const updateShotTendencies = async ({
+	pid,
+	shotTendencies,
+}: {
+	pid: number;
+	shotTendencies: ShotTendencies;
+}) => {
+	const p = await idb.cache.players.get(pid);
+	if (!p) {
+		throw new Error("Invalid pid");
+	}
+
+	const normalized = getShotTendencies(shotTendencies);
+	p.atRimTendency = normalized.atRimTendency;
+	p.lowPostTendency = normalized.lowPostTendency;
+	p.midRangeTendency = normalized.midRangeTendency;
+	p.threePointTendency = normalized.threePointTendency;
+
+	await idb.cache.players.put(p);
+	await toUI("realtimeUpdate", [["playerMovement"]]);
+};
+
 const updatePlayoffTeams = async (
 	teams: {
 		tid: number;
@@ -5204,6 +5276,7 @@ export default {
 		reorderDraftDrag,
 		reorderRosterDrag,
 		resetPlayingTime,
+		resetUsageBias,
 		retiredJerseyNumberDelete,
 		retiredJerseyNumberUpsert,
 		runBefore,
@@ -5244,6 +5317,8 @@ export default {
 		updatePlayerWatch,
 		updatePlayersWatch,
 		updatePlayingTime,
+		updateShotTendencies,
+		updateUsageBias,
 		updatePlayoffTeams,
 		updateTeamInfo,
 		updateTrade,

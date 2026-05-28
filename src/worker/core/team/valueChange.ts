@@ -1,4 +1,5 @@
 import { bySport, PHASE } from "../../../common/index.ts";
+import { getDraftLotteryProbs } from "../../../common/draftLottery.ts";
 import { draft, player, team, trade } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, local } from "../../util/index.ts";
@@ -34,6 +35,7 @@ let prevValueChangeKey: number | undefined;
 let cache: {
 	estPicks: Record<number, number>;
 	estValues: TradePickValues;
+	currentSeasonProjectedPicks: Record<number, number>;
 	teamOvrs: {
 		tid: number;
 		ovr: number;
@@ -43,6 +45,8 @@ let cache: {
 		wp: number;
 	}[];
 };
+
+let cachedNba321Probs: (number | undefined)[][] | undefined;
 
 const zscore = (value: number) =>
 	(value - local.playerOvrMean) / local.playerOvrStd;
@@ -177,7 +181,7 @@ const getPlayers = async ({
 	}
 };
 
-const getPickNumber = async (
+const getProjectedPickRank = async (
 	dp: DraftPick,
 	season: number,
 	pidsAdd: number[],
@@ -190,6 +194,11 @@ const getPickNumber = async (
 	let estPick: number;
 	if (dp.pick > 0) {
 		estPick = dp.pick;
+	} else if (
+		season === g.get("season") &&
+		cache.currentSeasonProjectedPicks[dp.dpid] !== undefined
+	) {
+		estPick = cache.currentSeasonProjectedPicks[dp.dpid]!;
 	} else {
 		let temp = cache.estPicks[dp.originalTid];
 
@@ -228,23 +237,21 @@ const getPickNumber = async (
 		}
 
 		// Weighted average of estPicks and regressionTarget
-		estPick = Math.round(
-			(estPick * (5 - seasons)) / 5 + (regressionTarget * seasons) / 5,
-		);
+		estPick = (estPick * (5 - seasons)) / 5 + (regressionTarget * seasons) / 5;
 
 		if (tradeWithUser && seasons > 0) {
 			if (usersPick) {
 				// Penalty for user draft picks
 				const difficultyFactor = 1 + 1.5 * g.get("difficulty");
 				estPick = helpers.bound(
-					Math.round((estPick + numPicksPerRound / 3.5) * difficultyFactor),
+					(estPick + numPicksPerRound / 3.5) * difficultyFactor,
 					1,
 					numPicksPerRound,
 				);
 			} else {
 				// Bonus for AI draft picks
 				estPick = helpers.bound(
-					Math.round(estPick - numPicksPerRound / 3.5),
+					estPick - numPicksPerRound / 3.5,
 					1,
 					numPicksPerRound,
 				);
@@ -252,9 +259,111 @@ const getPickNumber = async (
 		}
 	}
 
-	estPick += numPicksPerRound * (dp.round - 1);
+	return helpers.bound(estPick, 1, numPicksPerRound);
+};
 
-	return estPick;
+const getNba321Probs = () => {
+	if (cachedNba321Probs) {
+		return cachedNba321Probs;
+	}
+
+	const { probs } = getDraftLotteryProbs(
+		Array.from({ length: 16 }, (_, i) => ({
+			chances: 1,
+			dpid: i,
+			originalTid: i,
+			tid: i,
+		})),
+		"nba321",
+		16,
+	);
+
+	cachedNba321Probs = probs;
+	return cachedNba321Probs;
+};
+
+const getValueForPickIndex = (season: number, index: number) => {
+	const valuesTemp = cache.estValues[season];
+	return valuesTemp?.[index] ?? cache.estValues.default[index];
+};
+
+const getLotteryAdjustedPickAsset = ({
+	projectedRank,
+	rookieSalaries,
+	season,
+}: {
+	projectedRank: number;
+	rookieSalaries: number[];
+	season: number;
+}) => {
+	const probs = getNba321Probs();
+	if (!probs) {
+		return;
+	}
+
+	const maxRank = probs.length;
+	const boundedRank = helpers.bound(projectedRank, 1, maxRank);
+	const lowerRank = Math.floor(boundedRank);
+	const upperRank = Math.ceil(boundedRank);
+	const upperWeight = boundedRank - lowerRank;
+	const lowerWeight = 1 - upperWeight;
+
+	const lowerRow = probs[lowerRank - 1];
+	const upperRow = probs[upperRank - 1];
+	if (!lowerRow || !upperRow) {
+		return;
+	}
+
+	let expectedValue = 0;
+	let expectedSalary = 0;
+	let totalProbability = 0;
+	let upsideValue = 0;
+	for (let i = 0; i < maxRank; i++) {
+		const probability =
+			(lowerRow[i] ?? 0) * lowerWeight + (upperRow[i] ?? 0) * upperWeight;
+		if (probability <= 0) {
+			continue;
+		}
+
+		const pickValue = getValueForPickIndex(season, i);
+		const rookieSalary = rookieSalaries[i];
+		if (pickValue === undefined || rookieSalary === undefined) {
+			continue;
+		}
+
+		expectedValue += probability * pickValue;
+		expectedSalary += probability * rookieSalary;
+		totalProbability += probability;
+	}
+
+	if (totalProbability <= 0) {
+		return;
+	}
+
+	for (let i = 0; i < maxRank; i++) {
+		const probability =
+			(lowerRow[i] ?? 0) * lowerWeight + (upperRow[i] ?? 0) * upperWeight;
+		if (probability <= 0) {
+			continue;
+		}
+
+		const pickValue = getValueForPickIndex(season, i);
+		if (pickValue === undefined) {
+			continue;
+		}
+
+		upsideValue += probability * Math.max(0, pickValue - expectedValue);
+	}
+
+	const normalizedExpectedValue = expectedValue / totalProbability;
+	const upsideBonusFactor = 0.15;
+
+	return {
+		salary: expectedSalary / totalProbability,
+		value:
+			normalizedExpectedValue +
+			(upsideValue / totalProbability) * upsideBonusFactor,
+	};
 };
 
 const getPickInfo = async (
@@ -269,8 +378,9 @@ const getPickInfo = async (
 		dp.season === "fantasy" || dp.season === "expansion"
 			? g.get("season")
 			: dp.season;
+	const numPicksPerRound = getNumPicksPerRound();
 
-	const estPick = await getPickNumber(
+	const projectedRank = await getProjectedPickRank(
 		dp,
 		season,
 		pidsAdd,
@@ -278,14 +388,31 @@ const getPickInfo = async (
 		tid,
 		tradingPartnerTid,
 	);
+	const estPick = Math.round(projectedRank) + numPicksPerRound * (dp.round - 1);
 
 	let value;
-	const valuesTemp = cache.estValues[season];
-	if (valuesTemp) {
-		value = valuesTemp[estPick - 1];
+	let rookieSalary = rookieSalaries[estPick - 1];
+
+	const shouldUseNba321Adjustment =
+		g.get("draftType") === "nba321" &&
+		dp.pick === 0 &&
+		dp.round === 1 &&
+		projectedRank <= 16;
+
+	if (shouldUseNba321Adjustment) {
+		const lotteryAdjustedAsset = getLotteryAdjustedPickAsset({
+			projectedRank,
+			rookieSalaries,
+			season,
+		});
+		if (lotteryAdjustedAsset) {
+			value = lotteryAdjustedAsset.value;
+			rookieSalary = lotteryAdjustedAsset.salary;
+		}
 	}
+
 	if (value === undefined) {
-		value = cache.estValues.default[estPick - 1];
+		value = getValueForPickIndex(season, estPick - 1);
 	}
 	if (value === undefined) {
 		value = cache.estValues.default.at(-1);
@@ -293,12 +420,18 @@ const getPickInfo = async (
 	if (value === undefined) {
 		value = 20;
 	}
+	if (rookieSalary === undefined) {
+		rookieSalary = rookieSalaries.at(-1);
+	}
+	if (rookieSalary === undefined) {
+		rookieSalary = 0;
+	}
 
 	value = zscore(value);
 
 	let contractValue = getContractValue(
 		{
-			amount: rookieSalaries[estPick - 1],
+			amount: rookieSalary,
 			exp: season + 2,
 		},
 		value,
@@ -437,6 +570,78 @@ const EXPONENT = bySport({
 	hockey: 3.5,
 });
 
+const getAssetUtility = (
+	p: Asset,
+	strategy: string,
+	tid: number,
+	includeInjuries = false,
+) => {
+	let playerValue = p.value;
+
+	const treatAsFutureDraftPick =
+		p.type === "pick" &&
+		(g.get("season") !== p.draftYear || g.get("phase") <= PHASE.PLAYOFFS);
+
+	if (strategy === "rebuilding") {
+		if (treatAsFutureDraftPick) {
+			playerValue *= 1.1;
+		} else if (p.age <= 19) {
+			playerValue *= 1.075;
+		} else if (p.age === 20) {
+			playerValue *= 1.05;
+		} else if (p.age === 21) {
+			playerValue *= 1.0375;
+		} else if (p.age === 22) {
+			playerValue *= 1.025;
+		} else if (p.age === 23) {
+			playerValue *= 1.0125;
+		} else if (p.age === 27) {
+			playerValue *= 0.975;
+		} else if (p.age === 28) {
+			playerValue *= 0.95;
+		} else if (p.age >= 29) {
+			playerValue *= 0.9;
+		}
+	} else if (strategy === "contending") {
+		if (treatAsFutureDraftPick) {
+			playerValue *= 0.825;
+		} else if (p.age <= 19) {
+			playerValue *= 0.8;
+		} else if (p.age === 20) {
+			playerValue *= 0.825;
+		} else if (p.age === 21) {
+			playerValue *= 0.85;
+		} else if (p.age === 22) {
+			playerValue *= 0.875;
+		} else if (p.age === 23) {
+			playerValue *= 0.925;
+		} else if (p.age === 24) {
+			playerValue *= 0.95;
+		}
+	}
+
+	if (includeInjuries && tid !== g.get("userTid")) {
+		if (p.injury.gamesRemaining > 75) {
+			playerValue -= playerValue * 0.75;
+		} else {
+			playerValue -= (playerValue * p.injury.gamesRemaining) / 100;
+		}
+	}
+
+	if (playerValue < 0) {
+		playerValue /= 20;
+	}
+
+	const contractsFactor = strategy === "rebuilding" ? 2 : 0.5;
+	playerValue += contractsFactor * p.contractValue;
+
+	if (p.type === "player" && p.justDrafted) {
+		playerValue = Math.max(0, playerValue);
+	}
+
+	return playerValue > 1 ? playerValue ** EXPONENT : playerValue;
+};
+
 const sumValues = (
 	players: Asset[],
 	strategy: string,
@@ -447,80 +652,10 @@ const sumValues = (
 		return 0;
 	}
 
-	const season = g.get("season");
-	const phase = g.get("phase");
-
-	return players.reduce((memo, p) => {
-		let playerValue = p.value;
-
-		const treatAsFutureDraftPick =
-			p.type === "pick" && (season !== p.draftYear || phase <= PHASE.PLAYOFFS);
-
-		// These factors don't make sense for negative value players!!!
-		if (strategy === "rebuilding") {
-			// Value young/cheap players and draft picks more. Penalize expensive/old players
-			if (treatAsFutureDraftPick) {
-				playerValue *= 1.1;
-			} else if (p.age <= 19) {
-				playerValue *= 1.075;
-			} else if (p.age === 20) {
-				playerValue *= 1.05;
-			} else if (p.age === 21) {
-				playerValue *= 1.0375;
-			} else if (p.age === 22) {
-				playerValue *= 1.025;
-			} else if (p.age === 23) {
-				playerValue *= 1.0125;
-			} else if (p.age === 27) {
-				playerValue *= 0.975;
-			} else if (p.age === 28) {
-				playerValue *= 0.95;
-			} else if (p.age >= 29) {
-				playerValue *= 0.9;
-			}
-		} else if (strategy === "contending") {
-			// Much of the value for these players comes from potential, which we don't really care about
-			if (treatAsFutureDraftPick) {
-				playerValue *= 0.825;
-			} else if (p.age <= 19) {
-				playerValue *= 0.8;
-			} else if (p.age === 20) {
-				playerValue *= 0.825;
-			} else if (p.age === 21) {
-				playerValue *= 0.85;
-			} else if (p.age === 22) {
-				playerValue *= 0.875;
-			} else if (p.age === 23) {
-				playerValue *= 0.925;
-			} else if (p.age === 24) {
-				playerValue *= 0.95;
-			}
-		}
-
-		// Normalize for injuries
-		if (includeInjuries && tid !== g.get("userTid")) {
-			if (p.injury.gamesRemaining > 75) {
-				playerValue -= playerValue * 0.75;
-			} else {
-				playerValue -= (playerValue * p.injury.gamesRemaining) / 100;
-			}
-		}
-
-		// Really bad players will just get no PT, but don't to count them as 0 because then AI thinks it can't find a trade
-		if (playerValue < 0) {
-			playerValue /= 20;
-		}
-
-		const contractsFactor = strategy === "rebuilding" ? 2 : 0.5;
-		playerValue += contractsFactor * p.contractValue;
-
-		// if a player was just drafted and can be released, they shouldn't have negative value
-		if (p.type == "player" && p.justDrafted) {
-			playerValue = Math.max(0, playerValue);
-		}
-
-		return memo + (playerValue > 1 ? playerValue ** EXPONENT : playerValue);
-	}, 0);
+	return players.reduce(
+		(memo, p) => memo + getAssetUtility(p, strategy, tid, includeInjuries),
+		0,
+	);
 };
 
 export const getEstPicks = async (
@@ -618,7 +753,23 @@ const refreshCache = async () => {
 
 	const { estPicks, wps } = await getEstPicks(teamOvrs);
 
+	let currentSeasonProjectedPicks: Record<number, number> = {};
+	if (g.get("phase") >= PHASE.DRAFT_LOTTERY) {
+		const { draftPicks } = await draft.genOrder(true);
+		currentSeasonProjectedPicks = Object.fromEntries(
+			draftPicks
+				.filter(
+					(dp) =>
+						dp.season === g.get("season") &&
+						dp.pick !== undefined &&
+						dp.pick > 0,
+				)
+				.map((dp) => [dp.dpid, dp.pick]),
+		);
+	}
+
 	return {
+		currentSeasonProjectedPicks,
 		estPicks,
 		estValues: await trade.getPickValues(),
 		teamOvrs,

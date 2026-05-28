@@ -83,6 +83,7 @@ const processTrade = async (
 
 			// p.gamesUntilTradable = 14; // Don't make traded players untradable
 			p.ptModifier = 1; // Reset
+			p.usageBias = 1; // Reset
 
 			if (duringSeason) {
 				// If two players being traded for each other have the same jersey number, that shouldn't be treated as conflict and they should be able to keep their jersey numbers - that's what the pids[k] part does.

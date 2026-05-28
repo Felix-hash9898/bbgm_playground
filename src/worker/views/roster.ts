@@ -181,6 +181,11 @@ const updateRoster = async (
 			"rosterOrder",
 			"injury",
 			"ptModifier",
+			"atRimTendency",
+			"lowPostTendency",
+			"midRangeTendency",
+			"threePointTendency",
+			"usageBias",
 			"watch",
 			"untradable",
 			"hof",
@@ -188,6 +193,8 @@ const updateRoster = async (
 			"mood",
 			"value",
 			"awards",
+			"form",
+			"gameForm",
 		]; // tid and draft are used for checking if a player can be released without paying his salary
 
 		const ratings = ["ovr", "pot", "dovr", "dpot", "skills", "pos", "ovrs"];
@@ -259,6 +266,7 @@ const updateRoster = async (
 
 				// Convert ptModifier to string so it doesn't cause unneeded knockout re-rendering
 				p.ptModifier = String(p.ptModifier);
+				p.usageBias = String(p.usageBias ?? 1);
 			}
 		} else {
 			// Show all players with stats for the given team and year

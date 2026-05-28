@@ -148,6 +148,14 @@ export const boxScoreToLiveSim = async ({
 					p[stat] = 0;
 				}
 			}
+
+			if (isSport("basketball")) {
+				const playerFromCache = await idb.cache.players.get(p.pid);
+				if (playerFromCache) {
+					p.form = playerFromCache.form ?? 0;
+					p.gameForm = playerFromCache.gameForm ?? 0;
+				}
+			}
 		}
 	}
 	makeAbbrevsUnique(initialBoxScore.teams);

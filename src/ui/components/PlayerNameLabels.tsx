@@ -24,6 +24,7 @@ type Props = {
 
 	// season is passed to RatingsStatsPopover, where it's used to determine whether to show a historical season's data. Also team link
 	season?: number;
+	playoffsCombined?: "regularSeason" | "playoffs" | "combined";
 
 	skills?: string[];
 	style?: {
@@ -148,6 +149,7 @@ const PlayerNameLabels = (props: Props) => {
 		neverShowCountry,
 		pid,
 		pos,
+		playoffsCombined,
 		season,
 		skills,
 		style,
@@ -232,6 +234,7 @@ const PlayerNameLabels = (props: Props) => {
 			{pid !== undefined ? (
 				<RatingsStatsPopover
 					pid={pid}
+					playoffsCombined={playoffsCombined}
 					season={season}
 					defaultWatch={defaultWatch}
 					disableNameLink={disableNameLink}

@@ -20,13 +20,20 @@ const BoxScoreRow = ({
 	p: any;
 	season: number;
 }) => {
+	const formColor = (val: number, threshold: number) =>
+		val >= threshold
+			? "text-success"
+			: val <= -threshold
+				? "text-danger"
+				: undefined;
+
 	const showDNP =
 		p.min === 0 &&
 		(!liveGameInProgress ||
 			(p.injury.gamesRemaining > 0 && !p.injury.playingThrough));
 
 	const statCols = showDNP ? (
-		<td colSpan={15} className="text-center">
+		<td colSpan={18} className="text-center">
 			DNP -{" "}
 			{p.injury.gamesRemaining === 0 || p.injury.playingThrough
 				? "Coach's decision"
@@ -55,6 +62,13 @@ const BoxScoreRow = ({
 			<td>{p.pts}</td>
 			<td>{helpers.plusMinus(p.pm, 0)}</td>
 			<td>{helpers.gameScore(p).toFixed(1)}</td>
+			<td className={formColor(p.form ?? 0, 1)}>{(p.form ?? 0).toFixed(1)}</td>
+			<td className={formColor(p.gameForm ?? 0, 1)}>
+				{(p.gameForm ?? 0).toFixed(1)}
+			</td>
+			<td className={formColor((p.form ?? 0) + (p.gameForm ?? 0), 2)}>
+				{((p.form ?? 0) + (p.gameForm ?? 0)).toFixed(1)}
+			</td>
 		</>
 	);
 

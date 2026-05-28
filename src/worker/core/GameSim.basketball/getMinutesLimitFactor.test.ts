@@ -1,0 +1,120 @@
+import { assert, describe, test } from "vitest";
+import getMinutesLimitFactor, {
+	getMinutesSoftCap,
+} from "./getMinutesLimitFactor.ts";
+
+describe("getMinutesLimitFactor", () => {
+	test("does not penalize starters before their soft cap", () => {
+		const softCap = getMinutesSoftCap({
+			availablePlayers: 10,
+			endurance: 0.55,
+			playoffs: false,
+			ptModifier: 1,
+			regulationMinutes: 48,
+			rosterIndex: 0,
+		});
+
+		assert(softCap > 34);
+		assert.strictEqual(
+			getMinutesLimitFactor({
+				availablePlayers: 10,
+				endurance: 0.55,
+				lateGame: false,
+				minutes: softCap - 0.25,
+				playoffs: false,
+				ptModifier: 1,
+				regulationMinutes: 48,
+				rosterIndex: 0,
+			}),
+			1,
+		);
+	});
+
+	test("penalizes overloaded regular-season minutes more than playoff minutes", () => {
+		const regular = getMinutesLimitFactor({
+			availablePlayers: 10,
+			endurance: 0.5,
+			lateGame: false,
+			minutes: 41,
+			playoffs: false,
+			ptModifier: 1,
+			regulationMinutes: 48,
+			rosterIndex: 0,
+		});
+		const playoffs = getMinutesLimitFactor({
+			availablePlayers: 10,
+			endurance: 0.5,
+			lateGame: false,
+			minutes: 41,
+			playoffs: true,
+			ptModifier: 1,
+			regulationMinutes: 48,
+			rosterIndex: 0,
+		});
+
+		assert(regular < 1);
+		assert(playoffs > regular);
+	});
+
+	test("loosens the cap for short-handed teams and explicit playing-time boosts", () => {
+		const capped = getMinutesLimitFactor({
+			availablePlayers: 10,
+			endurance: 0.5,
+			lateGame: false,
+			minutes: 38,
+			playoffs: false,
+			ptModifier: 1,
+			regulationMinutes: 48,
+			rosterIndex: 5,
+		});
+		const shortHanded = getMinutesLimitFactor({
+			availablePlayers: 7,
+			endurance: 0.5,
+			lateGame: false,
+			minutes: 38,
+			playoffs: false,
+			ptModifier: 1,
+			regulationMinutes: 48,
+			rosterIndex: 5,
+		});
+		const boosted = getMinutesLimitFactor({
+			availablePlayers: 10,
+			endurance: 0.5,
+			lateGame: false,
+			minutes: 38,
+			playoffs: false,
+			ptModifier: 1.5,
+			regulationMinutes: 48,
+			rosterIndex: 5,
+		});
+
+		assert(shortHanded > capped);
+		assert(boosted > capped);
+	});
+
+	test("keeps some late-game flexibility instead of hard-capping stars", () => {
+		const regular = getMinutesLimitFactor({
+			availablePlayers: 10,
+			endurance: 0.5,
+			lateGame: false,
+			minutes: 42,
+			playoffs: false,
+			ptModifier: 1,
+			regulationMinutes: 48,
+			rosterIndex: 0,
+		});
+		const lateGame = getMinutesLimitFactor({
+			availablePlayers: 10,
+			endurance: 0.5,
+			lateGame: true,
+			minutes: 42,
+			playoffs: false,
+			ptModifier: 1,
+			regulationMinutes: 48,
+			rosterIndex: 0,
+		});
+
+		assert(lateGame > regular);
+		assert(lateGame > 0.55);
+	});
+});

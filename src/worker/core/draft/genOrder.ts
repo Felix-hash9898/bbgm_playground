@@ -16,6 +16,7 @@ import getTeamsByRound from "./getTeamsByRound.ts";
 import { bySport, COLA_ALPHA, PHASE } from "../../../common/index.ts";
 import { league } from "../index.ts";
 import getNumPlayoffTeams from "../season/getNumPlayoffTeams.ts";
+import { genPlayoffSeriesFromTeams } from "../season/genPlayoffSeries.ts";
 import {
 	getNumLotteryTeams,
 	updateLotteryChancesAfterLottery,
@@ -36,6 +37,7 @@ type ReturnVal = {
 const LOTTERY_DRAFT_TYPES = [
 	"nba1994",
 	"nba2019",
+	"nba321",
 	"coinFlip",
 	"randomLottery",
 	"randomLotteryFirst3",
@@ -46,6 +48,10 @@ const LOTTERY_DRAFT_TYPES = [
 	"custom",
 	"cola",
 ] as const;
+
+const NBA_321_CHANCES = [2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1];
+const NBA_321_PROTECTED_TEAM_COUNT = 3;
+const NBA_321_PROTECTED_FLOOR_PICK = 12;
 
 // chances does not have to be the perfect length. If chances is too long for numLotteryTeams, it will be truncated. If it's too short, the last entry will be repeated until it's long enough.
 const getLotteryInfo = (draftType: DraftType, numLotteryTeams: number) => {
@@ -93,6 +99,13 @@ const getLotteryInfo = (draftType: DraftType, numLotteryTeams: number) => {
 		return {
 			numToPick: 4,
 			chances: [140, 140, 140, 125, 105, 90, 75, 60, 45, 30, 20, 15, 10, 5],
+		};
+	}
+
+	if (draftType === "nba321") {
+		return {
+			numToPick: NBA_321_CHANCES.length,
+			chances: [...NBA_321_CHANCES],
 		};
 	}
 
@@ -156,6 +169,83 @@ export const getNumToPick = (
 	return 0;
 };
 
+const drawLotterySelections = ({
+	chances,
+	numToPick,
+	riggedLotteryChances,
+	protectedTeamCount,
+	protectedFloorPick,
+}: {
+	chances: number[];
+	numToPick: number;
+	riggedLotteryChances?: (number | null)[];
+	protectedTeamCount?: number;
+	protectedFloorPick?: number;
+}) => {
+	let remaining = chances.map((chance, index) => ({
+		chance,
+		index,
+	}));
+
+	const picks: number[] = [];
+	let iterations = 0;
+	while (picks.length < numToPick) {
+		if (riggedLotteryChances) {
+			const index = riggedLotteryChances[picks.length];
+			if (typeof index === "number") {
+				picks.push(index);
+				remaining = remaining.filter((team) => team.index !== index);
+				continue;
+			}
+		}
+
+		let candidates = remaining;
+		if (
+			protectedTeamCount !== undefined &&
+			protectedFloorPick !== undefined &&
+			protectedFloorPick > picks.length
+		) {
+			const protectedTeams = remaining.filter(
+				(team) => team.index < protectedTeamCount,
+			);
+			const remainingSlotsBeforeFloor = protectedFloorPick - picks.length;
+			if (protectedTeams.length >= remainingSlotsBeforeFloor) {
+				candidates = protectedTeams;
+			}
+		}
+
+		const totalChances = candidates.reduce((sum, team) => sum + team.chance, 0);
+		if (totalChances <= 0) {
+			break;
+		}
+
+		const draw = random.randInt(0, totalChances - 1);
+		let runningTotal = 0;
+		let selectedIndex: number | undefined;
+		for (const team of candidates) {
+			runningTotal += team.chance;
+			if (draw < runningTotal) {
+				selectedIndex = team.index;
+				break;
+			}
+		}
+
+		if (selectedIndex === undefined) {
+			break;
+		}
+
+		picks.push(selectedIndex);
+		remaining = remaining.filter((team) => team.index !== selectedIndex);
+
+		iterations += 1;
+		if (iterations > 100000) {
+			break;
+		}
+	}
+
+	return picks;
+};
+
 const TIEBREAKER_AFTER_FIRST_ROUND = bySport<"swap" | "rotate" | "same">({
 	baseball: "swap", // MLB uses last year's record
 	basketball: "swap",
@@ -206,6 +296,7 @@ const genOrder = async (
 	const firstN: number[] = [];
 	let numLotteryTeams = 0;
 	let chances: number[] = [];
+	let lotteryTeams = firstRoundTeams;
 	if (draftHasLottery(draftType)) {
 		const numPlayoffTeams = (await getNumPlayoffTeams(g.get("season")))
 			.numPlayoffTeams;
@@ -234,11 +325,108 @@ const genOrder = async (
 			);
 		}
 
-		if (draftType === "cola") {
+		if (draftType === "nba321") {
+			const fallbackLotteryTeams = firstRoundTeams.slice(
+				0,
+				NBA_321_CHANCES.length,
+			);
+
+			const getProjectedOrActualPlayIns = async () => {
+				if (!g.get("playIn")) {
+					return undefined;
+				}
+
+				if (g.get("phase") < PHASE.PLAYOFFS) {
+					return (await genPlayoffSeriesFromTeams(firstRoundTeams)).playIns;
+				}
+
+				return (
+					await idb.getCopy.playoffSeries(
+						{
+							season: g.get("season"),
+						},
+						"noCopyCache",
+					)
+				)?.playIns;
+			};
+
+			const playIns = await getProjectedOrActualPlayIns();
+			if (playIns && playIns.length === 2) {
+				const indexByTid = new Map(
+					firstRoundTeams.map((team, index) => [team.tid, index]),
+				);
+				const teamByTid = new Map(
+					firstRoundTeams.map((team) => [team.tid, team]),
+				);
+				const playInParticipantTids = new Set<number>();
+				const playIn910Tids: number[] = [];
+				const loser78Tids: number[] = [];
+
+				for (const playIn of playIns) {
+					const game78 = playIn[0];
+					const game910 = playIn[1];
+
+					playInParticipantTids.add(game78.home.tid);
+					playInParticipantTids.add(game78.away.tid);
+					playInParticipantTids.add(game910.home.tid);
+					playInParticipantTids.add(game910.away.tid);
+					playIn910Tids.push(game910.home.tid, game910.away.tid);
+
+					if (game78.home.won === 1) {
+						loser78Tids.push(game78.away.tid);
+					} else if (game78.away.won === 1) {
+						loser78Tids.push(game78.home.tid);
+					} else if (game78.home.seed > game78.away.seed) {
+						loser78Tids.push(game78.home.tid);
+					} else {
+						loser78Tids.push(game78.away.tid);
+					}
+				}
+
+				const getTeamsInFirstRoundOrder = (tids: number[]) =>
+					[...new Set(tids)]
+						.map((tid) => teamByTid.get(tid))
+						.filter((team) => team !== undefined)
+						.sort(
+							(a, b) =>
+								(indexByTid.get(a.tid) ?? Infinity) -
+								(indexByTid.get(b.tid) ?? Infinity),
+						);
+
+				const nonPlayInTeams = firstRoundTeams
+					.filter((team) => !playInParticipantTids.has(team.tid))
+					.slice(0, 10);
+				const lotteryTeamsTemp = [
+					...nonPlayInTeams.slice(0, 3),
+					...nonPlayInTeams.slice(3),
+					...getTeamsInFirstRoundOrder(playIn910Tids),
+					...getTeamsInFirstRoundOrder(loser78Tids),
+				];
+
+				if (
+					nonPlayInTeams.length === 10 &&
+					playInParticipantTids.size === 8 &&
+					new Set(playIn910Tids).size === 4 &&
+					new Set(loser78Tids).size === 2 &&
+					lotteryTeamsTemp.length === NBA_321_CHANCES.length &&
+					new Set(lotteryTeamsTemp.map((team) => team.tid)).size ===
+						NBA_321_CHANCES.length
+				) {
+					lotteryTeams = lotteryTeamsTemp;
+				} else {
+					lotteryTeams = fallbackLotteryTeams;
+				}
+			} else {
+				lotteryTeams = fallbackLotteryTeams;
+			}
+
+			numLotteryTeams = lotteryTeams.length;
+			chances = [...NBA_321_CHANCES].slice(0, numLotteryTeams);
+		} else if (draftType === "cola") {
+			lotteryTeams = firstRoundTeams.slice(0, numLotteryTeams);
 			// If the playoffs aren't over yet, then we haven't yet added COLA_ALPHA to all the lottery teams
 			const addAlpha = g.get("phase") <= PHASE.PLAYOFFS ? COLA_ALPHA : 0;
 
-			const lotteryTeams = firstRoundTeams.slice(0, numLotteryTeams);
 			chances = lotteryTeams.map((t) => {
 				// Traded picks are not eligible for the lottery
 				const currentTid = draftPicksIndexed[t.tid]?.[1]?.tid;
@@ -253,6 +441,7 @@ const genOrder = async (
 				return (t.cola ?? 0) + addAlpha;
 			});
 		} else {
+			lotteryTeams = firstRoundTeams.slice(0, numLotteryTeams);
 			chances = info.chances;
 		}
 
@@ -264,14 +453,18 @@ const genOrder = async (
 			}
 		}
 
-		if (DIVIDE_CHANCES_OVER_TIED_TEAMS && draftType !== "cola") {
-			divideChancesOverTiedTeams(chances, firstRoundTeams, true);
+		if (
+			DIVIDE_CHANCES_OVER_TIED_TEAMS &&
+			draftType !== "cola" &&
+			draftType !== "nba321"
+		) {
+			divideChancesOverTiedTeams(chances, lotteryTeams, true);
 		}
 
 		const chanceTotal = chances.reduce((a, b) => a + b, 0);
 		const chancePct = chances.map((c) => (c / chanceTotal) * 100);
 
-		// Idenfity chances indexes protected by riggedLottery, and set to 0 in chancesCumsum
+		// Identify lottery indexes protected by riggedLottery.
 		const riggedLotteryChances = riggedLottery
 			? riggedLottery.map((dpid) => {
 					if (typeof dpid === "number") {
@@ -279,7 +472,7 @@ const genOrder = async (
 							return dp.dpid === dpid;
 						})?.originalTid;
 						if (originalTid !== undefined) {
-							const index = firstRoundTeams.findIndex(
+							const index = lotteryTeams.findIndex(
 								({ tid }) => tid === originalTid,
 							);
 							if (index >= 0) {
@@ -291,61 +484,20 @@ const genOrder = async (
 					return null;
 				})
 			: undefined;
-
-		const chancesCumsum = chances.slice();
-		if (riggedLotteryChances?.includes(0)) {
-			chancesCumsum[0] = 0;
-		}
-		for (let i = 1; i < chancesCumsum.length; i++) {
-			if (riggedLotteryChances?.includes(i)) {
-				chancesCumsum[i] = chancesCumsum[i - 1]!;
-			} else {
-				chancesCumsum[i]! += chancesCumsum[i - 1]!;
-			}
-		}
-
-		const totalChances = chancesCumsum.at(-1)!;
-
-		// Pick first 3 or 4 picks based on chancesCumsum
-		let iterations = 0;
-		while (firstN.length < numToPick) {
-			if (riggedLotteryChances) {
-				const index = riggedLotteryChances[firstN.length];
-				if (typeof index === "number") {
-					firstN.push(index);
-					continue;
-				}
-			}
-
-			const draw = random.randInt(0, totalChances - 1);
-			const i = chancesCumsum.findIndex((chance) => chance > draw);
-
-			// This happens if all the chances are 0, such which can happen in cola if everyone opts out. In that case, just pick teams from uniform random. In that case, don't make any lottery selection and just proceed in order. UI is still messed up in that case, showing NaNs, but whatever.
-			if (i < 0) {
-				break;
-			}
-
-			if (
-				!firstN.includes(i) &&
-				i < firstRoundTeams.length &&
-				draftPicksIndexed[firstRoundTeams[i]!.tid]
-			) {
-				firstN.push(i);
-			}
-
-			iterations += 1;
-			if (iterations > 100000) {
-				break;
-			}
-		}
+		firstN.push(
+			...drawLotterySelections({
+				chances,
+				numToPick,
+				riggedLotteryChances,
+				protectedTeamCount:
+					draftType === "nba321" ? NBA_321_PROTECTED_TEAM_COUNT : undefined,
+				protectedFloorPick:
+					draftType === "nba321" ? NBA_321_PROTECTED_FLOOR_PICK : undefined,
+			}),
+		);
 
 		if (!mock) {
-			logLotteryChances(
-				chancePct,
-				firstRoundTeams,
-				draftPicksIndexed,
-				conditions,
-			);
+			logLotteryChances(chancePct, lotteryTeams, draftPicksIndexed, conditions);
 		}
 	} else {
 		for (const roundTeams of teamsByRound) {
@@ -362,7 +514,7 @@ const genOrder = async (
 	// First round - lottery winners
 	let pick = 1;
 	for (let i = 0; i < firstN.length; i++) {
-		const t = firstRoundTeams[firstN[i]!]!;
+		const t = lotteryTeams[firstN[i]!]!;
 		const dp = draftPicksIndexed[t.tid]![1];
 
 		if (dp !== undefined) {
@@ -371,9 +523,9 @@ const genOrder = async (
 
 			if (!mock) {
 				logLotteryWinners(
-					firstRoundTeams,
+					lotteryTeams,
 					dp.tid,
-					firstRoundTeams[firstN[i]!]!.tid,
+					lotteryTeams[firstN[i]!]!.tid,
 					pick,
 					conditions,
 				);
@@ -389,20 +541,28 @@ const genOrder = async (
 	}
 
 	// First round - everyone else
-	for (const [i, t] of firstRoundTeams.entries()) {
-		if (!firstN.includes(i)) {
-			const dp = draftPicksIndexed[t.tid]?.[1];
+	const remainingFirstRoundTeams =
+		draftType === "nba321"
+			? [
+					...lotteryTeams.filter((_team, index) => !firstN.includes(index)),
+					...firstRoundTeams.filter(
+						(team) =>
+							!lotteryTeams.some((lotteryTeam) => lotteryTeam.tid === team.tid),
+					),
+				]
+			: firstRoundTeams.filter((_team, index) => !firstN.includes(index));
+	for (const t of remainingFirstRoundTeams) {
+		const dp = draftPicksIndexed[t.tid]?.[1];
 
-			if (dp) {
-				dp.pick = pick;
-				firstRoundOrderAfterLottery.push(t);
+		if (dp) {
+			dp.pick = pick;
+			firstRoundOrderAfterLottery.push(t);
 
-				if (pick <= numLotteryTeams && !mock) {
-					logLotteryWinners(firstRoundTeams, dp.tid, t.tid, pick, conditions);
-				}
-
-				pick += 1;
+			if (pick <= numLotteryTeams && !mock) {
+				logLotteryWinners(lotteryTeams, dp.tid, t.tid, pick, conditions);
 			}
+
+			pick += 1;
 		}
 	}
 
@@ -413,7 +573,7 @@ const genOrder = async (
 			season: g.get("season"),
 			draftType,
 			rigged: riggedLottery,
-			result: firstRoundTeams // Start with teams in lottery order
+			result: lotteryTeams // Start with teams in lottery order
 				.map(({ tid }) => {
 					return draftPicks.find((dp) => {
 						// Keep only lottery picks
@@ -432,9 +592,7 @@ const genOrder = async (
 					}
 
 					// For the original team
-					const i = firstRoundTeams.findIndex(
-						(t2) => t2.tid === dp.originalTid,
-					);
+					const i = lotteryTeams.findIndex((t2) => t2.tid === dp.originalTid);
 
 					return {
 						tid: dp.tid,

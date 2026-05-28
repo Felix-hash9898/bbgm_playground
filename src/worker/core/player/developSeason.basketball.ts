@@ -14,15 +14,15 @@ type RatingFormula = {
 const shootingFormula: RatingFormula = {
 	ageModifier: (age: number) => {
 		// Reverse most of the age-related decline in calcBaseChange
-		if (age <= 27) {
+		if (age <= 28) {
 			return 0;
 		}
 
-		if (age <= 29) {
+		if (age <= 31) {
 			return 0.5;
 		}
 
-		if (age <= 31) {
+		if (age <= 35) {
 			return 1.5;
 		}
 
@@ -40,20 +40,24 @@ const iqFormula: RatingFormula = {
 			return 3;
 		}
 
-		// Reverse most of the age-related decline in calcBaseChange
-		if (age <= 27) {
+		// IQ stays flat through 35 — veterans keep learning the game
+		if (age <= 28) {
 			return 0;
 		}
 
-		if (age <= 29) {
-			return 0.5;
-		}
-
 		if (age <= 31) {
-			return 1.5;
+			return 1; // offsets calcBase -1, net ~0
 		}
 
-		return 2;
+		if (age <= 35) {
+			return 2; // offsets calcBase -2, net ~0
+		}
+
+		if (age <= 40) {
+			return 2.5; // net avg ~-0.5/yr
+		}
+
+		return 2; // net avg ~-1.8/yr at 41+
 	},
 	changeLimits: (age) => {
 		if (age >= 24) {
@@ -67,8 +71,22 @@ const iqFormula: RatingFormula = {
 };
 const ratingsFormulas: Record<Exclude<RatingKey, "hgt">, RatingFormula> = {
 	stre: {
-		ageModifier: () => 0,
-		changeLimits: () => [-Infinity, Infinity],
+		ageModifier: (age: number) => {
+			if (age <= 25) {
+				return 1; // Still building strength
+			}
+
+			if (age <= 32) {
+				return 1.5; // Peak physical prime, offset calcBaseChange decline
+			}
+
+			if (age <= 36) {
+				return 0.5; // Slow the decline slightly
+			}
+
+			return 0;
+		},
+		changeLimits: () => [-8, 12],
 	},
 	spd: {
 		ageModifier: (age: number) => {
@@ -76,41 +94,65 @@ const ratingsFormulas: Record<Exclude<RatingKey, "hgt">, RatingFormula> = {
 				return 0;
 			}
 
+			if (age <= 28) {
+				return -0.5;
+			}
+
 			if (age <= 30) {
-				return -2;
+				return -1.5;
+			}
+
+			if (age <= 32) {
+				return -1.5;
 			}
 
 			if (age <= 35) {
-				return -3;
+				return -2.0;
+			}
+
+			if (age <= 38) {
+				return -2.5;
 			}
 
 			if (age <= 40) {
-				return -4;
+				return -3.5;
 			}
 
-			return -8;
+			return -7.0;
 		},
 		changeLimits: () => [-12, 2],
 	},
 	jmp: {
 		ageModifier: (age: number) => {
-			if (age <= 26) {
+			if (age <= 27) {
 				return 0;
 			}
 
+			if (age <= 28) {
+				return -0.5;
+			}
+
 			if (age <= 30) {
-				return -3;
+				return -1.5;
+			}
+
+			if (age <= 32) {
+				return -1.5;
 			}
 
 			if (age <= 35) {
-				return -4;
+				return -2.0;
+			}
+
+			if (age <= 38) {
+				return -2.5;
 			}
 
 			if (age <= 40) {
-				return -5;
+				return -3.5;
 			}
 
-			return -10;
+			return -7.0;
 		},
 		changeLimits: () => [-12, 2],
 	},
@@ -120,15 +162,19 @@ const ratingsFormulas: Record<Exclude<RatingKey, "hgt">, RatingFormula> = {
 				return random.uniform(0, 9);
 			}
 
-			if (age <= 30) {
+			if (age <= 31) {
 				return 0;
 			}
 
-			if (age <= 35) {
+			if (age <= 33) {
+				return -1; // transition — smooth the cliff at 32
+			}
+
+			if (age <= 36) {
 				return -2;
 			}
 
-			if (age <= 40) {
+			if (age <= 41) {
 				return -4;
 			}
 
@@ -139,7 +185,7 @@ const ratingsFormulas: Record<Exclude<RatingKey, "hgt">, RatingFormula> = {
 	dnk: {
 		ageModifier: (age: number) => {
 			// Like shootingForumla, except for old players
-			if (age <= 27) {
+			if (age <= 28) {
 				return 0;
 			}
 
@@ -174,20 +220,18 @@ const calcBaseChange = (age: number, coachingLevel: number): number => {
 		val = 2;
 	} else if (age <= 25) {
 		val = 1;
-	} else if (age <= 27) {
+	} else if (age <= 28) {
 		val = 0;
-	} else if (age <= 29) {
-		val = -1;
 	} else if (age <= 31) {
+		val = -1;
+	} else if (age <= 35) {
 		val = -2;
-	} else if (age <= 34) {
-		val = -3;
 	} else if (age <= 40) {
-		val = -4;
+		val = -3;
 	} else if (age <= 43) {
-		val = -5;
+		val = -4;
 	} else {
-		val = -6;
+		val = -5;
 	}
 
 	// Noise

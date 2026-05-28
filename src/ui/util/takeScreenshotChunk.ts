@@ -92,13 +92,20 @@ const takeScreenshotChunk = async () => {
 	});
 
 	try {
+		const rapidApiKey = process.env.RAPIDAPI_KEY;
+		if (!rapidApiKey) {
+			throw new Error(
+				"Missing RAPIDAPI_KEY. Set it in your environment to enable screenshot uploads.",
+			);
+		}
+
 		const data = await fetchWrapper({
 			url: "https://imgur-apiv3.p.rapidapi.com/3/image",
 			method: "POST",
 			headers: {
 				Authorization: "Client-ID c2593243d3ea679",
 				"x-rapidapi-host": "imgur-apiv3.p.rapidapi.com",
-				"x-rapidapi-key": "H6XlGK0RRnmshCkkElumAWvWjiBLp1ItTOBjsncst1BaYKMS8H",
+				"x-rapidapi-key": rapidApiKey,
 			},
 			data: {
 				image: canvas.toDataURL().split(",")[1]!,

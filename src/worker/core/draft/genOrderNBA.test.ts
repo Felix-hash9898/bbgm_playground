@@ -1,6 +1,8 @@
 import { afterAll, assert, beforeAll, test } from "vitest";
 import { getDraftTids, loadTeamSeasons } from "./testHelpers.ts";
 import { mockIDBLeague, resetG } from "../../../test/helpers.ts";
+import { getDraftLotteryProbs } from "../../../common/draftLottery.ts";
+import { draft } from "../index.ts";
 import { idb } from "../../db/index.ts";
 
 beforeAll(async () => {
@@ -67,4 +69,52 @@ test("give reverse round 2 order for teams with the same record", async () => {
 		const r2picks = draftTids.filter((tid, i) => tids.includes(tid) && i >= 30);
 		assert.deepStrictEqual(r1picks, r2picks.reverse());
 	}
+});
+
+test("nba321 uses the expected 3-2-1 lottery chance tiers", async () => {
+	const { draftLotteryResult } = await draft.genOrder(
+		true,
+		undefined,
+		"nba321",
+	);
+	assert(draftLotteryResult);
+	assert.strictEqual(draftLotteryResult.result.length, 16);
+	assert.deepStrictEqual(
+		draftLotteryResult.result.map((row) => row.chances),
+		[2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1],
+	);
+});
+
+test("nba321 keeps the three worst teams inside the top 12", async () => {
+	const { draftPicks } = await draft.genOrder(true, undefined, "nba321");
+	const firstRound = draftPicks
+		.filter((dp) => dp.round === 1)
+		.sort((a, b) => a.pick - b.pick);
+
+	for (const tid of [16, 28, 21]) {
+		const pick = firstRound.find((dp) => dp.originalTid === tid)?.pick;
+		assert.strictEqual(typeof pick, "number");
+		assert(pick! <= 12);
+	}
+});
+
+test("nba321 uses an exact precomputed probability matrix", async () => {
+	const { draftLotteryResult } = await draft.genOrder(
+		true,
+		undefined,
+		"nba321",
+	);
+	assert(draftLotteryResult);
+
+	const { tooSlow, probs } = getDraftLotteryProbs(
+		draftLotteryResult.result,
+		"nba321",
+		16,
+	);
+
+	assert.strictEqual(tooSlow, false);
+	assert(probs);
+	assert.strictEqual(probs[0]?.[11], 0.250649664389266);
+	assert.strictEqual(probs[3]?.[0], 0.08108108108108109);
+	assert.strictEqual(probs[14]?.[15], 0.2652305869491766);
 });

@@ -819,6 +819,7 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 						enum: [
 							"nba1994",
 							"nba2019",
+							"nba321",
 							"noLottery",
 							"noLotteryReverse",
 							"random",

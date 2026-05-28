@@ -83,6 +83,22 @@ const routeInfos = {
 	"/l/:lid/player_stats/:abbrev/:season": "playerStats",
 	"/l/:lid/player_stats/:abbrev/:season/:statType": "playerStats",
 	"/l/:lid/player_stats/:abbrev/:season/:statType/:playoffs": "playerStats",
+	"/l/:lid/form_visualization": "formVisualization",
+	"/l/:lid/form_visualization/:season": "formVisualization",
+	"/l/:lid/form_visualization/:season/:pid": "formVisualization",
+	"/l/:lid/form_visualization/:season/:pid/:metric": "formVisualization",
+	"/l/:lid/form_visualization/:season/:pid/:metric/:windowSize":
+		"formVisualization",
+	"/l/:lid/form_visualization/:season/:pid/:metric/:windowSize/:minMinutes":
+		"formVisualization",
+	"/l/:lid/stats_visualization": "statsVisualization",
+	"/l/:lid/stats_visualization/:season": "statsVisualization",
+	"/l/:lid/stats_visualization/:season/:pid": "statsVisualization",
+	"/l/:lid/stats_visualization/:season/:pid/:metric": "statsVisualization",
+	"/l/:lid/stats_visualization/:season/:pid/:metric/:windowSize":
+		"statsVisualization",
+	"/l/:lid/stats_visualization/:season/:pid/:metric/:windowSize/:minMinutes":
+		"statsVisualization",
 	"/l/:lid/player_graphs": "playerGraphs",
 	"/l/:lid/player_graphs/:seasonX/:statTypeX/:playoffsX/:statX/:seasonY/:statTypeY/:playoffsY/:statY/:minGames":
 		"playerGraphs",

@@ -20,6 +20,7 @@ const addToFreeAgents = (
 	p.tid = PLAYER.FREE_AGENT;
 	p.numDaysFreeAgent = 0;
 	p.ptModifier = 1;
+	p.usageBias = 1;
 };
 
 export default addToFreeAgents;

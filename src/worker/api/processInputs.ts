@@ -252,6 +252,36 @@ const fantasyDraft = () => {
 	}
 };
 
+const formVisualization = (params: Params) => {
+	const windowSize =
+		params.windowSize !== undefined ? Number.parseInt(params.windowSize) : 1;
+	const minMinutes =
+		params.minMinutes !== undefined ? Number.parseInt(params.minMinutes) : 0;
+
+	return {
+		metric: typeof params.metric === "string" ? params.metric : "form",
+		minMinutes: Number.isNaN(minMinutes) || minMinutes < 0 ? 0 : minMinutes,
+		pid: params.pid !== undefined ? Number.parseInt(params.pid) : undefined,
+		season: validateSeason(params.season),
+		windowSize: Number.isNaN(windowSize) || windowSize < 1 ? 1 : windowSize,
+	};
+};
+
+const statsVisualization = (params: Params) => {
+	const windowSize =
+		params.windowSize !== undefined ? Number.parseInt(params.windowSize) : 1;
+	const minMinutes =
+		params.minMinutes !== undefined ? Number.parseInt(params.minMinutes) : 0;
+
+	return {
+		metric: typeof params.metric === "string" ? params.metric : "pts",
+		minMinutes: Number.isNaN(minMinutes) || minMinutes < 0 ? 0 : minMinutes,
+		pid: params.pid !== undefined ? Number.parseInt(params.pid) : undefined,
+		season: validateSeason(params.season),
+		windowSize: Number.isNaN(windowSize) || windowSize < 1 ? 1 : windowSize,
+	};
+};
+
 const freeAgents = (params: Params) => {
 	if (g.get("phase") === PHASE.RESIGN_PLAYERS) {
 		return {
@@ -898,7 +928,7 @@ const standings = (params: Params) => {
 			? "league"
 			: bySport({
 					baseball: "div",
-					basketball: "conf",
+					basketball: "league",
 					football: "div",
 					hockey: "div",
 				});
@@ -1100,6 +1130,7 @@ export default {
 	exhibitionGame,
 	exportPlayers: validateSeasonOnly,
 	fantasyDraft,
+	formVisualization,
 	freeAgents,
 	frivolitiesTeamSeasons: most,
 	frivolitiesTrades,
@@ -1138,6 +1169,7 @@ export default {
 	schedule,
 	seasonPreview: validateSeasonOnly,
 	standings,
+	statsVisualization,
 	teamFinances,
 	teamGraphs,
 	teamHistory,

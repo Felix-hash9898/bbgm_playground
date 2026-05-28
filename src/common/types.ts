@@ -214,6 +214,7 @@ export type DraftPick = {
 export type DraftType =
 	| "nba1994"
 	| "nba2019"
+	| "nba321"
 	| "noLottery"
 	| "noLotteryReverse"
 	| "random"
@@ -1140,6 +1141,7 @@ export type PlayerInjury = {
 	gamesRemaining: number;
 	type: string;
 	score?: number;
+	skipDailyCountdown?: boolean;
 };
 
 type PlayerSalary = {
@@ -1230,6 +1232,11 @@ export type PlayerWithoutKey<PlayerRatings = any> = {
 	pid?: number;
 	pos?: string; // Only in players from custom league files
 	ptModifier: number;
+	atRimTendency?: number;
+	lowPostTendency?: number;
+	midRangeTendency?: number;
+	threePointTendency?: number;
+	usageBias?: number;
 	ratings: NonEmptyArray<PlayerRatings>;
 	real?: boolean;
 	relatives: Relative[];
@@ -1296,6 +1303,12 @@ export type PlayerWithoutKey<PlayerRatings = any> = {
 
 	// Only for baseball pitchers
 	pFatigue?: number;
+
+	// Hot streak system (basketball)
+	// Cross-game streak: -10 (cold) to +10 (hot), decays each game
+	form?: number;
+	// Within-game random factor from last game played: -5 to +5
+	gameForm?: number;
 };
 
 export type Player<PlayerRatings = any> = {

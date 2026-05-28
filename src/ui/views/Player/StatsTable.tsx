@@ -45,18 +45,26 @@ export const StatsTable = ({
 	onlyShowIf,
 	p,
 	stats,
+	statsSource,
 	superCols,
+	tableStatType,
 	leaders,
 }: {
 	name: string;
 	onlyShowIf?: string[];
 	p: View<"player">["player"];
 	stats: string[];
+	statsSource?: Pick<
+		View<"player">["player"],
+		"stats" | "careerStats" | "careerStatsCombined" | "careerStatsPlayoffs"
+	>;
 	superCols?: SuperCol[];
+	tableStatType?: string;
 	leaders: View<"player">["leaders"];
 }) => {
-	const hasRegularSeasonStats = hasStats(p.careerStats, onlyShowIf);
-	const hasPlayoffStats = hasStats(p.careerStatsPlayoffs, onlyShowIf);
+	const source = statsSource ?? p;
+	const hasRegularSeasonStats = hasStats(source.careerStats, onlyShowIf);
+	const hasPlayoffStats = hasStats(source.careerStatsPlayoffs, onlyShowIf);
 
 	// Show playoffs by default if that's all we have
 	const [playoffs, setPlayoffs] = useState<boolean | "combined">(
@@ -71,7 +79,7 @@ export const StatsTable = ({
 		setPlayoffs(true);
 	}
 
-	let playerStats = p.stats.filter((ps) => ps.playoffs === playoffs);
+	let playerStats = source.stats.filter((ps) => ps.playoffs === playoffs);
 
 	const rangeFooter = useRangeFooter(p.pid, playerStats);
 
@@ -81,10 +89,10 @@ export const StatsTable = ({
 
 	const careerStats =
 		playoffs === "combined"
-			? p.careerStatsCombined
+			? source.careerStatsCombined
 			: playoffs
-				? p.careerStatsPlayoffs
-				: p.careerStats;
+				? source.careerStatsPlayoffs
+				: source.careerStats;
 
 	const cols = getCols([
 		"Year",
@@ -130,7 +138,7 @@ export const StatsTable = ({
 				i === 0 ? "Career" : null,
 				null,
 				null,
-				...stats.map((stat) => formatStatGameHigh(object, stat)),
+				...stats.map((stat) => formatStatGameHigh(object, stat, tableStatType)),
 			],
 		}));
 	} else {
@@ -140,7 +148,9 @@ export const StatsTable = ({
 					"Career",
 					null,
 					null,
-					...stats.map((stat) => formatStatGameHigh(careerStats, stat)),
+					...stats.map((stat) =>
+						formatStatGameHigh(careerStats, stat, tableStatType),
+					),
 				],
 			},
 		];
@@ -206,7 +216,9 @@ export const StatsTable = ({
 							: rangeFooterState.p.careerStats;
 
 				rangeStatsValues.push(
-					...stats.map((stat) => formatStatGameHigh(rangeStats, stat)),
+					...stats.map((stat) =>
+						formatStatGameHigh(rangeStats, stat, tableStatType),
+					),
 				);
 			}
 
@@ -309,7 +321,7 @@ export const StatsTable = ({
 					<MaybeBold
 						bold={!ps.hasTot && leaders[ps.season]?.[leadersType].has(stat)}
 					>
-						{formatStatGameHigh(ps, stat)}
+						{formatStatGameHigh(ps, stat, tableStatType)}
 					</MaybeBold>
 				)),
 			],

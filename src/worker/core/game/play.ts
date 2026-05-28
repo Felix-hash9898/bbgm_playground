@@ -186,7 +186,11 @@ const play = async (
 				let changed = false;
 
 				if (p.injury.gamesRemaining > 0) {
-					p.injury.gamesRemaining -= 1;
+					if (p.injury.skipDailyCountdown) {
+						delete p.injury.skipDailyCountdown;
+					} else {
+						p.injury.gamesRemaining -= 1;
+					}
 					changed = true;
 				}
 

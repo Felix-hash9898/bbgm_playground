@@ -9,6 +9,10 @@ const handleResetPT = async () => {
 	await toWorker("main", "resetPlayingTime", undefined);
 };
 
+const handleResetUsage = async () => {
+	await toWorker("main", "resetUsageBias", undefined);
+};
+
 const InstructionsAndSortButtons = ({
 	keepRosterSorted,
 	editable,
@@ -34,6 +38,12 @@ const InstructionsAndSortButtons = ({
 									onClick={handleResetPT}
 								>
 									Reset playing time
+								</button>
+								<button
+									className="btn btn-light-bordered"
+									onClick={handleResetUsage}
+								>
+									Reset usage
 								</button>
 							</div>
 						) : null}
