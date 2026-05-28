@@ -18,8 +18,8 @@
 .env.*
 *.key
 *.pem
-dist/
-build/
+/dist/
+/build/
 coverage/
 .cache/
 .vite/
