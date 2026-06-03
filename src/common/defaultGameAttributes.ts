@@ -188,8 +188,8 @@ const defaultGameAttributes: GameAttributesLeagueWithHistory = {
 	aiTradesFactor: 1,
 	stopOnInjury: true,
 	stopOnInjuryGames: 5,
-	// Default was 0.25 / 10 / 200 = 0.000125 (0.25 injuries/game). Raised to 0.0004 (~0.8/game at default possession count).
-	injuryRate: 0.0004,
+	// Default was 0.25 / 10 / 200 = 0.000125 (0.25 injuries/game). Adjusted to 0.00018.
+	injuryRate: 0.00018,
 	homeCourtAdvantage: 1,
 	// The tragic death rate is the probability that a player will die a tragic death on a given regular season day. Yes, this only happens in the regular season. With roughly 100 days in a season, the default is about one death every 50 years.
 	tragicDeathRate: 1 / (100 * 50),
