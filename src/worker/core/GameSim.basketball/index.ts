@@ -1,6 +1,5 @@
 import { g, helpers, random } from "../../util/index.ts";
 import { PHASE, STARTING_NUM_TIMEOUTS } from "../../../common/index.ts";
-import { getShotTendencyEffect } from "../../../common/shotTendencies.basketball.ts";
 import jumpBallWinnerStartsThisPeriodWithPossession from "./jumpBallWinnerStartsThisPeriodWithPossession.ts";
 import getInjuryRate, { getInjuryOverloadFactor } from "./getInjuryRate.ts";
 import getMinutesLimitFactor from "./getMinutesLimitFactor.ts";
@@ -94,11 +93,7 @@ type PlayerGameSim = {
 	injury: PlayerInjury & {
 		playingThrough: boolean;
 	};
-	atRimTendency?: number;
-	lowPostTendency?: number;
-	midRangeTendency?: number;
 	ptModifier: number;
-	threePointTendency?: number;
 	usageBias: number;
 	gameForm: number; // Within-game random form factor (-5 to +5)
 	pendingPostGameInjury?: boolean;
@@ -887,97 +882,6 @@ class GameSim extends GameSimBase {
 	// avoid gaming the sim by dialing everyone down.
 	getUsageBiasRelief(p: PlayerGameSim) {
 		return Math.max(0, Math.min(1 - (p.usageBias ?? 1), 0.15));
-	}
-
-	getTeamUsageOverload() {
-		const playersOnCourt = this.playersOnCourt[this.o];
-		let weightedOverload = 0;
-		let totalWeight = 0;
-
-		for (const p of playersOnCourt) {
-			const usage = Math.max(0.05, p.compositeRating.usage ?? 0);
-			weightedOverload += usage * this.getUsageBiasOverload(p);
-			totalWeight += usage;
-		}
-
-		if (totalWeight <= 0) {
-			return 0;
-		}
-
-		return weightedOverload / totalWeight;
-	}
-
-	getLineupSpacingGravity() {
-		const playersOnCourt = this.playersOnCourt[this.o];
-		let totalWeight = 0;
-		let weightedGravity = 0;
-
-		for (const p of playersOnCourt) {
-			const usage = Math.max(0.05, p.compositeRating.usage ?? 0);
-			const weight = 0.85 + 0.3 * usage;
-			const threeSkill = helpers.bound(
-				p.compositeRating.shootingThreePointer ?? 0,
-				0,
-				1,
-			);
-			const threeTendencyAdjustment =
-				1 + 0.1 * (getShotTendencyEffect(p.threePointTendency) - 1);
-
-			weightedGravity += threeSkill * threeTendencyAdjustment * weight;
-			totalWeight += weight;
-		}
-
-		if (totalWeight <= 0) {
-			return 0;
-		}
-
-		return weightedGravity / totalWeight;
-	}
-
-	getLineupPaintPressure() {
-		const playersOnCourt = this.playersOnCourt[this.o];
-		let totalWeight = 0;
-		let weightedPressure = 0;
-
-		for (const p of playersOnCourt) {
-			const usage = Math.max(0.05, p.compositeRating.usage ?? 0);
-			const weight = 0.85 + 0.3 * usage;
-			const atRimBias = Math.max(0, getShotTendencyEffect(p.atRimTendency) - 1);
-			const lowPostBias = Math.max(
-				0,
-				getShotTendencyEffect(p.lowPostTendency) - 1,
-			);
-
-			weightedPressure += (0.75 * atRimBias + lowPostBias) * weight;
-			totalWeight += weight;
-		}
-
-		if (totalWeight <= 0) {
-			return 0;
-		}
-
-		return weightedPressure / totalWeight;
-	}
-
-	getPaintDamping() {
-		const paintPressure = this.getLineupPaintPressure();
-		if (paintPressure <= 0) {
-			return 1;
-		}
-
-		const spacingGravity = this.getLineupSpacingGravity();
-		const spacingRelief = 0.55 + 0.9 * spacingGravity;
-		const congestion = paintPressure / spacingRelief;
-
-		return helpers.bound(1 - 1.35 * congestion, 0.4, 1);
-	}
-
-	getAdjustedPaintTendencyEffect(personalEffect: number, paintDamping: number) {
-		if (personalEffect <= 1) {
-			return personalEffect;
-		}
-
-		return 1 + (personalEffect - 1) * paintDamping;
 	}
 
 	getFoulTroubleLimit() {
@@ -2103,10 +2007,7 @@ class GameSim extends GameSimBase {
 		} else if (
 			forceThreePointer ||
 			Math.random() <
-				0.67 *
-					shootingThreePointerScaled2 *
-					g.get("threePointTendencyFactor") *
-					getShotTendencyEffect(p.threePointTendency)
+				0.67 * shootingThreePointerScaled2 * g.get("threePointTendencyFactor")
 		) {
 			// Three pointer
 			type = "threePointer";
@@ -2136,25 +2037,12 @@ class GameSim extends GameSimBase {
 
 			const usageOverload = this.getUsageBiasOverload(p);
 			const usageRelief = this.getUsageBiasRelief(p);
-			const midRangeTendencyEffect = getShotTendencyEffect(p.midRangeTendency);
-			const paintDamping = this.getPaintDamping();
-			const atRimTendencyEffect = this.getAdjustedPaintTendencyEffect(
-				getShotTendencyEffect(p.atRimTendency),
-				paintDamping,
-			);
-			const lowPostTendencyEffect = this.getAdjustedPaintTendencyEffect(
-				getShotTendencyEffect(p.lowPostTendency),
-				paintDamping,
-			);
 
 			// Higher usage bias should make clean interior touches a bit harder to
 			// come by, nudging the player toward more bailout 2s.
-			r1 *=
-				(1 + 0.75 * usageOverload - 0.2 * usageRelief) * midRangeTendencyEffect;
-			r2 *=
-				(1 - 0.32 * usageOverload + 0.08 * usageRelief) * atRimTendencyEffect;
-			r3 *=
-				(1 - 0.2 * usageOverload + 0.05 * usageRelief) * lowPostTendencyEffect;
+			r1 *= 1 + 0.75 * usageOverload - 0.2 * usageRelief;
+			r2 *= 1 - 0.32 * usageOverload + 0.08 * usageRelief;
+			r3 *= 1 - 0.2 * usageOverload + 0.05 * usageRelief;
 
 			if (r1 > r2 && r1 > r3) {
 				// Two point jumper

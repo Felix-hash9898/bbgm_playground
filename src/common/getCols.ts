@@ -3012,12 +3012,6 @@ const cols: {
 		sortType: "number",
 	},
 	Usage: {},
-	ShotProfile: {
-		desc: "Shot profile tendency preset",
-		noSearch: true,
-		sortSequence: [],
-		title: "Shot Profile",
-	},
 	Amount: {
 		sortSequence: ["desc", "asc"],
 		sortType: "number",

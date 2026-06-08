@@ -15,10 +15,6 @@ import {
 	LEAGUE_DATABASE_VERSION,
 	REAL_PLAYERS_INFO,
 } from "../../common/index.ts";
-import {
-	getShotTendencies,
-	type ShotTendencies,
-} from "../../common/shotTendencies.basketball.ts";
 import actions from "./actions.ts";
 import leagueFileUpload, {
 	decompressStreamIfNecessary,
@@ -4294,28 +4290,6 @@ const updateUsageBias = async ({
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 };
 
-const updateShotTendencies = async ({
-	pid,
-	shotTendencies,
-}: {
-	pid: number;
-	shotTendencies: ShotTendencies;
-}) => {
-	const p = await idb.cache.players.get(pid);
-	if (!p) {
-		throw new Error("Invalid pid");
-	}
-
-	const normalized = getShotTendencies(shotTendencies);
-	p.atRimTendency = normalized.atRimTendency;
-	p.lowPostTendency = normalized.lowPostTendency;
-	p.midRangeTendency = normalized.midRangeTendency;
-	p.threePointTendency = normalized.threePointTendency;
-
-	await idb.cache.players.put(p);
-	await toUI("realtimeUpdate", [["playerMovement"]]);
-};
-
 const updatePlayoffTeams = async (
 	teams: {
 		tid: number;
@@ -5317,7 +5291,6 @@ export default {
 		updatePlayerWatch,
 		updatePlayersWatch,
 		updatePlayingTime,
-		updateShotTendencies,
 		updateUsageBias,
 		updatePlayoffTeams,
 		updateTeamInfo,

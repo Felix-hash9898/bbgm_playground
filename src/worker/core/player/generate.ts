@@ -1,5 +1,4 @@
 import genRatings from "./genRatings.ts";
-import { getShotTendenciesFromRatings } from "../../../common/shotTendencies.basketball.ts";
 import { face, g } from "../../util/index.ts";
 import type {
 	MinimalPlayerRatings,
@@ -52,7 +51,6 @@ const generate = (
 	actualHeightInInches = Math.round(actualHeightInInches);
 
 	const ratingsArray: NonEmptyArray<MinimalPlayerRatings> = [ratings];
-	const shotTendencies = getShotTendenciesFromRatings(ratings);
 
 	const p = {
 		awards: [],
@@ -89,10 +87,6 @@ const generate = (
 		moodTraits: genMoodTraits(),
 		numDaysFreeAgent: 0,
 		ptModifier: 1,
-		atRimTendency: shotTendencies.atRimTendency,
-		lowPostTendency: shotTendencies.lowPostTendency,
-		midRangeTendency: shotTendencies.midRangeTendency,
-		threePointTendency: shotTendencies.threePointTendency,
 		usageBias: 1,
 		relatives: [],
 		ratings: ratingsArray,

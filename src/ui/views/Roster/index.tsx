@@ -23,7 +23,6 @@ import {
 	useLocalPartial,
 } from "../../util/index.ts";
 import PlayingTime, { ptStyles } from "./PlayingTime.tsx";
-import ShotProfile from "./ShotProfile.tsx";
 import UsageBias, { usageBiasStyles } from "./UsageBias.tsx";
 import TopStuff from "./TopStuff.tsx";
 import type {
@@ -178,7 +177,7 @@ const Roster = ({
 			...stats.map((stat) => `stat:${stat}`),
 			...(editable ? ["PT"] : []),
 			...(editable && isSport("basketball") && season === currentSeason
-				? ["Usage", "ShotProfile"]
+				? ["Usage"]
 				: []),
 			...(showMood ? ["Mood"] : []),
 			...(showRelease ? ["Release"] : []),
@@ -235,24 +234,6 @@ const Roster = ({
 								<span style={usageBiasStyles["1.1"]}>High</span>
 								<br />
 								<span style={usageBiasStyles["1.25"]}>Featured</span>
-							</p>
-						</HelpPopover>
-					</>
-				),
-			},
-			ShotProfile: {
-				titleReact: (
-					<>
-						Shot Profile{" "}
-						<HelpPopover title="Shot profile tendency">
-							<p>
-								This changes where a player looks to shoot from without
-								improving {helpers.pronoun(gender, "his")} shooting ratings.
-							</p>
-							<p>
-								Use it to make a player behave more like a spacer, slasher, post
-								scorer, or shot creator while keeping make/miss results driven
-								by ability.
 							</p>
 						</HelpPopover>
 					</>
@@ -392,10 +373,7 @@ const Roster = ({
 				...stats.map((stat) => helpers.roundStat(p.stats[stat], stat)),
 				...(editable ? [<PlayingTime p={p} userTid={userTid} />] : []),
 				...(editable && isSport("basketball") && season === currentSeason
-					? [
-							<UsageBias p={p} userTid={userTid} />,
-							<ShotProfile p={p} userTid={userTid} />,
-						]
+					? [<UsageBias p={p} userTid={userTid} />]
 					: []),
 				...(showMood
 					? [
