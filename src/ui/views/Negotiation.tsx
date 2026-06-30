@@ -88,9 +88,11 @@ const Negotiation = ({
 	capSpace,
 	challengeNoRatings,
 	contractOptions,
+	maxSalaryTier,
 	payroll,
 	p,
 	phase,
+	playerMaxContract,
 	resigning,
 	salaryCap,
 	salaryCapType,
@@ -178,6 +180,13 @@ const Negotiation = ({
 						<>
 							<div>Salary Cap: {helpers.formatCurrency(salaryCap, "M")}</div>
 							<div>Cap Space: {helpers.formatCurrency(capSpace, "M")}</div>
+							{playerMaxContract !== undefined &&
+							maxSalaryTier !== undefined ? (
+								<div>
+									Player Max: {helpers.formatCurrency(playerMaxContract, "M")} (
+									{maxSalaryTier}%)
+								</div>
+							) : null}
 						</>
 					) : null}
 				</div>

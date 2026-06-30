@@ -39,9 +39,7 @@ export const isUndraftedRookieLike = (p: PlayerForLowEnd) => {
 	return (
 		isUndrafted(p) &&
 		getAge(p) <= 23 &&
-		getYearsSinceDraft(p) <= 1 &&
-		getOvr(p) <= 45 &&
-		getCurrentValue(p) <= 45
+		getYearsSinceDraft(p) <= 1
 	);
 };
 

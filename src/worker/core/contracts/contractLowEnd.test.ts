@@ -49,11 +49,24 @@ beforeEach(() => {
 });
 
 test("undrafted rookie-like players are pushed to minimum contract demand", () => {
-	const p = makePlayer();
+	const p = makePlayer({
+		ovr: 55,
+		pot: 65,
+		value: 58,
+		valueNoPot: 55,
+	});
 
 	assert.strictEqual(isUndraftedRookieLike(p), true);
 	assert.strictEqual(getLowEndContractTarget(p), g.get("minContract"));
 	assert.strictEqual(genContract(p, false).amount, g.get("minContract"));
+});
+
+test("drafted rookie-like players are not treated as undrafted", () => {
+	const firstRoundPick = makePlayer({ draftRound: 1 });
+	const secondRoundPick = makePlayer({ draftRound: 2 });
+
+	assert.strictEqual(isUndraftedRookieLike(firstRoundPick), false);
+	assert.strictEqual(isUndraftedRookieLike(secondRoundPick), false);
 });
 
 test("low-end young free agents are pushed to the low-end contract range", () => {

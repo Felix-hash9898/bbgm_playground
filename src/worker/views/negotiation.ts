@@ -1,5 +1,9 @@
-import { PHASE } from "../../common/index.ts";
+import { PHASE, isSport } from "../../common/index.ts";
 import { contractNegotiation, player, team } from "../core/index.ts";
+import {
+	getMaxContractForPlayer,
+	getMaxSalaryTier,
+} from "../core/contracts/contractLimits.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -182,6 +186,12 @@ const updateNegotiation = async (
 		}
 
 		const payroll = await team.getPayroll(userTid);
+		const maxSalaryInfo = isSport("basketball")
+			? {
+					maxSalaryTier: getMaxSalaryTier(p2),
+					playerMaxContract: getMaxContractForPlayer(p2) / 1000,
+				}
+			: undefined;
 
 		const t = await idb.getCopy.teamsPlus({
 			tid: g.get("userTid"),
@@ -199,6 +209,7 @@ const updateNegotiation = async (
 			payroll: payroll / 1000,
 			p,
 			phase: g.get("phase"),
+			...maxSalaryInfo,
 			resigning: negotiation.resigning,
 			salaryCap: g.get("salaryCap") / 1000,
 			t,
