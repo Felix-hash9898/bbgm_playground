@@ -4,6 +4,7 @@ import { idb } from "../../db/index.ts";
 import { g, toUI, recomputeLocalUITeamOvrs } from "../../util/index.ts";
 import type { PlayerContract } from "../../../common/types.ts";
 import { PHASE } from "../../../common/index.ts";
+import { canGoOverCapToSignMinimumContract } from "../contracts/contractLimits.ts";
 
 /**
  * Accept the player's offer.
@@ -42,7 +43,7 @@ const accept = async ({
 		if (
 			!birdException &&
 			payroll + amount - 1 > g.get("salaryCap") &&
-			amount - 1 > g.get("minContract")
+			!canGoOverCapToSignMinimumContract(amount)
 		) {
 			return `You cannot go over the salary cap to sign ${
 				salaryCapType === "hard" ? "players" : "free agents"

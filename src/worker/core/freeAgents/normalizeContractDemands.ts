@@ -1,11 +1,16 @@
 import { idb } from "../../db/index.ts";
 import { PLAYER, PHASE, bySport, isSport } from "../../../common/index.ts";
 import { team, player, draft } from "../index.ts";
-import { getContractValue } from "../player/genContract.ts";
+import { getContractValue } from "../contracts/contractValue.ts";
 import { g, helpers, random } from "../../util/index.ts";
 import type { Player } from "../../../common/types.ts";
 import { TOO_MANY_TEAMS_TOO_SLOW } from "../season/getInitialNumGamesConfDivSettings.ts";
 import { orderBy } from "../../../common/utils.ts";
+import {
+	clampContractAmount,
+	getMaxContract,
+	getMinContract,
+} from "../contracts/contractLimits.ts";
 
 const TEMP = 0.35;
 const LEARNING_RATE = 0.5;
@@ -99,8 +104,8 @@ const normalizeContractDemands = async ({
 		hockey: 2.5,
 	});
 
-	const maxContract = g.get("maxContract");
-	const minContract = g.get("minContract");
+	const maxContract = getMaxContract();
+	const minContract = getMinContract();
 	const salaryCap = g.get("salaryCap");
 	const season = g.get("season");
 
@@ -160,11 +165,7 @@ const normalizeContractDemands = async ({
 			dummy,
 			value:
 				(marketValue < 0 ? -1 : 1) * Math.abs(marketValue) ** valueExponent,
-			contractAmount: helpers.bound(
-				p.contract.amount,
-				minContract,
-				maxContract,
-			),
+			contractAmount: clampContractAmount(p.contract.amount),
 			p,
 		};
 	});
@@ -414,11 +415,7 @@ const normalizeContractDemands = async ({
 			}
 		}
 
-		amount = helpers.bound(
-			helpers.roundContract(amount),
-			minContract,
-			maxContract,
-		);
+		amount = clampContractAmount(helpers.roundContract(amount));
 
 		// Make sure to remove "temp" flag!
 		p.contract = {
