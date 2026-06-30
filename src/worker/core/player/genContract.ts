@@ -6,6 +6,7 @@ import type {
 	PlayerWithoutKey,
 } from "../../../common/types.ts";
 import { isSport } from "../../../common/index.ts";
+import { getMaxContractForPlayer } from "../contracts/contractLimits.ts";
 import {
 	getBasketballSalaryAgeFactor,
 	getContractValue,
@@ -58,6 +59,7 @@ const genContract = (
 			factor *
 			(g.get("maxContract") - g.get("minContract")) +
 		g.get("minContract");
+	const maxContract = getMaxContractForPlayer(p);
 
 	if (isSport("basketball")) {
 		amount *= getBasketballSalaryAgeFactor(p);
@@ -70,8 +72,8 @@ const genContract = (
 	if (!noLimit) {
 		if (amount < g.get("minContract") * 1.1) {
 			amount = g.get("minContract");
-		} else if (amount > g.get("maxContract")) {
-			amount = g.get("maxContract");
+		} else if (amount > maxContract) {
+			amount = maxContract;
 		}
 	} else if (amount < 0) {
 		// Well, at least keep it positive

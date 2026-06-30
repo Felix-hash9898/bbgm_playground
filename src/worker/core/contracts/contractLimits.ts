@@ -95,3 +95,18 @@ export const getDynamicMaxContractAmount = (p: PlayerWithAwards) => {
 
 	return Math.round((g.get("salaryCap") * getMaxSalaryTier(p)) / 100);
 };
+
+export const getMaxContractForPlayer = (p: PlayerWithAwards) => {
+	if (!isSport("basketball")) {
+		return getMaxContract();
+	}
+
+	return getDynamicMaxContractAmount(p);
+};
+
+export const clampContractAmountForPlayer = (
+	p: PlayerWithAwards,
+	amount: number,
+) => {
+	return helpers.bound(amount, getMinContract(), getMaxContractForPlayer(p));
+};

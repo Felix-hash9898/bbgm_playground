@@ -4,7 +4,10 @@ import { idb } from "../../db/index.ts";
 import { g, toUI, recomputeLocalUITeamOvrs } from "../../util/index.ts";
 import type { PlayerContract } from "../../../common/types.ts";
 import { PHASE } from "../../../common/index.ts";
-import { canGoOverCapToSignMinimumContract } from "../contracts/contractLimits.ts";
+import {
+	canGoOverCapToSignMinimumContract,
+	getMaxContractForPlayer,
+} from "../contracts/contractLimits.ts";
 
 /**
  * Accept the player's offer.
@@ -32,6 +35,28 @@ const accept = async ({
 		return `No negotiation with player ${pid} found.`;
 	}
 
+	const p = await idb.cache.players.get(pid);
+	if (!p) {
+		throw new Error("Invalid pid");
+	}
+
+	const maxContract = getMaxContractForPlayer(p);
+	// This error is for sanity checking in multi team mode. Need to check for existence of negotiation.tid because it
+	// wasn't there originally and I didn't write upgrade code. Can safely get rid of it later.
+	if (negotiation.tid !== undefined && negotiation.tid !== g.get("userTid")) {
+		return `This negotiation was started by the ${
+			g.get("teamInfoCache")[negotiation.tid]?.region
+		} ${g.get("teamInfoCache")[negotiation.tid]?.name} but you are the ${
+			g.get("teamInfoCache")[g.get("userTid")]?.region
+		} ${
+			g.get("teamInfoCache")[g.get("userTid")]?.name
+		}. Either switch teams or cancel this negotiation.`;
+	}
+
+	if (amount > maxContract) {
+		return "You cannot offer this player a contract higher than their maximum salary.";
+	}
+
 	const salaryCapType = g.get("salaryCapType");
 
 	if (salaryCapType !== "none") {
@@ -49,23 +74,6 @@ const accept = async ({
 				salaryCapType === "hard" ? "players" : "free agents"
 			} to contracts higher than the minimum salary.`;
 		}
-	}
-
-	// This error is for sanity checking in multi team mode. Need to check for existence of negotiation.tid because it
-	// wasn't there originally and I didn't write upgrade code. Can safely get rid of it later.
-	if (negotiation.tid !== undefined && negotiation.tid !== g.get("userTid")) {
-		return `This negotiation was started by the ${
-			g.get("teamInfoCache")[negotiation.tid]?.region
-		} ${g.get("teamInfoCache")[negotiation.tid]?.name} but you are the ${
-			g.get("teamInfoCache")[g.get("userTid")]?.region
-		} ${
-			g.get("teamInfoCache")[g.get("userTid")]?.name
-		}. Either switch teams or cancel this negotiation.`;
-	}
-
-	const p = await idb.cache.players.get(pid);
-	if (!p) {
-		throw new Error("Invalid pid");
 	}
 
 	// Make sure the user didn't do something in another tab to change the willingness to negotiate, such as trading away players

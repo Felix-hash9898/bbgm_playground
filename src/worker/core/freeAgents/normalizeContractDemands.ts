@@ -7,8 +7,9 @@ import type { Player } from "../../../common/types.ts";
 import { TOO_MANY_TEAMS_TOO_SLOW } from "../season/getInitialNumGamesConfDivSettings.ts";
 import { orderBy } from "../../../common/utils.ts";
 import {
-	clampContractAmount,
+	clampContractAmountForPlayer,
 	getMaxContract,
+	getMaxContractForPlayer,
 	getMinContract,
 } from "../contracts/contractLimits.ts";
 
@@ -160,15 +161,15 @@ const normalizeContractDemands = async ({
 		const marketValue = getContractValue(p);
 		const valueExponent = isSport("basketball") ? 1.4 : 2;
 
-		return {
-			pid: p.pid,
-			dummy,
-			value:
-				(marketValue < 0 ? -1 : 1) * Math.abs(marketValue) ** valueExponent,
-			contractAmount: clampContractAmount(p.contract.amount),
-			p,
-		};
-	});
+			return {
+				pid: p.pid,
+				dummy,
+				value:
+					(marketValue < 0 ? -1 : 1) * Math.abs(marketValue) ** valueExponent,
+				contractAmount: clampContractAmountForPlayer(p, p.contract.amount),
+				p,
+			};
+		});
 
 	let playerInfosCurrent: typeof playerInfos;
 	if (type === "newLeague") {
@@ -253,6 +254,7 @@ const normalizeContractDemands = async ({
 
 		// Players adjust expectations
 		for (const p of playerInfosCurrent) {
+			const playerMaxContract = getMaxContractForPlayer(p.p);
 			const playerBids = bids.get(p.pid);
 			if (playerBids === undefined) {
 				// Got 0 bids - decrease demands
@@ -260,17 +262,17 @@ const normalizeContractDemands = async ({
 					p.contractAmount = helpers.bound(
 						p.contractAmount * SCALE_DOWN,
 						minContract,
-						maxContract,
+						playerMaxContract,
 					);
 					updatedPIDs.add(p.pid);
 				}
 			} else if (playerBids > 1) {
 				// Got multiple bids - increase demands
-				if (p.contractAmount <= maxContract) {
+				if (p.contractAmount <= playerMaxContract) {
 					p.contractAmount = helpers.bound(
 						p.contractAmount * SCALE_UP,
 						minContract,
-						maxContract,
+						playerMaxContract,
 					);
 					updatedPIDs.add(p.pid);
 				}
@@ -409,13 +411,14 @@ const normalizeContractDemands = async ({
 
 		// During regular season, should only look for short contracts that teams will actually sign
 		if (type === "dummyExpiringContracts") {
-			if (info.contractAmount >= maxContract / 4) {
+			const playerMaxContract = getMaxContractForPlayer(p);
+			if (info.contractAmount >= playerMaxContract / 4) {
 				p.contract.exp = season;
-				info.contractAmount = (info.contractAmount + maxContract / 4) / 2;
+				info.contractAmount = (info.contractAmount + playerMaxContract / 4) / 2;
 			}
 		}
 
-		amount = clampContractAmount(helpers.roundContract(amount));
+		amount = clampContractAmountForPlayer(p, helpers.roundContract(amount));
 
 		// Make sure to remove "temp" flag!
 		p.contract = {
