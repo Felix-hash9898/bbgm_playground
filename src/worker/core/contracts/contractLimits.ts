@@ -25,6 +25,27 @@ export const canGoOverCapToSignMinimumContract = (amount: number) => {
 	return isMinimumContract(amount);
 };
 
+export const canSignContractUnderSalaryCapRules = ({
+	amount,
+	birdException,
+	payroll,
+}: {
+	amount: number;
+	birdException: boolean;
+	payroll: number;
+}) => {
+	const salaryCapType = g.get("salaryCapType");
+	if (salaryCapType === "none" || birdException) {
+		return true;
+	}
+
+	if (payroll + amount - 1 <= g.get("salaryCap")) {
+		return true;
+	}
+
+	return canGoOverCapToSignMinimumContract(amount);
+};
+
 export const getYearsOfService = (p: PlayerWithAwards) => {
 	return Math.max(0, g.get("season") - p.draft.year);
 };

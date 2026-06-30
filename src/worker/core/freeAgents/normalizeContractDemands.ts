@@ -7,11 +7,14 @@ import type { Player } from "../../../common/types.ts";
 import { TOO_MANY_TEAMS_TOO_SLOW } from "../season/getInitialNumGamesConfDivSettings.ts";
 import { orderBy } from "../../../common/utils.ts";
 import {
-	clampContractAmountForPlayer,
 	getMaxContract,
 	getMaxContractForPlayer,
 	getMinContract,
 } from "../contracts/contractLimits.ts";
+import {
+	clampContractDemandForPlayer,
+	getMaxContractDemandForPlayer,
+} from "../contracts/contractLowEnd.ts";
 
 const TEMP = 0.35;
 const LEARNING_RATE = 0.5;
@@ -161,15 +164,15 @@ const normalizeContractDemands = async ({
 		const marketValue = getContractValue(p);
 		const valueExponent = isSport("basketball") ? 1.4 : 2;
 
-			return {
-				pid: p.pid,
-				dummy,
-				value:
-					(marketValue < 0 ? -1 : 1) * Math.abs(marketValue) ** valueExponent,
-				contractAmount: clampContractAmountForPlayer(p, p.contract.amount),
-				p,
-			};
-		});
+		return {
+			pid: p.pid,
+			dummy,
+			value:
+				(marketValue < 0 ? -1 : 1) * Math.abs(marketValue) ** valueExponent,
+			contractAmount: clampContractDemandForPlayer(p, p.contract.amount),
+			p,
+		};
+	});
 
 	let playerInfosCurrent: typeof playerInfos;
 	if (type === "newLeague") {
@@ -254,7 +257,7 @@ const normalizeContractDemands = async ({
 
 		// Players adjust expectations
 		for (const p of playerInfosCurrent) {
-			const playerMaxContract = getMaxContractForPlayer(p.p);
+			const playerMaxContract = getMaxContractDemandForPlayer(p.p);
 			const playerBids = bids.get(p.pid);
 			if (playerBids === undefined) {
 				// Got 0 bids - decrease demands
@@ -308,6 +311,10 @@ const normalizeContractDemands = async ({
 			info.contractAmount = player.genContract(p, type === "newLeague").amount;
 		} else if (type === "newLeague") {
 			info.contractAmount *= random.uniform(0.4, 1.1);
+			info.contractAmount = clampContractDemandForPlayer(
+				p,
+				info.contractAmount,
+			);
 		}
 	}
 	if (
@@ -418,7 +425,7 @@ const normalizeContractDemands = async ({
 			}
 		}
 
-		amount = clampContractAmountForPlayer(p, helpers.roundContract(amount));
+		amount = clampContractDemandForPlayer(p, helpers.roundContract(amount));
 
 		// Make sure to remove "temp" flag!
 		p.contract = {

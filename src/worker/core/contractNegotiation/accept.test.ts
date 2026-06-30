@@ -1,22 +1,45 @@
-import { afterEach, assert, beforeAll, test } from "vitest";
+import { afterEach, assert, beforeEach, test } from "vitest";
 import { contractNegotiation } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import { beforeTests, givePlayerMinContract } from "./testHelpers.ts";
 
-beforeAll(beforeTests);
+beforeEach(beforeTests);
 afterEach(() => idb.cache.negotiations.clear());
 
-test("no signing non-minimum contracts that cause team to exceed the salary cap", async () => {
-	const pid = 1;
-	await givePlayerMinContract(pid);
-
+const putUserTeamOverCap = async () => {
 	const teamPlayer = await idb.cache.players.get(3);
 	if (!teamPlayer) {
 		throw new Error("Invalid team player");
 	}
 	teamPlayer.contract.amount = g.get("salaryCap");
 	await idb.cache.players.put(teamPlayer);
+};
+
+test("signing minimum contracts over the salary cap is allowed", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await putUserTeamOverCap();
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(
+		error,
+		undefined,
+		`Unexpected error message from contractNegotiation.create: "${error}"`,
+	);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount: g.get("minContract"),
+		exp: g.get("season") + 1,
+		dryRun: true,
+	});
+	assert.strictEqual(error2, undefined);
+});
+
+test("no signing non-minimum contracts that cause team to exceed the salary cap", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await putUserTeamOverCap();
 
 	const error = await contractNegotiation.create(pid, false);
 	assert.strictEqual(

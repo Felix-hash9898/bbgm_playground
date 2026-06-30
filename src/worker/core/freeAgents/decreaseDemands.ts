@@ -1,6 +1,7 @@
 import { PHASE, PLAYER } from "../../../common/index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
+import { clampContractDemandForPlayer } from "../contracts/contractLowEnd.ts";
 
 /**
  * Decrease contract demands for all free agents.
@@ -38,6 +39,7 @@ const decreaseDemands = async () => {
 		if (p.contract.amount < minContract) {
 			p.contract.amount = minContract;
 		}
+		p.contract.amount = clampContractDemandForPlayer(p, p.contract.amount);
 
 		if (g.get("phase") !== PHASE.FREE_AGENCY) {
 			// Since this is after the season has already started, ask for a short contract

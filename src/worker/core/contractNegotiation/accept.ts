@@ -5,7 +5,7 @@ import { g, toUI, recomputeLocalUITeamOvrs } from "../../util/index.ts";
 import type { PlayerContract } from "../../../common/types.ts";
 import { PHASE } from "../../../common/index.ts";
 import {
-	canGoOverCapToSignMinimumContract,
+	canSignContractUnderSalaryCapRules,
 	getMaxContractForPlayer,
 } from "../contracts/contractLimits.ts";
 
@@ -66,9 +66,11 @@ const accept = async ({
 		// If this contract brings team over the salary cap, it's not a minimum contract, and it's not re-signing a current
 		// player with the Bird exception, ERROR!
 		if (
-			!birdException &&
-			payroll + amount - 1 > g.get("salaryCap") &&
-			!canGoOverCapToSignMinimumContract(amount)
+			!canSignContractUnderSalaryCapRules({
+				amount,
+				birdException,
+				payroll,
+			})
 		) {
 			return `You cannot go over the salary cap to sign ${
 				salaryCapType === "hard" ? "players" : "free agents"
