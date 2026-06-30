@@ -884,6 +884,24 @@ class GameSim extends GameSimBase {
 		return Math.max(0, Math.min(1 - (p.usageBias ?? 1), 0.15));
 	}
 
+	getTeamUsageOverload() {
+		const playersOnCourt = this.playersOnCourt[this.o];
+		let weightedOverload = 0;
+		let totalWeight = 0;
+
+		for (const p of playersOnCourt) {
+			const usage = Math.max(0.05, p.compositeRating.usage ?? 0);
+			weightedOverload += usage * this.getUsageBiasOverload(p);
+			totalWeight += usage;
+		}
+
+		if (totalWeight <= 0) {
+			return 0;
+		}
+
+		return weightedOverload / totalWeight;
+	}
+
 	getFoulTroubleLimit() {
 		const foulsNeededToFoulOut = g.get("foulsNeededToFoulOut");
 
