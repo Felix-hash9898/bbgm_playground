@@ -16,12 +16,15 @@ import { idb } from "../../db/index.ts";
 import { g, helpers, local, logEvent } from "../../util/index.ts";
 import type { Conditions, PhaseReturn } from "../../../common/types.ts";
 import { orderBy } from "../../../common/utils.ts";
+import { processContractOptions } from "../contracts/contractOptionDecisions.ts";
 
 export const FREE_AGENCY_DAYS = 30;
 
 const newPhaseResignPlayers = async (
 	conditions: Conditions,
 ): Promise<PhaseReturn> => {
+	await processContractOptions();
+
 	// In case some weird situation results in games still in the schedule, clear them
 	await idb.cache.schedule.clear();
 

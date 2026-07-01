@@ -29,6 +29,7 @@ const NegotiationList = ({
 	numRosterSpots,
 	spectator,
 	payroll,
+	pendingTeamOptions,
 	players,
 	salaryCapType,
 	season,
@@ -133,6 +134,78 @@ const NegotiationList = ({
 	});
 
 	const hasRookies = players.some((p) => p.contract.rookie);
+	const pendingTeamOptionRows: DataTableRow[] = pendingTeamOptions.map((p) => {
+		return {
+			key: p.pid,
+			metadata: {
+				type: "player",
+				pid: p.pid,
+				season,
+				playoffs: "regularSeason",
+			},
+			data: [
+				wrappedPlayerNameLabels({
+					pid: p.pid,
+					injury: p.injury,
+					jerseyNumber: p.jerseyNumber,
+					skills: p.ratings.skills,
+					defaultWatch: p.watch,
+					firstName: p.firstName,
+					firstNameShort: p.firstNameShort,
+					lastName: p.lastName,
+				}),
+				p.ratings.pos,
+				p.age,
+				!challengeNoRatings ? p.ratings.ovr : null,
+				!challengeNoRatings ? p.ratings.pot : null,
+				wrappedCurrency(p.contract.amount / 1000, "M"),
+				p.contract.exp,
+				{
+					value: (
+						<div className="btn-group">
+							<button
+								className="btn btn-success btn-xs"
+								onClick={async () => {
+									const errorMsg = await toWorker("main", "decideTeamOption", {
+										exercise: true,
+										pid: p.pid,
+									});
+									if (errorMsg) {
+										logEvent({
+											type: "error",
+											text: errorMsg,
+											saveToDb: false,
+										});
+									}
+								}}
+							>
+								Exercise
+							</button>
+							<button
+								className="btn btn-danger btn-xs"
+								onClick={async () => {
+									const errorMsg = await toWorker("main", "decideTeamOption", {
+										exercise: false,
+										pid: p.pid,
+									});
+									if (errorMsg) {
+										logEvent({
+											type: "error",
+											text: errorMsg,
+											saveToDb: false,
+										});
+									}
+								}}
+							>
+								Decline
+							</button>
+						</div>
+					),
+					searchValue: "Exercise Decline",
+				},
+			],
+		};
+	});
 
 	return (
 		<>
@@ -163,6 +236,27 @@ const NegotiationList = ({
 				numRosterSpots={numRosterSpots}
 				payroll={payroll}
 			/>
+
+			{pendingTeamOptions.length > 0 ? (
+				<>
+					<h2>Team Options</h2>
+					<DataTable
+						cols={getCols([
+							"Name",
+							"Pos",
+							"Age",
+							"Ovr",
+							"Pot",
+							"Amount",
+							"Exp",
+							"Decision",
+						])}
+						defaultSort={[5, "desc"]}
+						name="TeamOptions"
+						rows={pendingTeamOptionRows}
+					/>
+				</>
+			) : null}
 
 			<p>
 				Your unsigned players are asking for a total of{" "}

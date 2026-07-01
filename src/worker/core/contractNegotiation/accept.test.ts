@@ -8,6 +8,8 @@ import {
 	getMinContractForPlayer,
 } from "../contracts/contractMinimum.ts";
 import { getMidLevelExceptionAmount } from "../contracts/contractMidLevel.ts";
+import { getRealAmountForEffectiveOffer } from "../contracts/contractOption.ts";
+import { player, team } from "../index.ts";
 
 beforeEach(beforeTests);
 afterEach(() => idb.cache.negotiations.clear());
@@ -232,6 +234,66 @@ test("two-way contracts do not consume MLE", async () => {
 
 	const t = await idb.cache.teams.get(g.get("userTid"));
 	assert.strictEqual(t?.midLevelExceptionUsedSeason, undefined);
+});
+
+test("player option effective offer can satisfy contract demand while payroll uses real amount", async () => {
+	const pid = 1;
+	g.setWithoutSavingToDB("playersRefuseToNegotiate", false);
+	g.setWithoutSavingToDB("salaryCap", 1000000);
+
+	const p = await idb.cache.players.get(pid);
+	if (!p) {
+		throw new Error("Invalid pid");
+	}
+	p.contract.amount = 20000;
+	await idb.cache.players.put(p);
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+
+	const demand = (await player.moodInfo(p, g.get("userTid"))).contractAmount;
+	const amount = getRealAmountForEffectiveOffer(demand, "player");
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount,
+		exp: g.get("season") + 2,
+		option: "player",
+	});
+	assert.strictEqual(error2, undefined);
+
+	const signedPlayer = await idb.cache.players.get(pid);
+	assert.strictEqual(signedPlayer?.contract.amount, amount);
+	assert.strictEqual(signedPlayer?.contract.option, "player");
+
+	const payroll = await team.getPayroll(g.get("userTid"));
+	assert(payroll >= amount);
+	assert(payroll < demand + g.get("salaryCap"));
+});
+
+test("team option effective offer must satisfy contract demand", async () => {
+	const pid = 1;
+	g.setWithoutSavingToDB("playersRefuseToNegotiate", false);
+	g.setWithoutSavingToDB("salaryCap", 1000000);
+
+	const p = await idb.cache.players.get(pid);
+	if (!p) {
+		throw new Error("Invalid pid");
+	}
+	p.contract.amount = 20000;
+	await idb.cache.players.put(p);
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+
+	const demand = (await player.moodInfo(p, g.get("userTid"))).contractAmount;
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount: demand,
+		exp: g.get("season") + 2,
+		option: "team",
+		dryRun: true,
+	});
+	assert.strictEqual(error2, "Player will not accept this contract.");
 });
 
 test("MLE max contract length is enforced", async () => {

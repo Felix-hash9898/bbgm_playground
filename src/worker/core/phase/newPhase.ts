@@ -18,6 +18,7 @@ import {
 	updatePlayMenu,
 	updateStatus,
 	local,
+	toUI,
 } from "../../util/index.ts";
 import type { Conditions, Phase } from "../../../common/types.ts";
 
@@ -113,7 +114,24 @@ const newPhase = async (phase: Phase, conditions: Conditions, extra?: any) => {
 			if (phaseChangeInfo[phase]) {
 				const result = await phaseChangeInfo[phase].func(conditions, extra);
 
-				await finalize(phase, conditions, result);
+				if (result.abort) {
+					// Player/Team Options v0 intentionally interrupts autoplay for user-controlled Team Option decisions.
+					local.autoPlayUntil = undefined;
+					await lock.set("newPhase", false);
+					await updatePlayMenu();
+					await updateStatus();
+					if (result.redirect) {
+						await toUI(
+							"realtimeUpdate",
+							[result.updateEvents ?? [], result.redirect.url],
+							conditions,
+						);
+					} else {
+						await toUI("realtimeUpdate", [result.updateEvents ?? []]);
+					}
+				} else {
+					await finalize(phase, conditions, result);
+				}
 			} else {
 				throw new Error(`Unknown phase number ${phase}`);
 			}

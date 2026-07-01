@@ -161,19 +161,22 @@ import { formatScheduleForEditor } from "../views/scheduleEditor.ts";
 import type { KeyboardShortcutsLocal } from "../../ui/util/keyboardShortcuts.ts";
 import { getNumPlayoffTeamsRaw } from "../core/season/getNumPlayoffTeams.ts";
 import type { NewLeagueSettings } from "../views/newLeague.ts";
+import { decideUserTeamOption } from "../core/contracts/contractOptionDecisions.ts";
 
 const acceptContractNegotiation = async ({
 	pid,
 	amount,
 	exp,
 	type,
+	option,
 }: {
 	pid: number;
 	amount: number;
 	exp: number;
 	type?: "standard" | "twoWay";
+	option?: "player" | "team";
 }) => {
-	return contractNegotiation.accept({ pid, amount, exp, type });
+	return contractNegotiation.accept({ pid, amount, exp, type, option });
 };
 
 const addTeam = async () => {
@@ -414,6 +417,16 @@ const cancelContractNegotiation = async (pid: number) => {
 	const result = await contractNegotiation.cancel(pid);
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 	return result;
+};
+
+const decideTeamOption = async ({
+	exercise,
+	pid,
+}: {
+	exercise: boolean;
+	pid: number;
+}) => {
+	return decideUserTeamOption({ exercise, pid });
 };
 
 const checkAccount2 = (param: unknown, conditions: Conditions) =>
@@ -5181,6 +5194,7 @@ export default {
 		countNegotiations,
 		createLeague,
 		createTrade,
+		decideTeamOption,
 		deleteOldData,
 		deleteScheduledEvents,
 		discardUnsavedProgress,

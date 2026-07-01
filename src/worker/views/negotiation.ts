@@ -17,6 +17,10 @@ import {
 	getMidLevelExceptionAmount,
 	isMidLevelExceptionAvailable,
 } from "../core/contracts/contractMidLevel.ts";
+import {
+	canContractHaveOption,
+	getRealAmountForEffectiveOffer,
+} from "../core/contracts/contractOption.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -54,6 +58,7 @@ const generateContractOptions = async (
 		amount: number;
 		smallestAmount: boolean;
 		type?: PlayerContract["type"];
+		option?: PlayerContract["option"];
 		disabledReason?: string;
 	}[] = allowedLengths.map((contractLength, i) => {
 		const contractOption = {
@@ -102,12 +107,38 @@ const generateContractOptions = async (
 		return contractOption.amount * 1000 <= g.get("maxContract");
 	});
 
-	for (const row of possible) {
+	const possibleWithOptions = [];
+	for (const contractOption of possible) {
+		possibleWithOptions.push(contractOption);
+
+		const contractForOption = {
+			amount: Math.round(contractOption.amount * 1000),
+			exp: contractOption.exp,
+			rookie: contract.rookie,
+		};
+		if (canContractHaveOption(contractForOption)) {
+			for (const option of ["player", "team"] as const) {
+				possibleWithOptions.push({
+					...contractOption,
+					amount:
+						getRealAmountForEffectiveOffer(
+							contractForOption.amount,
+							option,
+						) / 1000,
+					option,
+					smallestAmount: false,
+				});
+			}
+		}
+	}
+
+	for (const row of possibleWithOptions) {
 		const disabledReason = await contractNegotiation.accept({
 			pid,
 			amount: Math.round(row.amount * 1000),
 			exp: row.exp,
 			type: row.type,
+			option: row.option,
 			dryRun: true,
 		});
 		if (disabledReason !== undefined) {
@@ -115,7 +146,7 @@ const generateContractOptions = async (
 		}
 	}
 
-	return possible;
+	return possibleWithOptions;
 };
 
 const updateNegotiation = async (

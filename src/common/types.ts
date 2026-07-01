@@ -1100,6 +1100,7 @@ export type PartialTopMenu = {
 export type Phase = -2 | -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export type PhaseReturn = {
+	abort?: true;
 	redirect?: {
 		url: string;
 		text: string;
@@ -1112,6 +1113,7 @@ export type PlayerContract = {
 	capHit?: number;
 	exception?: "midLevel";
 	exp: number;
+	option?: "player" | "team";
 	type?: "standard" | "twoWay";
 	rookie?: true; // If present, this is a rookie contract. Could be either a rookie scale auto sign, or negotiated.
 	rookieResign?: true; // Should only be present during re-signing phase for guys re-signing after rookie contracts, otherwise can't identify if previous contract was a rookie contract cause it's overwritten!
@@ -1504,6 +1506,7 @@ export type ContractInfo = {
 	amount: number;
 	capHit?: number;
 	exp: number;
+	option?: "player" | "team";
 	type?: "standard" | "twoWay";
 	released: boolean;
 	watch: number;

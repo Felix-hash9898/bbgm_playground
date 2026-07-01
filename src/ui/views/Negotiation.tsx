@@ -35,12 +35,14 @@ const SignButton = ({
 	amount,
 	exp,
 	type,
+	option,
 	disabledReason,
 }: {
 	pid: number;
 	amount: number;
 	exp: number;
 	type?: "standard" | "twoWay";
+	option?: "player" | "team";
 	disabledReason: string | undefined;
 }) => {
 	const button = (
@@ -53,6 +55,7 @@ const SignButton = ({
 					amount: Math.round(amount * 1000),
 					exp,
 					type,
+					option,
 				});
 				if (errorMsg !== undefined && errorMsg) {
 					logEvent({
@@ -233,6 +236,11 @@ const Negotiation = ({
 								{contract.type === "twoWay" ? (
 									<span className="badge text-bg-info ms-2">Two-Way</span>
 								) : null}
+								{contract.option === "player" ? (
+									<span className="badge text-bg-secondary ms-2">PO</span>
+								) : contract.option === "team" ? (
+									<span className="badge text-bg-secondary ms-2">TO</span>
+								) : null}
 							</div>
 
 							<SignButton
@@ -240,6 +248,7 @@ const Negotiation = ({
 								amount={contract.amount}
 								exp={contract.exp}
 								type={contract.type}
+								option={contract.option}
 								disabledReason={contract.disabledReason}
 							/>
 						</div>

@@ -21,6 +21,10 @@ import {
 	getMidLevelExceptionAmount,
 	getMidLevelExceptionMaxContractLength,
 } from "../contracts/contractMidLevel.ts";
+import {
+	canContractHaveOption,
+	getEffectiveOfferAmount,
+} from "../contracts/contractOption.ts";
 
 /**
  * Accept the player's offer.
@@ -36,12 +40,14 @@ const accept = async ({
 	amount,
 	exp,
 	type,
+	option,
 	dryRun,
 }: {
 	pid: number;
 	amount: number;
 	exp: number;
 	type?: PlayerContract["type"];
+	option?: PlayerContract["option"];
 	dryRun?: boolean;
 }) => {
 	const negotiation = await idb.cache.negotiations.get(pid);
@@ -96,6 +102,17 @@ const accept = async ({
 	if (isTwoWay) {
 		contract.type = "twoWay";
 	}
+	if (option !== undefined) {
+		contract.option = option;
+		if (
+			!canContractHaveOption({
+				...contract,
+				rookie: p.contract.rookie,
+			})
+		) {
+			return "This contract is not eligible for a player or team option.";
+		}
+	}
 	const contractWithCapHit = withContractCapHitForPlayer(p, contract);
 	const userTeam = await idb.cache.teams.get(g.get("userTid"));
 
@@ -138,6 +155,12 @@ const accept = async ({
 	const mood = await player.moodInfo(p, g.get("userTid"));
 	if (!mood.willing) {
 		return "Player is no longer willing to negotiate.";
+	}
+	if (
+		!isTwoWay &&
+		getEffectiveOfferAmount(amountActual, option) + 1 < mood.contractAmount
+	) {
+		return "Player will not accept this contract.";
 	}
 
 	if (p.contract.rookie && g.get("phase") === PHASE.RESIGN_PLAYERS) {

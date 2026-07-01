@@ -2,8 +2,20 @@ import { contractNegotiation, freeAgents } from "../index.ts";
 import { helpers } from "../../util/index.ts";
 import type { PhaseReturn } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
+import { hasPendingUserTeamOptions } from "../contracts/contractOptionDecisions.ts";
 
 const newPhaseFreeAgency = async (): Promise<PhaseReturn> => {
+	if (await hasPendingUserTeamOptions()) {
+		return {
+			abort: true,
+			redirect: {
+				url: helpers.leagueUrl(["negotiation"]),
+				text: "Decide team options",
+			},
+			updateEvents: ["playerMovement"],
+		};
+	}
+
 	// In case some weird situation results in games still in the schedule, clear them
 	await idb.cache.schedule.clear();
 

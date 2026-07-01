@@ -1,5 +1,6 @@
 import { PLAYER } from "../../common/index.ts";
 import { team } from "../core/index.ts";
+import { getPendingUserTeamOptions } from "../core/contracts/contractOptionDecisions.ts";
 import { isStandardContract } from "../core/contracts/contractTwoWay.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
@@ -58,6 +59,26 @@ const updateNegotiationList = async () => {
 			fuzz: true,
 		}),
 	);
+	const pendingTeamOptions = addFirstNameShort(
+		await idb.getCopies.playersPlus(await getPendingUserTeamOptions(), {
+			attrs: [
+				"pid",
+				"firstName",
+				"lastName",
+				"age",
+				"contract",
+				"injury",
+				"jerseyNumber",
+				"watch",
+			],
+			ratings: ["ovr", "pot", "skills", "pos"],
+			stats,
+			season: g.get("season"),
+			tid: userTid,
+			showNoStats: true,
+			fuzz: true,
+		}),
+	);
 
 	let sumContracts = 0;
 	for (const p of players) {
@@ -90,6 +111,7 @@ const updateNegotiationList = async () => {
 			userPlayersAll.filter((p) => isStandardContract(p.contract)).length,
 		spectator: g.get("spectator"),
 		payroll: payroll / 1000,
+		pendingTeamOptions,
 		players,
 		season: g.get("season"),
 		stats,

@@ -9,6 +9,7 @@ import { idb } from "../db/index.ts";
 import g from "./g.ts";
 import getTeamInfoBySeason from "./getTeamInfoBySeason.ts";
 import helpers from "./helpers.ts";
+import { getContractOptionDisplayText } from "../core/contracts/contractOption.ts";
 
 type PlayerAsset = {
 	pid: number;
@@ -196,11 +197,13 @@ const formatEventText = async (event: EventBBGM) => {
 				])}">${p.firstName} ${p.lastName}</a>`
 			: "???";
 
-		return `The ${teamName} ${signedOrReSigned} ${playerName} for ${helpers.formatCurrency(
-			event.contract!.amount / 1000,
-			"M",
-		)}/year through ${event.contract!.exp}.`;
-	}
+			return `The ${teamName} ${signedOrReSigned} ${playerName} for ${helpers.formatCurrency(
+				event.contract!.amount / 1000,
+				"M",
+			)}/year through ${event.contract!.exp}${getContractOptionDisplayText(
+				event.contract!,
+			)}.`;
+		}
 
 	if (event.type === "sisyphus") {
 		const teamNames = await Promise.all(

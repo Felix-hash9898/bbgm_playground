@@ -28,6 +28,7 @@ const getContracts = async (tid: number): Promise<ContractInfo[]> => {
 			amount: p.contract.amount,
 			capHit: p.contract.capHit,
 			exp: p.contract.exp,
+			option: p.contract.option,
 			type: p.contract.type,
 			released: false,
 		};
@@ -62,6 +63,7 @@ const getContracts = async (tid: number): Promise<ContractInfo[]> => {
 				amount: releasedPlayer.contract.amount,
 				capHit: (releasedPlayer.contract as PlayerContract).capHit,
 				exp: releasedPlayer.contract.exp,
+				option: (releasedPlayer.contract as PlayerContract).option,
 				type: (releasedPlayer.contract as PlayerContract).type,
 				released: true,
 			});
@@ -81,6 +83,7 @@ const getContracts = async (tid: number): Promise<ContractInfo[]> => {
 				amount: releasedPlayer.contract.amount,
 				capHit: (releasedPlayer.contract as PlayerContract).capHit,
 				exp: releasedPlayer.contract.exp,
+				option: (releasedPlayer.contract as PlayerContract).option,
 				type: (releasedPlayer.contract as PlayerContract).type,
 				released: true,
 			});
