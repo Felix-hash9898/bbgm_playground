@@ -1,6 +1,7 @@
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
 import type { UpdateEvents, ViewInput } from "../../common/types.ts";
+import { isStandardContract } from "../core/contracts/contractTwoWay.ts";
 
 const updateLeagueFinances = async (
 	inputs: ViewInput<"leagueFinances">,
@@ -44,7 +45,10 @@ const updateLeagueFinances = async (
 			)
 		).map((t) => {
 			const rosterSpots =
-				g.get("maxRosterSize") - players.filter((p) => p.tid === t.tid).length;
+				g.get("maxRosterSize") -
+				players.filter(
+					(p) => p.tid === t.tid && isStandardContract(p.contract),
+				).length;
 
 			return {
 				...t,

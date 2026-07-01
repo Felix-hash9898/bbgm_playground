@@ -1,5 +1,6 @@
 import { idb } from "../../db/index.ts";
 import type { ContractInfo } from "../../../common/types.ts";
+import { isTwoWayContract } from "../contracts/contractTwoWay.ts";
 
 /**
  * Get the total current payroll for a team.
@@ -25,7 +26,10 @@ const getPayroll = async (
 		);
 
 		for (const p of [...players, ...releasedPlayers]) {
-			if (season === undefined || p.contract.exp >= season) {
+			if (
+				!isTwoWayContract(p.contract) &&
+				(season === undefined || p.contract.exp >= season)
+			) {
 				payroll += p.contract.amount;
 			}
 		}
@@ -36,7 +40,9 @@ const getPayroll = async (
 
 		const contracts = input;
 		for (const contract of contracts) {
-			payroll += contract.amount;
+			if (!isTwoWayContract(contract)) {
+				payroll += contract.amount;
+			}
 		}
 	}
 

@@ -150,3 +150,28 @@ test("return error message when user team is over roster limit", async () => {
 	);
 	assert.strictEqual(players.length, 24);
 });
+
+test("two-way contracts do not count toward standard roster size", async () => {
+	await resetCacheWithPlayers({
+		"0": 18,
+		"1": 10,
+	});
+
+	const players = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		g.get("userTid"),
+	);
+	for (const p of players.slice(0, 3)) {
+		p.contract.type = "twoWay";
+		await idb.cache.players.put(p);
+	}
+
+	const userTeamSizeError = await team.checkRosterSizes("user");
+	assert.strictEqual(userTeamSizeError, undefined);
+
+	const playersAfter = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		g.get("userTid"),
+	);
+	assert.strictEqual(playersAfter.length, 18);
+});

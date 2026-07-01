@@ -8,6 +8,11 @@ import {
 	canSignContractUnderSalaryCapRules,
 	getMaxContractForPlayer,
 } from "../contracts/contractLimits.ts";
+import {
+	canOfferTwoWay,
+	canTeamAddTwoWay,
+	getTwoWayContractAmount,
+} from "../contracts/contractTwoWay.ts";
 
 /**
  * Accept the player's offer.
@@ -22,11 +27,13 @@ const accept = async ({
 	pid,
 	amount,
 	exp,
+	type,
 	dryRun,
 }: {
 	pid: number;
 	amount: number;
 	exp: number;
+	type?: PlayerContract["type"];
 	dryRun?: boolean;
 }) => {
 	const negotiation = await idb.cache.negotiations.get(pid);
@@ -40,6 +47,9 @@ const accept = async ({
 		throw new Error("Invalid pid");
 	}
 
+	const contractType = type ?? "standard";
+	const isTwoWay = contractType === "twoWay";
+	const amountActual = isTwoWay ? getTwoWayContractAmount() : amount;
 	const maxContract = getMaxContractForPlayer(p);
 	// This error is for sanity checking in multi team mode. Need to check for existence of negotiation.tid because it
 	// wasn't there originally and I didn't write upgrade code. Can safely get rid of it later.
@@ -53,13 +63,24 @@ const accept = async ({
 		}. Either switch teams or cancel this negotiation.`;
 	}
 
-	if (amount > maxContract) {
+	if (isTwoWay) {
+		const players = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			g.get("userTid"),
+		);
+		if (!canOfferTwoWay(p)) {
+			return "This player is not eligible for a two-way contract.";
+		}
+		if (!canTeamAddTwoWay(players, g.get("userTid"))) {
+			return "Your team already has the maximum number of two-way contracts.";
+		}
+	} else if (amountActual > maxContract) {
 		return "You cannot offer this player a contract higher than their maximum salary.";
 	}
 
 	const salaryCapType = g.get("salaryCapType");
 
-	if (salaryCapType !== "none") {
+	if (salaryCapType !== "none" && !isTwoWay) {
 		const payroll = await team.getPayroll(g.get("userTid"));
 		const birdException = negotiation.resigning && salaryCapType === "soft";
 
@@ -85,9 +106,12 @@ const accept = async ({
 	}
 
 	const contract: PlayerContract = {
-		amount,
+		amount: amountActual,
 		exp,
 	};
+	if (isTwoWay) {
+		contract.type = "twoWay";
+	}
 	if (p.contract.rookie && g.get("phase") === PHASE.RESIGN_PLAYERS) {
 		// Not sure if the phase condition is necessary. The purpose of this is for hard cap rookies with rookie contract scale.
 		contract.rookie = true;

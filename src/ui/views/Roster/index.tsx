@@ -444,7 +444,10 @@ const Roster = ({
 				luxuryTaxAmount={luxuryTaxAmount}
 				minPayroll={minPayroll}
 				minPayrollAmount={minPayrollAmount}
-				openRosterSpots={maxRosterSize - players.length}
+				openRosterSpots={
+					maxRosterSize -
+					players.filter((p) => p.contract.type !== "twoWay").length
+				}
 				players={players}
 				playoffsByConf={playoffsByConf}
 				season={season}

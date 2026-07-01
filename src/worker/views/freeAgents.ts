@@ -7,6 +7,7 @@ import type {
 } from "../../common/types.ts";
 import { orderBy } from "../../common/utils.ts";
 import { player, team } from "../core/index.ts";
+import { isStandardContract } from "../core/contracts/contractTwoWay.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
@@ -237,7 +238,9 @@ const updateFreeAgents = async (
 			salaryCapType: g.get("salaryCapType"),
 			maxContract: g.get("maxContract"),
 			minContract: g.get("minContract"),
-			numRosterSpots: g.get("maxRosterSize") - userPlayers.length,
+			numRosterSpots:
+				g.get("maxRosterSize") -
+				userPlayers.filter((p) => isStandardContract(p.contract)).length,
 			spectator: g.get("spectator"),
 			payroll: payroll / 1000,
 			phase: g.get("phase"),

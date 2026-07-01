@@ -15,6 +15,17 @@ const useJustDrafted = (p: ContractPlayer) => {
 	return helpers.justDrafted(p, phase as any, season);
 };
 
+const isTwoWayContract = (contract: PlayerContract) =>
+	contract.type === "twoWay";
+
+const TwoWayBadge = ({ contract }: { contract: PlayerContract }) => {
+	if (!isTwoWayContract(contract)) {
+		return null;
+	}
+
+	return <span className="badge text-bg-info ms-1">Two-Way</span>;
+};
+
 const NON_GUARANTEED_CONTRACT_TEXT =
 	"Contracts for drafted players are not guaranteed until the regular season. If you release a drafted player before then, you pay nothing.";
 
@@ -33,6 +44,7 @@ export const ContractAmount = ({
 			title={justDrafted ? NON_GUARANTEED_CONTRACT_TEXT : undefined}
 		>
 			{helpers.formatCurrency(override ?? p.contract.amount, "M")}
+			{override === undefined ? <TwoWayBadge contract={p.contract} /> : null}
 		</span>
 	);
 };
@@ -108,7 +120,9 @@ export const Contract = ({ p }: { p: ContractPlayer }) => {
 
 export const wrappedContract = (p: ContractPlayer) => {
 	const formattedAmount = helpers.formatCurrency(p.contract.amount, "M");
-	const formatted = `${formattedAmount} thru ${p.contract.exp}`;
+	const formatted = `${formattedAmount}${
+		isTwoWayContract(p.contract) ? " Two-Way" : ""
+	} thru ${p.contract.exp}`;
 
 	return {
 		value: <Contract p={p} />,

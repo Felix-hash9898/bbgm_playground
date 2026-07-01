@@ -3,6 +3,7 @@ import type { PlayerWithoutKey } from "../../../common/types.ts";
 import { DRAFT_BY_TEAM_OVR, bySport } from "../../../common/index.ts";
 import { getTeamOvrDiffs } from "../draft/runPicks.ts";
 import { orderBy } from "../../../common/utils.ts";
+import { isStandardContract } from "../contracts/contractTwoWay.ts";
 
 // In some sports, extra check for certain important rare positions in case the only one was traded away. These should only be positions with weird unique skills, where you can't replace them easily with another position. Value is the number of players that should be at each position.
 export const KEY_POSITIONS_NEEDED = bySport<Record<string, number> | undefined>(
@@ -27,6 +28,9 @@ const getBest = <T extends PlayerWithoutKey>(
 	const salaryCap = g.get("salaryCap");
 	const salaryCapType = g.get("salaryCapType");
 	const numActiveTeams = g.get("numActiveTeams");
+	const numStandardPlayersOnRoster = playersOnRoster.filter((p) =>
+		isStandardContract(p.contract),
+	).length;
 
 	let playersSorted: T[];
 	if (DRAFT_BY_TEAM_OVR) {
@@ -117,7 +121,7 @@ const getBest = <T extends PlayerWithoutKey>(
 			salaryCapCheck && p.contract.amount > minContract;
 		const shouldAddPlayerMinContract =
 			p.contract.amount <= minContract &&
-			playersOnRoster.length < maxRosterSize - 2;
+			numStandardPlayersOnRoster < maxRosterSize - 2;
 
 		// If none of the other checks were true and we can afford this player and it's at a position we have nobody at (like hockey goalie), go for it
 		const shouldAddPlayerPosition =

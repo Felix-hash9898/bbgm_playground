@@ -34,11 +34,13 @@ const SignButton = ({
 	pid,
 	amount,
 	exp,
+	type,
 	disabledReason,
 }: {
 	pid: number;
 	amount: number;
 	exp: number;
+	type?: "standard" | "twoWay";
 	disabledReason: string | undefined;
 }) => {
 	const button = (
@@ -50,6 +52,7 @@ const SignButton = ({
 					pid,
 					amount: Math.round(amount * 1000),
 					exp,
+					type,
 				});
 				if (errorMsg !== undefined && errorMsg) {
 					logEvent({
@@ -204,12 +207,16 @@ const Negotiation = ({
 								<b>{helpers.formatCurrency(contract.amount, "M")}</b>/year for{" "}
 								{contract.years} {helpers.plural("year", contract.years)}{" "}
 								(through {contract.exp})
+								{contract.type === "twoWay" ? (
+									<span className="badge text-bg-info ms-2">Two-Way</span>
+								) : null}
 							</div>
 
 							<SignButton
 								pid={p.pid}
 								amount={contract.amount}
 								exp={contract.exp}
+								type={contract.type}
 								disabledReason={contract.disabledReason}
 							/>
 						</div>

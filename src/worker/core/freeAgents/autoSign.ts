@@ -4,6 +4,12 @@ import getBest from "./getBest.ts";
 import { idb } from "../../db/index.ts";
 import { g, local, random } from "../../util/index.ts";
 import { orderBy } from "../../../common/utils.ts";
+import {
+	canOfferTwoWay,
+	canTeamAddTwoWay,
+	isStandardContract,
+	makeTwoWayContract,
+} from "../contracts/contractTwoWay.ts";
 
 /**
  * AI teams sign free agents.
@@ -56,14 +62,17 @@ const autoSign = async () => {
 			continue;
 		}
 
-		const playersOnRoster = await idb.cache.players.indexGetAll(
+		let playersOnRoster = await idb.cache.players.indexGetAll(
 			"playersByTid",
 			t.tid,
+		);
+		const standardPlayersOnRoster = playersOnRoster.filter((p) =>
+			isStandardContract(p.contract),
 		);
 
 		// With forceHistoricalRosters, only sign FAs if we have to
 		if (
-			playersOnRoster.length >= g.get("minRosterSize") &&
+			standardPlayersOnRoster.length >= g.get("minRosterSize") &&
 			g.get("forceHistoricalRosters")
 		) {
 			continue;
@@ -78,7 +87,30 @@ const autoSign = async () => {
 
 			await player.sign(p, t.tid, p.contract, g.get("phase"));
 			await idb.cache.players.put(p);
+			playersOnRoster = [...playersOnRoster, p];
 			await team.rosterAutoSort(t.tid);
+		}
+
+		const standardPlayersOnRosterAfterStandardPass = playersOnRoster.filter((p) =>
+			isStandardContract(p.contract),
+		);
+		if (
+			standardPlayersOnRosterAfterStandardPass.length >= g.get("minRosterSize") &&
+			canTeamAddTwoWay(playersOnRoster, t.tid)
+		) {
+			const pTwoWay = playersSorted.find((p) => canOfferTwoWay(p));
+			if (pTwoWay) {
+				playersSorted = playersSorted.filter((p) => p !== pTwoWay);
+
+				await player.sign(
+					pTwoWay,
+					t.tid,
+					makeTwoWayContract(),
+					g.get("phase"),
+				);
+				await idb.cache.players.put(pTwoWay);
+				await team.rosterAutoSort(t.tid);
+			}
 		}
 	}
 };

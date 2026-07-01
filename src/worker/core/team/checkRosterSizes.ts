@@ -5,6 +5,7 @@ import { idb } from "../../db/index.ts";
 import { g, helpers, local } from "../../util/index.ts";
 import type { MinimalPlayerRatings, Player } from "../../../common/types.ts";
 import { KEY_POSITIONS_NEEDED } from "../freeAgents/getBest.ts";
+import { isStandardContract } from "../contracts/contractTwoWay.ts";
 
 export const dropPlayers = async (
 	players: Player<MinimalPlayerRatings>[],
@@ -134,7 +135,10 @@ const checkRosterSizes = async (
 
 	const checkRosterSize = async (tid: number, userTeamAndActive: boolean) => {
 		const players = await idb.cache.players.indexGetAll("playersByTid", tid);
-		let numPlayersOnRoster = players.length;
+		const standardPlayers = players.filter((p) =>
+			isStandardContract(p.contract),
+		);
+		let numPlayersOnRoster = standardPlayers.length;
 
 		if (numPlayersOnRoster > g.get("maxRosterSize")) {
 			if (userTeamAndActive) {
@@ -155,7 +159,7 @@ const checkRosterSizes = async (
 				)}">trades</a>) before continuing.`;
 			} else {
 				const releasedPIDsTemp = await dropPlayers(
-					players,
+					standardPlayers,
 					numPlayersOnRoster - g.get("maxRosterSize"),
 				);
 				releasedPIDs.push(...releasedPIDsTemp);
@@ -213,7 +217,10 @@ const checkRosterSizes = async (
 
 	// List of free agents looking for minimum contracts, sorted by value. This is used to bump teams up to the minimum roster size.
 	for (const p of players) {
-		if (p.contract.amount === g.get("minContract")) {
+		if (
+			isStandardContract(p.contract) &&
+			p.contract.amount === g.get("minContract")
+		) {
 			minFreeAgents.push(p);
 		}
 	}

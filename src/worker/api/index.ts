@@ -166,12 +166,14 @@ const acceptContractNegotiation = async ({
 	pid,
 	amount,
 	exp,
+	type,
 }: {
 	pid: number;
 	amount: number;
 	exp: number;
+	type?: "standard" | "twoWay";
 }) => {
-	return contractNegotiation.accept({ pid, amount, exp });
+	return contractNegotiation.accept({ pid, amount, exp, type });
 };
 
 const addTeam = async () => {

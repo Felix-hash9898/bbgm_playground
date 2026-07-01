@@ -4,6 +4,11 @@ import {
 	getMaxContractForPlayer,
 	getMaxSalaryTier,
 } from "../core/contracts/contractLimits.ts";
+import {
+	canOfferTwoWay,
+	canTeamAddTwoWay,
+	makeTwoWayContract,
+} from "../core/contracts/contractTwoWay.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -39,6 +44,7 @@ const generateContractOptions = async (
 		years: number;
 		amount: number;
 		smallestAmount: boolean;
+		type?: PlayerContract["type"];
 		disabledReason?: string;
 	}[] = allowedLengths.map((contractLength, i) => {
 		const contractOption = {
@@ -92,6 +98,7 @@ const generateContractOptions = async (
 			pid,
 			amount: Math.round(row.amount * 1000),
 			exp: row.exp,
+			type: row.type,
 			dryRun: true,
 		});
 		if (disabledReason !== undefined) {
@@ -166,6 +173,24 @@ const updateNegotiation = async (
 			},
 			p.ratings.ovr,
 		);
+		if (!negotiation.resigning && canOfferTwoWay(p2)) {
+			const players = await idb.cache.players.indexGetAll(
+				"playersByTid",
+				userTid,
+			);
+			const twoWayContract = makeTwoWayContract();
+			const twoWayOption = {
+				exp: twoWayContract.exp,
+				years: 1,
+				amount: twoWayContract.amount / 1000,
+				smallestAmount: false,
+				type: twoWayContract.type,
+				disabledReason: canTeamAddTwoWay(players, userTid)
+					? undefined
+					: "Your team already has the maximum number of two-way contracts.",
+			};
+			contractOptions.unshift(twoWayOption);
+		}
 		if (
 			contractOptions.length === 0 &&
 			g.get("phase") === PHASE.RESIGN_PLAYERS

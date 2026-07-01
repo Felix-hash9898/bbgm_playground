@@ -1,5 +1,6 @@
 import { PLAYER } from "../../common/index.ts";
 import { team } from "../core/index.ts";
+import { isStandardContract } from "../core/contracts/contractTwoWay.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
@@ -84,7 +85,9 @@ const updateNegotiationList = async () => {
 		salaryCapType: g.get("salaryCapType"),
 		maxContract: g.get("maxContract"),
 		minContract: g.get("minContract"),
-		numRosterSpots: g.get("maxRosterSize") - userPlayersAll.length,
+		numRosterSpots:
+			g.get("maxRosterSize") -
+			userPlayersAll.filter((p) => isStandardContract(p.contract)).length,
 		spectator: g.get("spectator"),
 		payroll: payroll / 1000,
 		players,

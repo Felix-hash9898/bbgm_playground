@@ -1,5 +1,5 @@
 import { idb } from "../../db/index.ts";
-import type { ContractInfo } from "../../../common/types.ts";
+import type { ContractInfo, PlayerContract } from "../../../common/types.ts";
 
 /**
  * Gets all the contracts a team owes.
@@ -27,6 +27,7 @@ const getContracts = async (tid: number): Promise<ContractInfo[]> => {
 			watch: p.watch ?? 0,
 			amount: p.contract.amount,
 			exp: p.contract.exp,
+			type: p.contract.type,
 			released: false,
 		};
 	});
@@ -59,6 +60,7 @@ const getContracts = async (tid: number): Promise<ContractInfo[]> => {
 				// undefined check is for old leagues, can delete eventually
 				amount: releasedPlayer.contract.amount,
 				exp: releasedPlayer.contract.exp,
+				type: (releasedPlayer.contract as PlayerContract).type,
 				released: true,
 			});
 		} else {
@@ -76,6 +78,7 @@ const getContracts = async (tid: number): Promise<ContractInfo[]> => {
 				watch: 0,
 				amount: releasedPlayer.contract.amount,
 				exp: releasedPlayer.contract.exp,
+				type: (releasedPlayer.contract as PlayerContract).type,
 				released: true,
 			});
 		}
