@@ -4,6 +4,8 @@ import getBest from "./getBest.ts";
 import { idb } from "../../db/index.ts";
 import { g, local, random } from "../../util/index.ts";
 import { orderBy } from "../../../common/utils.ts";
+import { getContractException } from "../contracts/contractLimits.ts";
+import { isMinimumContractForPlayer } from "../contracts/contractMinimum.ts";
 import {
 	canOfferTwoWay,
 	canTeamAddTwoWay,
@@ -89,6 +91,36 @@ const autoSign = async () => {
 			await idb.cache.players.put(p);
 			playersOnRoster = [...playersOnRoster, p];
 			await team.rosterAutoSort(t.tid);
+		}
+
+		if (!p) {
+			const pMidLevel = playersSorted.find((p2) => {
+				if (isMinimumContractForPlayer(p2, p2.contract)) {
+					return false;
+				}
+
+				return (
+					getContractException({
+						birdException: false,
+						contract: p2.contract,
+						p: p2,
+						payroll,
+						team: t,
+					}).type === "midLevel"
+				);
+			});
+
+			if (pMidLevel) {
+				playersSorted = playersSorted.filter((p2) => p2 !== pMidLevel);
+				pMidLevel.contract.exception = "midLevel";
+
+				await player.sign(pMidLevel, t.tid, pMidLevel.contract, g.get("phase"));
+				await idb.cache.players.put(pMidLevel);
+				t.midLevelExceptionUsedSeason = g.get("season");
+				await idb.cache.teams.put(t);
+				playersOnRoster = [...playersOnRoster, pMidLevel];
+				await team.rosterAutoSort(t.tid);
+			}
 		}
 
 		const standardPlayersOnRosterAfterStandardPass = playersOnRoster.filter((p) =>

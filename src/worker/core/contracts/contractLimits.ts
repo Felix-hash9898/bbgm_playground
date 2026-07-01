@@ -1,11 +1,11 @@
 import { AWARD_NAMES, isSport } from "../../../common/index.ts";
-import type { Player, PlayerContract } from "../../../common/types.ts";
+import type { Player, PlayerContract, Team } from "../../../common/types.ts";
 import { g, helpers } from "../../util/index.ts";
+import { getMinContractForPlayer } from "./contractMinimum.ts";
 import {
-	getContractCapHit,
-	getMinContractForPlayer,
-	isMinimumContractForPlayer,
-} from "./contractMinimum.ts";
+	getContractExceptionResult,
+	type ContractExceptionResult,
+} from "./contractMidLevel.ts";
 
 type AwardLike = {
 	season: number;
@@ -26,35 +26,50 @@ export const isMinimumContract = (amount: number) => {
 	return amount <= getMinContract() + 1;
 };
 
-export const canGoOverCapToSignMinimumContract = (
-	p: PlayerWithAwards,
-	amount: number,
-) => {
-	return isMinimumContractForPlayer(p, amount);
-};
-
 export const canSignContractUnderSalaryCapRules = ({
 	birdException,
 	contract,
 	p,
 	payroll,
+	team,
 }: {
 	birdException: boolean;
 	contract: PlayerContract;
 	p: PlayerWithAwards;
 	payroll: number;
+	team?: Pick<Team, "midLevelExceptionUsedSeason" | "tid">;
 }) => {
-	const salaryCapType = g.get("salaryCapType");
-	if (salaryCapType === "none" || birdException) {
-		return true;
-	}
+	return (
+		getContractExceptionResult({
+			birdException,
+			contract,
+			p,
+			payroll,
+			team,
+		}).type !== undefined
+	);
+};
 
-	const capHit = getContractCapHit(contract);
-	if (payroll + capHit - 1 <= g.get("salaryCap")) {
-		return true;
-	}
-
-	return canGoOverCapToSignMinimumContract(p, contract.amount);
+export const getContractException = ({
+	birdException,
+	contract,
+	p,
+	payroll,
+	team,
+}: {
+	birdException: boolean;
+	contract: PlayerContract;
+	p: PlayerWithAwards;
+	payroll: number;
+	team?: Pick<Team, "midLevelExceptionUsedSeason" | "tid">;
+}): ContractExceptionResult => {
+	return getContractExceptionResult({
+		birdException,
+		contract,
+		p,
+		payroll,
+		team,
+	});
 };
 
 export const getYearsOfService = (p: PlayerWithAwards) => {

@@ -91,6 +91,8 @@ const Negotiation = ({
 	capSpace,
 	challengeNoRatings,
 	contractOptions,
+	midLevelExceptionAmount,
+	midLevelExceptionAvailable,
 	minimumCapHit,
 	maxSalaryTier,
 	payroll,
@@ -202,6 +204,13 @@ const Negotiation = ({
 							minimumCapHit < playerMinimum ? (
 								<div>
 									Minimum Cap Hit: {helpers.formatCurrency(minimumCapHit, "M")}
+								</div>
+							) : null}
+							{midLevelExceptionAmount !== undefined ? (
+								<div>
+									Mid-Level Exception:{" "}
+									{helpers.formatCurrency(midLevelExceptionAmount, "M")} (
+									{midLevelExceptionAvailable ? "Available" : "Used"})
 								</div>
 							) : null}
 						</>

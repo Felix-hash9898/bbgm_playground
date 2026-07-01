@@ -1110,6 +1110,7 @@ export type PhaseReturn = {
 export type PlayerContract = {
 	amount: number;
 	capHit?: number;
+	exception?: "midLevel";
 	exp: number;
 	type?: "standard" | "twoWay";
 	rookie?: true; // If present, this is a rookie contract. Could be either a rookie scale auto sign, or negotiated.
@@ -1612,6 +1613,7 @@ export type Team = {
 
 	// Optional because no upgrade
 	autoTicketPrice?: boolean;
+	midLevelExceptionUsedSeason?: number;
 
 	// Optional because no upgrade. Otherwise, would make this empty array by default
 	retiredJerseyNumbers?: {

@@ -1,12 +1,13 @@
 import { afterEach, assert, beforeEach, test } from "vitest";
 import { contractNegotiation } from "../index.ts";
 import { idb } from "../../db/index.ts";
-import { g } from "../../util/index.ts";
+import { g, helpers } from "../../util/index.ts";
 import { beforeTests, givePlayerMinContract } from "./testHelpers.ts";
 import {
 	getContractCapHit,
 	getMinContractForPlayer,
 } from "../contracts/contractMinimum.ts";
+import { getMidLevelExceptionAmount } from "../contracts/contractMidLevel.ts";
 
 beforeEach(beforeTests);
 afterEach(() => idb.cache.negotiations.clear());
@@ -17,6 +18,15 @@ const putUserTeamOverCap = async () => {
 		throw new Error("Invalid team player");
 	}
 	teamPlayer.contract.amount = g.get("salaryCap");
+	await idb.cache.players.put(teamPlayer);
+};
+
+const putUserTeamNearCap = async (capSpace: number) => {
+	const teamPlayer = await idb.cache.players.get(3);
+	if (!teamPlayer) {
+		throw new Error("Invalid team player");
+	}
+	teamPlayer.contract.amount = g.get("salaryCap") - capSpace;
 	await idb.cache.players.put(teamPlayer);
 };
 
@@ -67,12 +77,179 @@ test("no signing non-minimum contracts that cause team to exceed the salary cap"
 	);
 	const error2 = await contractNegotiation.accept({
 		pid,
-		amount: g.get("minContract") + 2,
+		amount: getMidLevelExceptionAmount() + 2,
 		exp: g.get("season") + 1,
 	});
 	assert.strictEqual(
 		error2,
-		"You cannot go over the salary cap to sign free agents to contracts higher than the minimum salary.",
+		`You cannot go over the salary cap to sign free agents to contracts higher than the Mid-Level Exception (${helpers.formatCurrency(
+			getMidLevelExceptionAmount() / 1000,
+			"M",
+		)}).`,
+	);
+});
+
+test("under-cap signing succeeds without consuming MLE", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	const amount = getMidLevelExceptionAmount() + 500;
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount,
+		exp: g.get("season") + 1,
+	});
+	assert.strictEqual(error2, undefined);
+
+	const t = await idb.cache.teams.get(g.get("userTid"));
+	assert.strictEqual(t?.midLevelExceptionUsedSeason, undefined);
+});
+
+test("cap-space-insufficient signing within MLE succeeds and consumes MLE", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await putUserTeamNearCap(4000);
+	const amount = getMidLevelExceptionAmount() - 500;
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount,
+		exp: g.get("season") + 1,
+	});
+	assert.strictEqual(error2, undefined);
+
+	const t = await idb.cache.teams.get(g.get("userTid"));
+	const signedPlayer = await idb.cache.players.get(pid);
+	assert.strictEqual(t?.midLevelExceptionUsedSeason, g.get("season"));
+	assert.strictEqual(signedPlayer?.contract.exception, "midLevel");
+});
+
+test("over-cap above-minimum signing above MLE fails", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await putUserTeamOverCap();
+	const amount = getMidLevelExceptionAmount() + 500;
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount,
+		exp: g.get("season") + 1,
+		dryRun: true,
+	});
+	assert.strictEqual(
+		error2,
+		`You cannot go over the salary cap to sign free agents to contracts higher than the Mid-Level Exception (${helpers.formatCurrency(
+			getMidLevelExceptionAmount() / 1000,
+			"M",
+		)}).`,
+	);
+});
+
+test("MLE cannot be used twice in the same season", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await putUserTeamNearCap(4000);
+	const amount = getMidLevelExceptionAmount() - 500;
+
+	let error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+	let error2 = await contractNegotiation.accept({
+		pid,
+		amount,
+		exp: g.get("season") + 1,
+	});
+	assert.strictEqual(error2, undefined);
+
+	const p2 = await idb.cache.players.get(0);
+	if (!p2) {
+		throw new Error("Invalid pid");
+	}
+	p2.contract.amount = g.get("minContract");
+	await idb.cache.players.put(p2);
+
+	error = await contractNegotiation.create(0, false);
+	assert.strictEqual(error, undefined);
+	error2 = await contractNegotiation.accept({
+		pid: 0,
+		amount,
+		exp: g.get("season") + 1,
+		dryRun: true,
+	});
+	assert.strictEqual(error2, "You have already used your Mid-Level Exception this season.");
+});
+
+test("minimum exception does not consume MLE", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await putUserTeamOverCap();
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount: g.get("minContract"),
+		exp: g.get("season") + 1,
+	});
+	assert.strictEqual(error2, undefined);
+
+	const t = await idb.cache.teams.get(g.get("userTid"));
+	assert.strictEqual(t?.midLevelExceptionUsedSeason, undefined);
+});
+
+test("two-way contracts do not consume MLE", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+
+	const p = await idb.cache.players.get(pid);
+	if (!p) {
+		throw new Error("Invalid pid");
+	}
+	p.born.year = g.get("season") - 22;
+	p.draft.year = g.get("season");
+	p.draft.round = 0;
+	p.draft.pick = 0;
+	p.value = 45;
+	p.valueNoPot = 42;
+	p.ratings.at(-1)!.ovr = 42;
+	await idb.cache.players.put(p);
+	await putUserTeamOverCap();
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount: g.get("minContract"),
+		exp: g.get("season") + 1,
+		type: "twoWay",
+	});
+	assert.strictEqual(error2, undefined);
+
+	const t = await idb.cache.teams.get(g.get("userTid"));
+	assert.strictEqual(t?.midLevelExceptionUsedSeason, undefined);
+});
+
+test("MLE max contract length is enforced", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await putUserTeamOverCap();
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount: getMidLevelExceptionAmount() - 500,
+		exp: g.get("season") + 5,
+		dryRun: true,
+	});
+	assert.strictEqual(
+		error2,
+		"You cannot use the Mid-Level Exception on a contract longer than 4 years.",
 	);
 });
 
@@ -145,8 +322,7 @@ test("over-cap team can sign a veteran at the player-specific minimum", async ()
 
 test("over-cap team cannot sign a veteran above the player-specific minimum", async () => {
 	const pid = 1;
-	const p = await makeFreeAgentVeteran(pid);
-	const veteranMinimum = getMinContractForPlayer(p);
+	await makeFreeAgentVeteran(pid);
 	await putUserTeamOverCap();
 
 	const error = await contractNegotiation.create(pid, false);
@@ -157,13 +333,16 @@ test("over-cap team cannot sign a veteran above the player-specific minimum", as
 	);
 	const error2 = await contractNegotiation.accept({
 		pid,
-		amount: veteranMinimum + 10,
+		amount: getMidLevelExceptionAmount() + 10,
 		exp: g.get("season"),
 		dryRun: true,
 	});
 	assert.strictEqual(
 		error2,
-		"You cannot go over the salary cap to sign free agents to contracts higher than the minimum salary.",
+		`You cannot go over the salary cap to sign free agents to contracts higher than the Mid-Level Exception (${helpers.formatCurrency(
+			getMidLevelExceptionAmount() / 1000,
+			"M",
+		)}).`,
 	);
 });
 

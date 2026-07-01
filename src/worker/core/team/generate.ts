@@ -60,6 +60,7 @@ const generate = (tm: any): Team => {
 		disabled: tm.disabled ?? false,
 		keepRosterSorted: tm.keepRosterSorted ?? true,
 		autoTicketPrice: tm.autoTicketPrice ?? true,
+		midLevelExceptionUsedSeason: tm.midLevelExceptionUsedSeason,
 		playThroughInjuries:
 			tm.playThroughInjuries ?? DEFAULT_PLAY_THROUGH_INJURIES,
 	};

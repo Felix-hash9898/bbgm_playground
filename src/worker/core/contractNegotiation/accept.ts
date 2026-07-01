@@ -1,11 +1,11 @@
 import { player, team } from "../index.ts";
 import cancel from "./cancel.ts";
 import { idb } from "../../db/index.ts";
-import { g, toUI, recomputeLocalUITeamOvrs } from "../../util/index.ts";
+import { g, helpers, toUI, recomputeLocalUITeamOvrs } from "../../util/index.ts";
 import type { PlayerContract } from "../../../common/types.ts";
 import { PHASE } from "../../../common/index.ts";
 import {
-	canSignContractUnderSalaryCapRules,
+	getContractException,
 	getMaxContractForPlayer,
 } from "../contracts/contractLimits.ts";
 import {
@@ -17,6 +17,10 @@ import {
 	getMinContractForPlayer,
 	withContractCapHitForPlayer,
 } from "../contracts/contractMinimum.ts";
+import {
+	getMidLevelExceptionAmount,
+	getMidLevelExceptionMaxContractLength,
+} from "../contracts/contractMidLevel.ts";
 
 /**
  * Accept the player's offer.
@@ -93,24 +97,40 @@ const accept = async ({
 		contract.type = "twoWay";
 	}
 	const contractWithCapHit = withContractCapHitForPlayer(p, contract);
+	const userTeam = await idb.cache.teams.get(g.get("userTid"));
 
 	if (salaryCapType !== "none" && !isTwoWay) {
 		const payroll = await team.getPayroll(g.get("userTid"));
 		const birdException = negotiation.resigning && salaryCapType === "soft";
+		const contractException = getContractException({
+			birdException,
+			contract: contractWithCapHit,
+			p,
+			payroll,
+			team: userTeam,
+		});
 
-		// If this contract brings team over the salary cap, it's not a minimum contract, and it's not re-signing a current
-		// player with the Bird exception, ERROR!
-		if (
-			!canSignContractUnderSalaryCapRules({
-				birdException,
-				contract: contractWithCapHit,
-				p,
-				payroll,
-			})
-		) {
+		if (contractException.type === undefined) {
+			if (contractException.midLevelFailureReason === "amount") {
+				return `You cannot go over the salary cap to sign free agents to contracts higher than the Mid-Level Exception (${helpers.formatCurrency(
+					getMidLevelExceptionAmount() / 1000,
+					"M",
+				)}).`;
+			}
+			if (contractException.midLevelFailureReason === "length") {
+				return `You cannot use the Mid-Level Exception on a contract longer than ${getMidLevelExceptionMaxContractLength()} years.`;
+			}
+			if (contractException.midLevelFailureReason === "used") {
+				return "You have already used your Mid-Level Exception this season.";
+			}
+
 			return `You cannot go over the salary cap to sign ${
 				salaryCapType === "hard" ? "players" : "free agents"
 			} to contracts higher than the minimum salary.`;
+		}
+
+		if (contractException.type === "midLevel") {
+			contractWithCapHit.exception = "midLevel";
 		}
 	}
 
@@ -126,6 +146,11 @@ const accept = async ({
 	}
 
 	if (!dryRun) {
+		if (contractWithCapHit.exception === "midLevel" && userTeam) {
+			userTeam.midLevelExceptionUsedSeason = g.get("season");
+			await idb.cache.teams.put(userTeam);
+		}
+
 		await player.sign(p, g.get("userTid"), contractWithCapHit, g.get("phase"));
 		await idb.cache.players.put(p);
 		await cancel(pid);

@@ -5,6 +5,7 @@ import { resetCache, resetG } from "../../../test/helpers.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
 import { freeAgents, player, team } from "../index.ts";
+import { getMidLevelExceptionAmount } from "../contracts/contractMidLevel.ts";
 import {
 	countStandardContracts,
 	countTwoWayContracts,
@@ -203,4 +204,67 @@ test("AI two-way signing does not fill standard minimum roster size", async () =
 	const players = await idb.cache.players.indexGetAll("playersByTid", 1);
 	assert.strictEqual(countTwoWayContracts(players, 1), 0);
 	assert.strictEqual(countStandardContracts(players, 1), g.get("minRosterSize"));
+});
+
+test("AI can use MLE once when cap space is insufficient", async () => {
+	await resetCacheForAutoSign({
+		aiStandardPlayers: g.get("maxRosterSize") - 2,
+		freeAgentPlayers: [
+			makePlayer({
+				tid: PLAYER.FREE_AGENT,
+				contractAmount: getMidLevelExceptionAmount() - 500,
+				value: 80,
+				valueNoPot: 80,
+			}),
+		],
+	});
+
+	const players = await idb.cache.players.indexGetAll("playersByTid", 1);
+	players[0]!.contract.amount = g.get("salaryCap") - 4000;
+	await idb.cache.players.put(players[0]!);
+
+	await autoSignWithoutRandomSkip();
+
+	const teamAfter = await idb.cache.teams.get(1);
+	const roster = await idb.cache.players.indexGetAll("playersByTid", 1);
+	assert.strictEqual(teamAfter?.midLevelExceptionUsedSeason, g.get("season"));
+	assert.strictEqual(
+		roster.some((p) => p.contract.exception === "midLevel"),
+		true,
+	);
+});
+
+test("AI does not use MLE twice in the same season", async () => {
+	await resetCacheForAutoSign({
+		aiStandardPlayers: g.get("maxRosterSize") - 2,
+		freeAgentPlayers: [
+			makePlayer({
+				tid: PLAYER.FREE_AGENT,
+				contractAmount: getMidLevelExceptionAmount() - 500,
+				value: 80,
+				valueNoPot: 80,
+			}),
+			makePlayer({
+				tid: PLAYER.FREE_AGENT,
+				contractAmount: getMidLevelExceptionAmount() - 400,
+				value: 79,
+				valueNoPot: 79,
+			}),
+		],
+	});
+
+	const players = await idb.cache.players.indexGetAll("playersByTid", 1);
+	players[0]!.contract.amount = g.get("salaryCap") - 4000;
+	await idb.cache.players.put(players[0]!);
+
+	await autoSignWithoutRandomSkip();
+	await autoSignWithoutRandomSkip();
+
+	const teamAfter = await idb.cache.teams.get(1);
+	const freeAgentPlayers = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		PLAYER.FREE_AGENT,
+	);
+	assert.strictEqual(teamAfter?.midLevelExceptionUsedSeason, g.get("season"));
+	assert.strictEqual(freeAgentPlayers.length, 1);
 });

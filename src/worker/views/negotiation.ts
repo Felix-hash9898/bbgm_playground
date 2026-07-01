@@ -13,6 +13,10 @@ import {
 	getMinimumSalaryCapHitForPlayer,
 	getMinContractForPlayer,
 } from "../core/contracts/contractMinimum.ts";
+import {
+	getMidLevelExceptionAmount,
+	isMidLevelExceptionAvailable,
+} from "../core/contracts/contractMidLevel.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -224,10 +228,20 @@ const updateNegotiation = async (
 					? g.get("season")
 					: g.get("season") + 1,
 		}) / 1000;
+		const midLevelExceptionInfo =
+			isSport("basketball") && g.get("salaryCapType") === "soft"
+				? {
+						midLevelExceptionAmount: getMidLevelExceptionAmount() / 1000,
+						midLevelExceptionAvailable: isMidLevelExceptionAvailable(
+							await idb.cache.teams.get(userTid),
+						),
+					}
+				: undefined;
 		const maxSalaryInfo = isSport("basketball")
 			? {
 					minimumCapHit,
 					maxSalaryTier: getMaxSalaryTier(p2),
+					...midLevelExceptionInfo,
 					playerMinimum,
 					playerMaxContract: getMaxContractForPlayer(p2) / 1000,
 				}
