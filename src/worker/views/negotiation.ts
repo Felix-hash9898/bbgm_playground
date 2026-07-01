@@ -9,6 +9,10 @@ import {
 	canTeamAddTwoWay,
 	makeTwoWayContract,
 } from "../core/contracts/contractTwoWay.ts";
+import {
+	getMinimumSalaryCapHitForPlayer,
+	getMinContractForPlayer,
+} from "../core/contracts/contractMinimum.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -22,6 +26,7 @@ const generateContractOptions = async (
 	pid: number,
 	contract: PlayerContract,
 	ovr: number,
+	playerMinimum: number,
 ) => {
 	let growthFactor = 0.15;
 
@@ -85,7 +90,7 @@ const generateContractOptions = async (
 		if (
 			g.get("challengeNoFreeAgents") &&
 			g.get("phase") !== PHASE.RESIGN_PLAYERS &&
-			contractOption.amount * 1000 > g.get("minContract")
+			contractOption.amount * 1000 > playerMinimum
 		) {
 			return false;
 		}
@@ -172,6 +177,7 @@ const updateNegotiation = async (
 				exp: p.contract.exp,
 			},
 			p.ratings.ovr,
+			getMinContractForPlayer(p2),
 		);
 		if (!negotiation.resigning && canOfferTwoWay(p2)) {
 			const players = await idb.cache.players.indexGetAll(
@@ -211,9 +217,18 @@ const updateNegotiation = async (
 		}
 
 		const payroll = await team.getPayroll(userTid);
+		const playerMinimum = getMinContractForPlayer(p2) / 1000;
+		const minimumCapHit = getMinimumSalaryCapHitForPlayer(p2, {
+			exp:
+				g.get("phase") <= PHASE.PLAYOFFS
+					? g.get("season")
+					: g.get("season") + 1,
+		}) / 1000;
 		const maxSalaryInfo = isSport("basketball")
 			? {
+					minimumCapHit,
 					maxSalaryTier: getMaxSalaryTier(p2),
+					playerMinimum,
 					playerMaxContract: getMaxContractForPlayer(p2) / 1000,
 				}
 			: undefined;

@@ -10,6 +10,7 @@ import type {
 import { getAutoTicketPriceByTid } from "../core/game/attendance.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
 import { isTwoWayContract } from "../core/contracts/contractTwoWay.ts";
+import { getContractCapHit } from "../core/contracts/contractMinimum.ts";
 
 const updateTeamFinances = async (
 	inputs: ViewInput<"teamFinances">,
@@ -62,11 +63,12 @@ const updateTeamFinances = async (
 			contractsRaw.map((contract) => {
 				const amounts: number[] = [];
 				const isTwoWay = isTwoWayContract(contract);
+				const capHit = getContractCapHit(contract);
 
 				for (let i = season; i <= contract.exp; i++) {
 					amounts.push(contract.amount / 1000);
 					if (!isTwoWay && contractTotals[i - season] !== undefined) {
-						contractTotals[i - season] += contract.amount / 1000;
+						contractTotals[i - season] += capHit / 1000;
 					}
 				}
 
@@ -81,7 +83,7 @@ const updateTeamFinances = async (
 					watch: contract.watch,
 					released: contract.released,
 					amounts,
-					capPct: isTwoWay ? 0 : (100 * contract.amount) / g.get("salaryCap"),
+					capPct: (100 * capHit) / g.get("salaryCap"),
 				};
 			}),
 		);

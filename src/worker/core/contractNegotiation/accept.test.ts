@@ -3,6 +3,10 @@ import { contractNegotiation } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import { beforeTests, givePlayerMinContract } from "./testHelpers.ts";
+import {
+	getContractCapHit,
+	getMinContractForPlayer,
+} from "../contracts/contractMinimum.ts";
 
 beforeEach(beforeTests);
 afterEach(() => idb.cache.negotiations.clear());
@@ -14,6 +18,20 @@ const putUserTeamOverCap = async () => {
 	}
 	teamPlayer.contract.amount = g.get("salaryCap");
 	await idb.cache.players.put(teamPlayer);
+};
+
+const makeFreeAgentVeteran = async (pid: number) => {
+	const p = await idb.cache.players.get(pid);
+	if (!p) {
+		throw new Error("Invalid pid");
+	}
+
+	p.born.year = g.get("season") - 34;
+	p.draft.year = g.get("season") - 10;
+	p.contract.amount = getMinContractForPlayer(p);
+	await idb.cache.players.put(p);
+
+	return p;
 };
 
 test("signing minimum contracts over the salary cap is allowed", async () => {
@@ -51,6 +69,97 @@ test("no signing non-minimum contracts that cause team to exceed the salary cap"
 		pid,
 		amount: g.get("minContract") + 2,
 		exp: g.get("season") + 1,
+	});
+	assert.strictEqual(
+		error2,
+		"You cannot go over the salary cap to sign free agents to contracts higher than the minimum salary.",
+	);
+});
+
+test("reject offers below the player's veteran minimum", async () => {
+	const pid = 1;
+	const p = await makeFreeAgentVeteran(pid);
+	const veteranMinimum = getMinContractForPlayer(p);
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(
+		error,
+		undefined,
+		`Unexpected error message from contractNegotiation.create: "${error}"`,
+	);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount: veteranMinimum - 10,
+		exp: g.get("season"),
+		dryRun: true,
+	});
+	assert.strictEqual(
+		error2,
+		"You cannot offer this player a contract lower than their minimum salary.",
+	);
+});
+
+test("allow offers at the player's veteran minimum", async () => {
+	const pid = 1;
+	const p = await makeFreeAgentVeteran(pid);
+	const veteranMinimum = getMinContractForPlayer(p);
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(
+		error,
+		undefined,
+		`Unexpected error message from contractNegotiation.create: "${error}"`,
+	);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount: veteranMinimum,
+		exp: g.get("season"),
+		dryRun: true,
+	});
+	assert.strictEqual(error2, undefined);
+});
+
+test("over-cap team can sign a veteran at the player-specific minimum", async () => {
+	const pid = 1;
+	const p = await makeFreeAgentVeteran(pid);
+	const veteranMinimum = getMinContractForPlayer(p);
+	await putUserTeamOverCap();
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(
+		error,
+		undefined,
+		`Unexpected error message from contractNegotiation.create: "${error}"`,
+	);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount: veteranMinimum,
+		exp: g.get("season"),
+	});
+	assert.strictEqual(error2, undefined);
+
+	const signedPlayer = await idb.cache.players.get(pid);
+	assert.strictEqual(signedPlayer?.contract.amount, veteranMinimum);
+	assert(signedPlayer && getContractCapHit(signedPlayer.contract) < veteranMinimum);
+});
+
+test("over-cap team cannot sign a veteran above the player-specific minimum", async () => {
+	const pid = 1;
+	const p = await makeFreeAgentVeteran(pid);
+	const veteranMinimum = getMinContractForPlayer(p);
+	await putUserTeamOverCap();
+
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(
+		error,
+		undefined,
+		`Unexpected error message from contractNegotiation.create: "${error}"`,
+	);
+	const error2 = await contractNegotiation.accept({
+		pid,
+		amount: veteranMinimum + 10,
+		exp: g.get("season"),
+		dryRun: true,
 	});
 	assert.strictEqual(
 		error2,

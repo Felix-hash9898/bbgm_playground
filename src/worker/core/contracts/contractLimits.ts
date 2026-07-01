@@ -1,6 +1,11 @@
 import { AWARD_NAMES, isSport } from "../../../common/index.ts";
-import type { Player } from "../../../common/types.ts";
+import type { Player, PlayerContract } from "../../../common/types.ts";
 import { g, helpers } from "../../util/index.ts";
+import {
+	getContractCapHit,
+	getMinContractForPlayer,
+	isMinimumContractForPlayer,
+} from "./contractMinimum.ts";
 
 type AwardLike = {
 	season: number;
@@ -21,17 +26,22 @@ export const isMinimumContract = (amount: number) => {
 	return amount <= getMinContract() + 1;
 };
 
-export const canGoOverCapToSignMinimumContract = (amount: number) => {
-	return isMinimumContract(amount);
+export const canGoOverCapToSignMinimumContract = (
+	p: PlayerWithAwards,
+	amount: number,
+) => {
+	return isMinimumContractForPlayer(p, amount);
 };
 
 export const canSignContractUnderSalaryCapRules = ({
-	amount,
 	birdException,
+	contract,
+	p,
 	payroll,
 }: {
-	amount: number;
 	birdException: boolean;
+	contract: PlayerContract;
+	p: PlayerWithAwards;
 	payroll: number;
 }) => {
 	const salaryCapType = g.get("salaryCapType");
@@ -39,11 +49,12 @@ export const canSignContractUnderSalaryCapRules = ({
 		return true;
 	}
 
-	if (payroll + amount - 1 <= g.get("salaryCap")) {
+	const capHit = getContractCapHit(contract);
+	if (payroll + capHit - 1 <= g.get("salaryCap")) {
 		return true;
 	}
 
-	return canGoOverCapToSignMinimumContract(amount);
+	return canGoOverCapToSignMinimumContract(p, contract.amount);
 };
 
 export const getYearsOfService = (p: PlayerWithAwards) => {
@@ -129,5 +140,9 @@ export const clampContractAmountForPlayer = (
 	p: PlayerWithAwards,
 	amount: number,
 ) => {
-	return helpers.bound(amount, getMinContract(), getMaxContractForPlayer(p));
+	return helpers.bound(
+		amount,
+		getMinContractForPlayer(p),
+		getMaxContractForPlayer(p),
+	);
 };

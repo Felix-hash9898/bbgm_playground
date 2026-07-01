@@ -2,6 +2,10 @@ import { PHASE, PLAYER } from "../../../common/index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
 import { clampContractDemandForPlayer } from "../contracts/contractLowEnd.ts";
+import {
+	getMinContractForPlayer,
+	withContractCapHitForPlayer,
+} from "../contracts/contractMinimum.ts";
 
 /**
  * Decrease contract demands for all free agents.
@@ -17,13 +21,13 @@ const decreaseDemands = async () => {
 		PLAYER.FREE_AGENT,
 	);
 
-	const minContract = g.get("minContract");
 	const minContractExp =
 		g.get("season") +
 		g.get("minContractLength") +
 		(g.get("phase") <= PHASE.PLAYOFFS ? -1 : 0);
 
 	for (const p of players) {
+		const playerMinimum = getMinContractForPlayer(p);
 		const baseAmount = 50 * Math.sqrt(g.get("maxContract") / 20000);
 
 		// 82 is purposely not defaultGameAttributes.numGames so it works across basketball and football
@@ -36,14 +40,14 @@ const decreaseDemands = async () => {
 		);
 		p.contract.amount = helpers.roundContract(p.contract.amount);
 
-		if (p.contract.amount < minContract) {
-			p.contract.amount = minContract;
+		if (p.contract.amount < playerMinimum) {
+			p.contract.amount = playerMinimum;
 		}
 		p.contract.amount = clampContractDemandForPlayer(p, p.contract.amount);
 
 		if (g.get("phase") !== PHASE.FREE_AGENCY) {
 			// Since this is after the season has already started, ask for a short contract
-			if (p.contract.amount < 1.34 * minContract) {
+			if (p.contract.amount < 1.34 * playerMinimum) {
 				p.contract.exp = g.get("season");
 			} else {
 				p.contract.exp = g.get("season") + 1;
@@ -53,6 +57,7 @@ const decreaseDemands = async () => {
 		if (p.contract.exp < minContractExp) {
 			p.contract.exp = minContractExp;
 		}
+		p.contract = withContractCapHitForPlayer(p, p.contract);
 
 		// Free agents' resistance to signing decays after every regular season game
 		p.numDaysFreeAgent += 1;

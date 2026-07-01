@@ -4,6 +4,7 @@ import { g } from "../../util/index.ts";
 import { resetG } from "../../../test/helpers.ts";
 import { player } from "../index.ts";
 import genContract from "./genContract.ts";
+import { getMinContractForPlayer } from "../contracts/contractMinimum.ts";
 
 const makePlayer = ({
 	age = 26,
@@ -35,4 +36,16 @@ test("basketball genContract clamps to the player's dynamic max", () => {
 	const p = makePlayer();
 	const contract = genContract(p, false, false);
 	assert.strictEqual(contract.amount, 52500);
+});
+
+test("basketball genContract keeps veteran standard contracts at veteran minimum or higher", () => {
+	const p = makePlayer({
+		age: 34,
+		draftYearsAgo: 10,
+		value: 10,
+	});
+	const contract = genContract(p, false, false);
+
+	assert(contract.amount >= getMinContractForPlayer(p));
+	assert(contract.amount > g.get("minContract"));
 });

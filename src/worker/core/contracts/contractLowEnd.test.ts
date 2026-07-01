@@ -9,6 +9,7 @@ import {
 	isLowEndYoungFreeAgent,
 	isUndraftedRookieLike,
 } from "./contractLowEnd.ts";
+import { getMinContractForPlayer } from "./contractMinimum.ts";
 
 const makePlayer = ({
 	age = 22,
@@ -80,9 +81,12 @@ test("low-end young free agents are pushed to the low-end contract range", () =>
 	assert.strictEqual(isLowEndYoungFreeAgent(p), true);
 	assert.strictEqual(
 		getLowEndContractTarget(p),
-		g.get("minContract") * 1.25,
+		getMinContractForPlayer(p) * 1.25,
 	);
-	assert.strictEqual(genContract(p, false).amount, g.get("minContract") * 1.25);
+	assert.strictEqual(
+		genContract(p, false).amount,
+		getMinContractForPlayer(p) * 1.25,
+	);
 });
 
 test("normal rotation young players are not pushed to the low-end contract range", () => {

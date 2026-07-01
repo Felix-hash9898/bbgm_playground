@@ -6,6 +6,7 @@ import { g, helpers, local } from "../../util/index.ts";
 import type { MinimalPlayerRatings, Player } from "../../../common/types.ts";
 import { KEY_POSITIONS_NEEDED } from "../freeAgents/getBest.ts";
 import { isStandardContract } from "../contracts/contractTwoWay.ts";
+import { isMinimumContractForPlayer } from "../contracts/contractMinimum.ts";
 
 export const dropPlayers = async (
 	players: Player<MinimalPlayerRatings>[],
@@ -219,7 +220,7 @@ const checkRosterSizes = async (
 	for (const p of players) {
 		if (
 			isStandardContract(p.contract) &&
-			p.contract.amount === g.get("minContract")
+			isMinimumContractForPlayer(p, p.contract)
 		) {
 			minFreeAgents.push(p);
 		}

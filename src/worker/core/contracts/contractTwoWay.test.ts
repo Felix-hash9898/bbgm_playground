@@ -13,6 +13,7 @@ import {
 	isTwoWayContract,
 	makeTwoWayContract,
 } from "./contractTwoWay.ts";
+import { getMinimumSalaryForYearsExperience } from "./contractMinimum.ts";
 
 const makePlayer = ({
 	tid = PLAYER.FREE_AGENT,
@@ -77,6 +78,11 @@ test("makeTwoWayContract uses minimum salary and one-year two-way type", () => {
 	assert.strictEqual(contract.amount, getTwoWayContractAmount());
 	assert.strictEqual(contract.exp, g.get("season"));
 	assert.strictEqual(contract.type, "twoWay");
+});
+
+test("two-way amount remains independent from veteran minimum scale", () => {
+	assert(getMinimumSalaryForYearsExperience(10) > g.get("minContract"));
+	assert.strictEqual(makeTwoWayContract().amount, g.get("minContract"));
 });
 
 test("eligible undrafted and low-end young players can receive two-way offers", () => {

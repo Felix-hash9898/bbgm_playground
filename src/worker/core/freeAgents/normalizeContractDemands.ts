@@ -15,6 +15,10 @@ import {
 	clampContractDemandForPlayer,
 	getMaxContractDemandForPlayer,
 } from "../contracts/contractLowEnd.ts";
+import {
+	getMinContractForPlayer,
+	withContractCapHitForPlayer,
+} from "../contracts/contractMinimum.ts";
 
 const TEMP = 0.35;
 const LEARNING_RATE = 0.5;
@@ -261,10 +265,11 @@ const normalizeContractDemands = async ({
 			const playerBids = bids.get(p.pid);
 			if (playerBids === undefined) {
 				// Got 0 bids - decrease demands
-				if (p.contractAmount >= minContract) {
+				const playerMinimum = getMinContractForPlayer(p.p);
+				if (p.contractAmount >= playerMinimum) {
 					p.contractAmount = helpers.bound(
 						p.contractAmount * SCALE_DOWN,
-						minContract,
+						playerMinimum,
 						playerMaxContract,
 					);
 					updatedPIDs.add(p.pid);
@@ -274,7 +279,7 @@ const normalizeContractDemands = async ({
 				if (p.contractAmount <= playerMaxContract) {
 					p.contractAmount = helpers.bound(
 						p.contractAmount * SCALE_UP,
-						minContract,
+						getMinContractForPlayer(p.p),
 						playerMaxContract,
 					);
 					updatedPIDs.add(p.pid);
@@ -331,7 +336,7 @@ const normalizeContractDemands = async ({
 		if (totalCapSpace === 0) {
 			// No cap space, min contracts for everyone
 			for (const info of playerInfosToUpdate) {
-				info.contractAmount = minContract;
+				info.contractAmount = getMinContractForPlayer(info.p);
 			}
 		} else {
 			const playerInfosToUpdateSorted = orderBy(
@@ -362,7 +367,7 @@ const normalizeContractDemands = async ({
 					topPlayersAmountSum += info.contractAmount;
 					topPlayersCount += 1;
 				} else {
-					info.contractAmount = minContract;
+					info.contractAmount = getMinContractForPlayer(info.p);
 				}
 			}
 
@@ -373,9 +378,10 @@ const normalizeContractDemands = async ({
 				1.4,
 			);
 			for (const info of playerInfosToUpdateSorted.slice(0, topPlayersCount)) {
+				const playerMinimum = getMinContractForPlayer(info.p);
 				info.contractAmount =
-					minContract +
-					(info.contractAmount - minContract) *
+					playerMinimum +
+					(info.contractAmount - playerMinimum) *
 						fraction *
 						random.uniform(0.75, 1);
 				// console.log(`${info.p.firstName} ${info.p.lastName} ${prev} -> ${info.contractAmount}`)
@@ -428,10 +434,10 @@ const normalizeContractDemands = async ({
 		amount = clampContractDemandForPlayer(p, helpers.roundContract(amount));
 
 		// Make sure to remove "temp" flag!
-		p.contract = {
+		p.contract = withContractCapHitForPlayer(p, {
 			amount,
 			exp,
-		};
+		});
 		if (p.tid === PLAYER.FREE_AGENT && p.contract.exp < minNewContractExp) {
 			p.contract.exp = minNewContractExp;
 		}

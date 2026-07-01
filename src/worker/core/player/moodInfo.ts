@@ -3,6 +3,7 @@ import { g, helpers, random } from "../../util/index.ts";
 import { idb } from "../../db/index.ts";
 import moodComponents from "./moodComponents.ts";
 import type { Player } from "../../../common/types.ts";
+import { getMinContractForPlayer } from "../contracts/contractMinimum.ts";
 
 const hasActiveNegotiation = async (tid: number, pid: number) => {
 	return (await idb.cache.negotiations.getAll()).some(
@@ -92,17 +93,18 @@ const moodInfo = async (
 	}
 
 	let contractAmount = overrides.contractAmount ?? p.contract.amount;
+	const playerMinimum = getMinContractForPlayer(p);
 
 	// Up to 50% penalty for bad mood, except if this is a rookie contract
 	const autoRookieContract =
 		components.rookieContract > 0 && g.get("draftPickAutoContract");
-	if (!autoRookieContract && contractAmount > g.get("minContract")) {
+	if (!autoRookieContract && contractAmount > playerMinimum) {
 		contractAmount *= helpers.bound(1 + (0.5 * -sumComponents) / 10, 1, 1.5);
 	}
 
 	contractAmount = helpers.bound(
 		helpers.roundContract(contractAmount),
-		g.get("minContract"),
+		playerMinimum,
 		g.get("maxContract"),
 	);
 
@@ -111,7 +113,7 @@ const moodInfo = async (
 		!g.get("playersRefuseToNegotiate") ||
 		rookie ||
 		firstSeasonAfterExpansionOverride ||
-		(contractAmount === g.get("minContract") && p.tid === PLAYER.FREE_AGENT)
+		(contractAmount === playerMinimum && p.tid === PLAYER.FREE_AGENT)
 	) {
 		probWilling = 1;
 		willing = true;
@@ -142,7 +144,7 @@ const moodInfo = async (
 	if (
 		g.get("challengeNoFreeAgents") &&
 		!resigning &&
-		contractAmount * 0.99 > g.get("minContract")
+		contractAmount * 0.99 > playerMinimum
 	) {
 		willing = false;
 	}

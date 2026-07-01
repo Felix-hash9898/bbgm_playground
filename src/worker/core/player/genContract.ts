@@ -8,6 +8,10 @@ import type {
 import { isSport } from "../../../common/index.ts";
 import { clampContractDemandForPlayer } from "../contracts/contractLowEnd.ts";
 import {
+	getMinContractForPlayer,
+	withContractCapHitForPlayer,
+} from "../contracts/contractMinimum.ts";
+import {
 	getBasketballSalaryAgeFactor,
 	getContractValue,
 } from "../contracts/contractValue.ts";
@@ -68,9 +72,10 @@ const genContract = (
 		amount *= helpers.bound(random.realGauss(1, 0.1), 0, 2); // Randomize
 	}
 
+	const playerMinimum = getMinContractForPlayer(p);
 	if (!noLimit) {
-		if (amount < g.get("minContract") * 1.1) {
-			amount = g.get("minContract");
+		if (amount < playerMinimum * 1.1) {
+			amount = playerMinimum;
 		} else {
 			amount = clampContractDemandForPlayer(p, amount);
 		}
@@ -81,10 +86,10 @@ const genContract = (
 
 	amount = helpers.roundContract(amount);
 
-	return {
+	return withContractCapHitForPlayer(p, {
 		amount,
 		exp: g.get("season"),
-	};
+	});
 };
 
 export default genContract;

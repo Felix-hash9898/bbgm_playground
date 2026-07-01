@@ -13,6 +13,10 @@ import {
 	canTeamAddTwoWay,
 	getTwoWayContractAmount,
 } from "../contracts/contractTwoWay.ts";
+import {
+	getMinContractForPlayer,
+	withContractCapHitForPlayer,
+} from "../contracts/contractMinimum.ts";
 
 /**
  * Accept the player's offer.
@@ -76,9 +80,19 @@ const accept = async ({
 		}
 	} else if (amountActual > maxContract) {
 		return "You cannot offer this player a contract higher than their maximum salary.";
+	} else if (amountActual < getMinContractForPlayer(p)) {
+		return "You cannot offer this player a contract lower than their minimum salary.";
 	}
 
 	const salaryCapType = g.get("salaryCapType");
+	const contract: PlayerContract = {
+		amount: amountActual,
+		exp,
+	};
+	if (isTwoWay) {
+		contract.type = "twoWay";
+	}
+	const contractWithCapHit = withContractCapHitForPlayer(p, contract);
 
 	if (salaryCapType !== "none" && !isTwoWay) {
 		const payroll = await team.getPayroll(g.get("userTid"));
@@ -88,8 +102,9 @@ const accept = async ({
 		// player with the Bird exception, ERROR!
 		if (
 			!canSignContractUnderSalaryCapRules({
-				amount,
 				birdException,
+				contract: contractWithCapHit,
+				p,
 				payroll,
 			})
 		) {
@@ -105,20 +120,13 @@ const accept = async ({
 		return "Player is no longer willing to negotiate.";
 	}
 
-	const contract: PlayerContract = {
-		amount: amountActual,
-		exp,
-	};
-	if (isTwoWay) {
-		contract.type = "twoWay";
-	}
 	if (p.contract.rookie && g.get("phase") === PHASE.RESIGN_PLAYERS) {
 		// Not sure if the phase condition is necessary. The purpose of this is for hard cap rookies with rookie contract scale.
-		contract.rookie = true;
+		contractWithCapHit.rookie = true;
 	}
 
 	if (!dryRun) {
-		await player.sign(p, g.get("userTid"), contract, g.get("phase"));
+		await player.sign(p, g.get("userTid"), contractWithCapHit, g.get("phase"));
 		await idb.cache.players.put(p);
 		await cancel(pid);
 

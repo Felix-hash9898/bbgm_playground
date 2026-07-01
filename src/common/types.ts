@@ -1109,6 +1109,7 @@ export type PhaseReturn = {
 
 export type PlayerContract = {
 	amount: number;
+	capHit?: number;
 	exp: number;
 	type?: "standard" | "twoWay";
 	rookie?: true; // If present, this is a rookie contract. Could be either a rookie scale auto sign, or negotiated.
@@ -1500,6 +1501,7 @@ export type ContractInfo = {
 	injury: PlayerInjury;
 	jerseyNumber: string | undefined;
 	amount: number;
+	capHit?: number;
 	exp: number;
 	type?: "standard" | "twoWay";
 	released: boolean;

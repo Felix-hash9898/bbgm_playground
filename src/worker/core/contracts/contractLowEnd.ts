@@ -1,10 +1,8 @@
 import { isSport } from "../../../common/index.ts";
 import type { MinimalPlayerRatings, Player } from "../../../common/types.ts";
 import { g, helpers } from "../../util/index.ts";
-import {
-	getMaxContractForPlayer,
-	getMinContract,
-} from "./contractLimits.ts";
+import { getMaxContractForPlayer } from "./contractLimits.ts";
+import { getMinContractForPlayer } from "./contractMinimum.ts";
 
 type PlayerForLowEnd = Pick<
 	Player<MinimalPlayerRatings>,
@@ -59,12 +57,14 @@ export const isLowEndYoungFreeAgent = (p: PlayerForLowEnd) => {
 };
 
 export const getLowEndContractTarget = (p: PlayerForLowEnd) => {
+	const playerMinimum = getMinContractForPlayer(p);
+
 	if (isUndraftedRookieLike(p)) {
-		return getMinContract();
+		return playerMinimum;
 	}
 
 	if (isLowEndYoungFreeAgent(p)) {
-		return helpers.roundContract(getMinContract() * 1.25);
+		return helpers.roundContract(playerMinimum * 1.25);
 	}
 };
 
@@ -81,5 +81,9 @@ export const clampContractDemandForPlayer = (
 	p: PlayerForLowEnd,
 	amount: number,
 ) => {
-	return helpers.bound(amount, getMinContract(), getMaxContractDemandForPlayer(p));
+	return helpers.bound(
+		amount,
+		getMinContractForPlayer(p),
+		getMaxContractDemandForPlayer(p),
+	);
 };
