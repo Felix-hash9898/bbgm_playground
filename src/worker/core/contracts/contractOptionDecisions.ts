@@ -46,7 +46,7 @@ export const getPendingUserTeamOptions = async () => {
 export const hasPendingUserTeamOptions = async () =>
 	(await getPendingUserTeamOptions()).length > 0;
 
-const getOptionMarketDemands = async (optionPlayers: Player[]) => {
+export const getOptionMarketDemands = async (optionPlayers: Player[]) => {
 	const optionPids = new Set(optionPlayers.map((p) => p.pid));
 	const playersAll = helpers.deepCopy(
 		await idb.cache.players.indexGetAll("playersByTid", [
@@ -99,13 +99,19 @@ const logOptionDecision = async ({
 	p: Player;
 }) => {
 	const playerName = optionPlayerName(p);
-	if (p.contract.option === "player") {
+	const isUserTeam = isManualUserTeamOption(p.tid);
+	const isPlayerOption = p.contract.option === "player";
+	const persistent = isUserTeam && isPlayerOption;
+	const showNotification = isUserTeam;
+	if (isPlayerOption) {
 		await logEvent({
 			type: "info",
 			text: `${playerName} ${
 				exercised ? "exercised" : "declined"
 			} player option.`,
 			pids: [p.pid],
+			persistent,
+			showNotification,
 			tids: [p.tid],
 		});
 	} else {
@@ -116,6 +122,8 @@ const logOptionDecision = async ({
 				exercised ? "exercised" : "declined"
 			} team option on ${playerName}.`,
 			pids: [p.pid],
+			persistent,
+			showNotification,
 			tids: [p.tid],
 		});
 	}
@@ -169,10 +177,7 @@ export const processContractOptions = async () => {
 		const marketDemand =
 			marketContract === undefined
 				? undefined
-				: getEffectiveOfferAmount(
-						marketContract.amount,
-						marketContract.option,
-					);
+				: getEffectiveOfferAmount(marketContract.amount, marketContract.option);
 		if (marketDemand === undefined) {
 			continue;
 		}

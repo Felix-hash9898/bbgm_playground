@@ -7,6 +7,14 @@ import type {
 } from "../../common/types.ts";
 import { orderBy } from "../../common/utils.ts";
 import { player, team } from "../core/index.ts";
+import {
+	getContractException,
+	getMaxContractForPlayer,
+} from "../core/contracts/contractLimits.ts";
+import {
+	getMinContractForPlayer,
+	withContractCapHitForPlayer,
+} from "../core/contracts/contractMinimum.ts";
 import { isStandardContract } from "../core/contracts/contractTwoWay.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
@@ -49,6 +57,56 @@ export type FreeAgentTransaction = Extract<
 	NonNullable<Player["transactions"]>[number],
 	{ type: "freeAgent" }
 >;
+
+type FreeAgentSignability = {
+	canAffordNow: boolean;
+	contractExceptionType?: ReturnType<typeof getContractException>["type"];
+};
+
+const getFreeAgentSignability = ({
+	p,
+	payroll,
+	userTeam,
+}: {
+	p: Player & {
+		mood?: Awaited<ReturnType<(typeof player)["moodInfos"]>>;
+	};
+	payroll: number;
+	userTeam: Awaited<ReturnType<(typeof idb)["cache"]["teams"]["get"]>>;
+}): FreeAgentSignability => {
+	if (!p.mood?.user.willing) {
+		return {
+			canAffordNow: false,
+		};
+	}
+
+	const contract = withContractCapHitForPlayer(p, {
+		amount: p.mood.user.contractAmount,
+		exp: p.contract.exp,
+	});
+
+	if (
+		contract.amount > getMaxContractForPlayer(p) ||
+		contract.amount < getMinContractForPlayer(p)
+	) {
+		return {
+			canAffordNow: false,
+		};
+	}
+
+	const contractException = getContractException({
+		birdException: false,
+		contract,
+		p,
+		payroll,
+		team: userTeam,
+	});
+
+	return {
+		canAffordNow: contractException.type !== undefined,
+		contractExceptionType: contractException.type,
+	};
+};
 
 const getPlayers = async (
 	season: number | "current",
@@ -153,8 +211,24 @@ const updateFreeAgents = async (
 		}
 
 		const payroll = await team.getPayroll(userTid);
+		const userTeam = await idb.cache.teams.get(userTid);
 		const playersByType = await getPlayers(season, freeAgencySeason, type);
 		const capSpace = (g.get("salaryCap") - payroll) / 1000;
+		const signabilityByPid = new Map<number, FreeAgentSignability>();
+		if (season === "current") {
+			for (const p of playersByType.freeAgents) {
+				if (p.tid === PLAYER.FREE_AGENT && "mood" in p) {
+					signabilityByPid.set(
+						p.pid,
+						getFreeAgentSignability({
+							p,
+							payroll,
+							userTeam,
+						}),
+					);
+				}
+			}
+		}
 
 		let players = addFirstNameShort(
 			await idb.getCopies.playersPlus(playersByType.freeAgents, {
@@ -189,6 +263,9 @@ const updateFreeAgents = async (
 		for (const p of players) {
 			if (p.freeAgentType === "available") {
 				p.contract.amount = p.mood.user.contractAmount / 1000;
+				const signability = signabilityByPid.get(p.pid);
+				p.canAffordNow = signability?.canAffordNow ?? false;
+				p.contractExceptionType = signability?.contractExceptionType;
 			} else {
 				let event;
 				if (p.freeAgentTransaction.eid !== undefined) {
@@ -229,6 +306,10 @@ const updateFreeAgents = async (
 			showRookies: true,
 		});
 
+		const numRosterSpots =
+			g.get("maxRosterSize") -
+			playersByType.user.filter((p) => isStandardContract(p.contract)).length;
+
 		return {
 			capSpace,
 			challengeNoFreeAgents: g.get("challengeNoFreeAgents"),
@@ -238,9 +319,7 @@ const updateFreeAgents = async (
 			salaryCapType: g.get("salaryCapType"),
 			maxContract: g.get("maxContract"),
 			minContract: g.get("minContract"),
-			numRosterSpots:
-				g.get("maxRosterSize") -
-				userPlayers.filter((p) => isStandardContract(p.contract)).length,
+			numRosterSpots,
 			spectator: g.get("spectator"),
 			payroll: payroll / 1000,
 			phase: g.get("phase"),

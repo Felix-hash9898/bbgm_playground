@@ -1,6 +1,7 @@
 import { bySport, isSport, PHASE } from "../../common/index.ts";
 import type { Conditions, PlayoffSeries } from "../../common/types.ts";
 import { season, game, phase, freeAgents } from "../core/index.ts";
+import { hasPendingUserTeamOptions } from "../core/contracts/contractOptionDecisions.ts";
 import { idb } from "../db/index.ts";
 import {
 	g,
@@ -9,6 +10,7 @@ import {
 	helpers,
 	updatePlayMenu,
 	lock,
+	logEvent,
 	toUI,
 } from "../util/index.ts";
 import { runDraft } from "./actions.ts";
@@ -263,6 +265,19 @@ const playMenu = {
 	},
 	untilFreeAgency: async (param: unknown, conditions: Conditions) => {
 		if (g.get("phase") === PHASE.RESIGN_PLAYERS) {
+			if (await hasPendingUserTeamOptions()) {
+				await logEvent(
+					{
+						type: "error",
+						text: "You must decide all pending team options before proceeding to free agency.",
+						saveToDb: false,
+						persistent: true,
+					},
+					conditions,
+				);
+				return;
+			}
+
 			const negotiations = await idb.cache.negotiations.getAll();
 			const numRemaining = negotiations.length; // Show warning dialog only if there are players remaining un-re-signed
 

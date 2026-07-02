@@ -1,6 +1,7 @@
 import { PHASE, isSport } from "../../common/index.ts";
 import { contractNegotiation, player, team } from "../core/index.ts";
 import {
+	getContractException,
 	getMaxContractForPlayer,
 	getMaxSalaryTier,
 } from "../core/contracts/contractLimits.ts";
@@ -12,6 +13,7 @@ import {
 import {
 	getMinimumSalaryCapHitForPlayer,
 	getMinContractForPlayer,
+	withContractCapHitForPlayer,
 } from "../core/contracts/contractMinimum.ts";
 import {
 	getMidLevelExceptionAmount,
@@ -27,14 +29,50 @@ import type {
 	ViewInput,
 	PlayerContract,
 	UpdateEvents,
+	Team,
+	Player,
 } from "../../common/types.ts";
 import { range } from "../../common/utils.ts";
+
+type ContractExceptionType =
+	| NonNullable<ReturnType<typeof getContractException>["type"]>
+	| "twoWay";
+
+const getContractExceptionType = ({
+	birdException,
+	contract,
+	p,
+	payroll,
+	team,
+}: {
+	birdException: boolean;
+	contract: PlayerContract;
+	p: Player;
+	payroll: number;
+	team: Pick<Team, "midLevelExceptionUsedSeason" | "tid"> | undefined;
+}): ContractExceptionType | undefined => {
+	if (contract.type === "twoWay") {
+		return "twoWay";
+	}
+
+	return getContractException({
+		birdException,
+		contract: withContractCapHitForPlayer(p, contract),
+		p,
+		payroll,
+		team,
+	}).type;
+};
 
 const generateContractOptions = async (
 	pid: number,
 	contract: PlayerContract,
 	ovr: number,
+	p: Player,
 	playerMinimum: number,
+	payroll: number,
+	userTeam: Pick<Team, "midLevelExceptionUsedSeason" | "tid"> | undefined,
+	birdException: boolean,
 ) => {
 	let growthFactor = 0.15;
 
@@ -59,6 +97,7 @@ const generateContractOptions = async (
 		smallestAmount: boolean;
 		type?: PlayerContract["type"];
 		option?: PlayerContract["option"];
+		contractExceptionType?: ContractExceptionType;
 		disabledReason?: string;
 	}[] = allowedLengths.map((contractLength, i) => {
 		const contractOption = {
@@ -121,10 +160,8 @@ const generateContractOptions = async (
 				possibleWithOptions.push({
 					...contractOption,
 					amount:
-						getRealAmountForEffectiveOffer(
-							contractForOption.amount,
-							option,
-						) / 1000,
+						getRealAmountForEffectiveOffer(contractForOption.amount, option) /
+						1000,
 					option,
 					smallestAmount: false,
 				});
@@ -143,6 +180,19 @@ const generateContractOptions = async (
 		});
 		if (disabledReason !== undefined) {
 			row.disabledReason = disabledReason;
+		} else {
+			row.contractExceptionType = getContractExceptionType({
+				birdException,
+				contract: {
+					amount: Math.round(row.amount * 1000),
+					exp: row.exp,
+					type: row.type,
+					option: row.option,
+				},
+				p,
+				payroll,
+				team: userTeam,
+			});
 		}
 	}
 
@@ -204,6 +254,10 @@ const updateNegotiation = async (
 		}
 
 		p.mood = await player.moodInfos(p2);
+		const payroll = await team.getPayroll(userTid);
+		const userTeam = await idb.cache.teams.get(userTid);
+		const birdException =
+			negotiation.resigning && g.get("salaryCapType") === "soft";
 
 		const contractOptions = await generateContractOptions(
 			negotiation.pid,
@@ -212,7 +266,11 @@ const updateNegotiation = async (
 				exp: p.contract.exp,
 			},
 			p.ratings.ovr,
+			p2,
 			getMinContractForPlayer(p2),
+			payroll,
+			userTeam,
+			birdException,
 		);
 		if (!negotiation.resigning && canOfferTwoWay(p2)) {
 			const players = await idb.cache.players.indexGetAll(
@@ -226,6 +284,7 @@ const updateNegotiation = async (
 				amount: twoWayContract.amount / 1000,
 				smallestAmount: false,
 				type: twoWayContract.type,
+				contractExceptionType: "twoWay" as const,
 				disabledReason: canTeamAddTwoWay(players, userTid)
 					? undefined
 					: "Your team already has the maximum number of two-way contracts.",
@@ -247,18 +306,28 @@ const updateNegotiation = async (
 					years: 1,
 					amount: p.mood.user.contractAmount / 1000,
 					smallestAmount: true,
+					contractExceptionType: getContractExceptionType({
+						birdException,
+						contract: {
+							amount: p.mood.user.contractAmount,
+							exp: g.get("season") + 1,
+						},
+						p: p2,
+						payroll,
+						team: userTeam,
+					}),
 				});
 			}
 		}
 
-		const payroll = await team.getPayroll(userTid);
 		const playerMinimum = getMinContractForPlayer(p2) / 1000;
-		const minimumCapHit = getMinimumSalaryCapHitForPlayer(p2, {
-			exp:
-				g.get("phase") <= PHASE.PLAYOFFS
-					? g.get("season")
-					: g.get("season") + 1,
-		}) / 1000;
+		const minimumCapHit =
+			getMinimumSalaryCapHitForPlayer(p2, {
+				exp:
+					g.get("phase") <= PHASE.PLAYOFFS
+						? g.get("season")
+						: g.get("season") + 1,
+			}) / 1000;
 		const midLevelExceptionInfo =
 			isSport("basketball") && g.get("salaryCapType") === "soft"
 				? {

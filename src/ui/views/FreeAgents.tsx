@@ -19,10 +19,14 @@ import { wrappedPlayerNameLabels } from "../components/PlayerNameLabels.tsx";
 import { range } from "../../common/utils.ts";
 import type { DropdownOption } from "../hooks/useDropdownOptions.tsx";
 import type { FreeAgentTransaction } from "../../worker/views/freeAgents.ts";
-import {
-	type DataTableHandle,
-	type DataTableRow,
-} from "../components/DataTable/index.tsx";
+import type { DataTableRow } from "../components/DataTable/index.tsx";
+
+const contractExceptionLabels: Record<string, string> = {
+	bird: "Bird",
+	capSpace: "Cap Space",
+	midLevel: "MLE",
+	minimum: "Minimum",
+};
 
 const useSeasonsFreeAgents = () => {
 	const { phase, season, startingSeason } = useLocalPartial([
@@ -133,8 +137,7 @@ const FreeAgents = ({
 
 	const { gameSimInProgress } = useLocalPartial(["gameSimInProgress"]);
 
-	const [dataTableHandle, setDataTableHandle] =
-		useState<DataTableHandle | null>(null);
+	const [showAffordableOnly, setShowAffordableOnly] = useState(false);
 
 	if (
 		((phase > PHASE.AFTER_TRADE_DEADLINE && phase <= PHASE.RESIGN_PLAYERS) ||
@@ -171,58 +174,25 @@ const FreeAgents = ({
 
 	const showShowPlayersAffordButton = salaryCapType !== "none";
 
-	// These are used in showAffordablePlayersFilterApplied calculation every render, and then also in toggleShowAfforablePlayers when that is called
-	let askingForIndex = -1;
-	let askingForFilter = "";
-
-	let showAffordablePlayersFilterApplied = false;
-	if (showShowPlayersAffordButton && dataTableHandle) {
-		askingForIndex = colKeys.lastIndexOf(askingForText);
-		if (capSpace * 1000 > minContract && !challengeNoFreeAgents) {
-			askingForFilter = `<${capSpace}`;
-		} else {
-			askingForFilter = `<${minContract / 1000}`;
-		}
-
-		const enableFilters = dataTableHandle.getEnableFilters();
-		if (enableFilters) {
-			const filters = dataTableHandle.getFilters();
-			showAffordablePlayersFilterApplied =
-				filters[askingForIndex] === askingForFilter;
-		}
-	}
-
 	const toggleShowAfforablePlayers = () => {
-		if (dataTableHandle) {
-			const enableFilters = dataTableHandle.getEnableFilters();
-
-			// Start from either the current filters (if they are shown/enabled) or no filters at all
-			const filters: string[] = enableFilters
-				? [...dataTableHandle.getFilters()]
-				: new Array(cols.length).fill("");
-
-			// If we currently have this exact filter set, delete it. Otherwise, add it
-			let newEnableFilters = true;
-			if (filters[askingForIndex] === askingForFilter) {
-				filters[askingForIndex] = "";
-
-				// If no other filters are applied, hide filter bar
-				if (filters.every((filter) => filter === "")) {
-					newEnableFilters = false;
-				}
-			} else {
-				filters[askingForIndex] = askingForFilter;
-			}
-
-			dataTableHandle.setFilters(filters, newEnableFilters);
-		}
+		setShowAffordableOnly((showAffordableOnly) => !showAffordableOnly);
 	};
 
 	const playerInfoSeason =
 		freeAgencySeason +
 		(season === "current" && phase < PHASE.FREE_AGENCY ? 1 : 0);
 
-	const rows: DataTableRow[] = players.map((p) => {
+	const playersToShow = showAffordableOnly
+		? players.filter((p) => p.freeAgentType === "available" && p.canAffordNow)
+		: players;
+
+	const rows: DataTableRow[] = playersToShow.map((p) => {
+		const contractAmount = wrappedContractAmount(p, p.contract.amount);
+		const contractExceptionLabel =
+			p.freeAgentType === "available" && p.contractExceptionType
+				? contractExceptionLabels[p.contractExceptionType]
+				: undefined;
+
 		return {
 			key: p.pid,
 			metadata: {
@@ -255,7 +225,20 @@ const FreeAgents = ({
 							p,
 						})
 					: undefined,
-				wrappedContractAmount(p, p.contract.amount),
+				contractExceptionLabel
+					? {
+							...contractAmount,
+							value: (
+								<>
+									{contractAmount.value}
+									<span className="badge text-bg-success ms-1">
+										{contractExceptionLabel}
+									</span>
+								</>
+							),
+							searchValue: `${contractAmount.searchValue} ${contractExceptionLabel}`,
+						}
+					: contractAmount,
 				wrappedContractExp(p),
 				p.freeAgentType === "available"
 					? {
@@ -267,6 +250,7 @@ const FreeAgents = ({
 									minContract={minContract}
 									spectator={spectator}
 									p={p}
+									canSign={p.canAffordNow}
 									willingToNegotiate={p.mood.user.willing}
 								/>
 							),
@@ -305,7 +289,7 @@ const FreeAgents = ({
 							className="btn btn-secondary mb-3"
 							onClick={toggleShowAfforablePlayers}
 						>
-							{showAffordablePlayersFilterApplied
+							{showAffordableOnly
 								? "Show players with any asking price"
 								: "Show players you can afford now"}
 						</button>
@@ -338,7 +322,6 @@ const FreeAgents = ({
 				defaultStickyCols={window.mobile ? 0 : 1}
 				name="FreeAgents"
 				pagination
-				ref={setDataTableHandle}
 				rows={rows}
 			/>
 		</>

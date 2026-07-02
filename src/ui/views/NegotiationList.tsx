@@ -134,6 +134,7 @@ const NegotiationList = ({
 	});
 
 	const hasRookies = players.some((p) => p.contract.rookie);
+	const hasPendingTeamOptions = pendingTeamOptions.length > 0;
 	const pendingTeamOptionRows: DataTableRow[] = pendingTeamOptions.map((p) => {
 		return {
 			key: p.pid,
@@ -158,7 +159,10 @@ const NegotiationList = ({
 				p.age,
 				!challengeNoRatings ? p.ratings.ovr : null,
 				!challengeNoRatings ? p.ratings.pot : null,
-				wrappedCurrency(p.contract.amount / 1000, "M"),
+				wrappedCurrency(p.contract.amount, "M"),
+				p.projectedAsk === undefined
+					? null
+					: wrappedCurrency(p.projectedAsk, "M"),
 				p.contract.exp,
 				{
 					value: (
@@ -241,16 +245,28 @@ const NegotiationList = ({
 				<>
 					<h2>Team Options</h2>
 					<DataTable
-						cols={getCols([
-							"Name",
-							"Pos",
-							"Age",
-							"Ovr",
-							"Pot",
-							"Amount",
-							"Exp",
-							"Decision",
-						])}
+						cols={getCols(
+							[
+								"Name",
+								"Pos",
+								"Age",
+								"Ovr",
+								"Pot",
+								"Amount",
+								"Contract",
+								"Exp",
+								"Decision",
+							],
+							{
+								Amount: {
+									title: "Salary",
+								},
+								Contract: {
+									desc: "Estimated asking price if you decline the team option and try to re-sign the player.",
+									title: "Projected Ask",
+								},
+							},
+						)}
 						defaultSort={[5, "desc"]}
 						name="TeamOptions"
 						rows={pendingTeamOptionRows}
@@ -258,56 +274,65 @@ const NegotiationList = ({
 				</>
 			) : null}
 
-			<p>
-				Your unsigned players are asking for a total of{" "}
-				<b>{helpers.formatCurrency(sumContracts, "M")}</b>.
-				{hasRookies ? (
-					<>
-						{" "}
-						Rookies you just drafted are{" "}
-						<span className="text-info">highlighted in blue</span>.
-					</>
-				) : null}
-			</p>
+			{hasPendingTeamOptions ? (
+				<div className="alert alert-info d-inline-block">
+					Decide all pending team options before re-signing other players.
+					Declined team options can still become re-sign negotiations.
+				</div>
+			) : (
+				<>
+					<p>
+						Your unsigned players are asking for a total of{" "}
+						<b>{helpers.formatCurrency(sumContracts, "M")}</b>.
+						{hasRookies ? (
+							<>
+								{" "}
+								Rookies you just drafted are{" "}
+								<span className="text-info">highlighted in blue</span>.
+							</>
+						) : null}
+					</p>
 
-			{(salaryCapType !== "hard" || sumContracts < capSpace) &&
-			players.length > 0 ? (
-				<button
-					className="btn btn-secondary mb-3"
-					onClick={async () => {
-						const proceed = await confirm(
-							`Are you sure you want to re-sign all ${
-								players.length
-							} ${helpers.plural("player", players.length)}?`,
-							{
-								okText: "Re-sign all",
-							},
-						);
-						if (!proceed) {
-							return;
-						}
+					{(salaryCapType !== "hard" || sumContracts < capSpace) &&
+					players.length > 0 ? (
+						<button
+							className="btn btn-secondary mb-3"
+							onClick={async () => {
+								const proceed = await confirm(
+									`Are you sure you want to re-sign all ${
+										players.length
+									} ${helpers.plural("player", players.length)}?`,
+									{
+										okText: "Re-sign all",
+									},
+								);
+								if (!proceed) {
+									return;
+								}
 
-						const errorMsg = await toWorker("main", "reSignAll", players);
+								const errorMsg = await toWorker("main", "reSignAll", players);
 
-						if (errorMsg) {
-							logEvent({
-								type: "error",
-								text: errorMsg,
-								saveToDb: false,
-							});
-						}
-					}}
-				>
-					Re-sign all
-				</button>
-			) : null}
+								if (errorMsg) {
+									logEvent({
+										type: "error",
+										text: errorMsg,
+										saveToDb: false,
+									});
+								}
+							}}
+						>
+							Re-sign all
+						</button>
+					) : null}
 
-			<DataTable
-				cols={cols}
-				defaultSort={[10, "desc"]}
-				name="NegotiationList"
-				rows={rows}
-			/>
+					<DataTable
+						cols={cols}
+						defaultSort={[10, "desc"]}
+						name="NegotiationList"
+						rows={rows}
+					/>
+				</>
+			)}
 		</>
 	);
 };

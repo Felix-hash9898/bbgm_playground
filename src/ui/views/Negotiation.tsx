@@ -76,12 +76,11 @@ const SignButton = ({
 		return button;
 	}
 
-	// CSS/HTML hacks!
-	// position-fixed is for https://stackoverflow.com/a/75264190/786644 https://github.com/react-bootstrap/react-bootstrap/issues/6563 otherwise the scrollback flicker appears/disappears on desktop when the react-bootstrap Tooltip is shown. However this breaks if you scroll, but this page doesn't need to scroll.
 	// Wrapper div around button is because otherwise there is no hover over the disabled button and no tooltip is shown.
 	return (
 		<OverlayTrigger
-			overlay={<Tooltip className="position-fixed">{disabledReason}</Tooltip>}
+			placement="top"
+			overlay={<Tooltip>{disabledReason}</Tooltip>}
 		>
 			<div>{button}</div>
 		</OverlayTrigger>
@@ -89,6 +88,14 @@ const SignButton = ({
 };
 
 const widthStyle = { maxWidth: 575 };
+
+const contractExceptionLabels: Record<string, string> = {
+	bird: "Bird",
+	capSpace: "Cap Space",
+	midLevel: "Uses MLE",
+	minimum: "Minimum",
+	twoWay: "Two-Way",
+};
 
 const Negotiation = ({
 	capSpace,
@@ -131,7 +138,7 @@ const Negotiation = ({
 			);
 		} else {
 			message =
-				"You are not allowed to go over the salary cap to sign free agents, unless it's for a minimum contract.";
+				"You are not allowed to go over the salary cap to sign free agents, unless it's for a minimum contract or another available exception.";
 		}
 	} else if (salaryCapType === "hard") {
 		message =
@@ -222,6 +229,11 @@ const Negotiation = ({
 			</div>
 			<div className="list-group" style={widthStyle}>
 				{contractOptions.map((contract, i) => {
+					const contractExceptionLabel =
+						contract.contractExceptionType !== undefined
+							? contractExceptionLabels[contract.contractExceptionType]
+							: undefined;
+
 					return (
 						<div
 							key={i}
@@ -233,13 +245,29 @@ const Negotiation = ({
 								<b>{helpers.formatCurrency(contract.amount, "M")}</b>/year for{" "}
 								{contract.years} {helpers.plural("year", contract.years)}{" "}
 								(through {contract.exp})
-								{contract.type === "twoWay" ? (
+								{contract.type === "twoWay" &&
+								contractExceptionLabel === undefined ? (
 									<span className="badge text-bg-info ms-2">Two-Way</span>
 								) : null}
 								{contract.option === "player" ? (
 									<span className="badge text-bg-secondary ms-2">PO</span>
 								) : contract.option === "team" ? (
 									<span className="badge text-bg-secondary ms-2">TO</span>
+								) : null}
+								{contractExceptionLabel !== undefined ? (
+									<span
+										className={clsx("badge ms-2", {
+											"text-bg-warning":
+												contract.contractExceptionType === "midLevel",
+											"text-bg-info":
+												contract.contractExceptionType === "twoWay",
+											"text-bg-success":
+												contract.contractExceptionType !== "midLevel" &&
+												contract.contractExceptionType !== "twoWay",
+										})}
+									>
+										{contractExceptionLabel}
+									</span>
 								) : null}
 							</div>
 

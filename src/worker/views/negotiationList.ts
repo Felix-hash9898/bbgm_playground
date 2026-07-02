@@ -1,6 +1,9 @@
 import { PLAYER } from "../../common/index.ts";
 import { team } from "../core/index.ts";
-import { getPendingUserTeamOptions } from "../core/contracts/contractOptionDecisions.ts";
+import {
+	getOptionMarketDemands,
+	getPendingUserTeamOptions,
+} from "../core/contracts/contractOptionDecisions.ts";
 import { isStandardContract } from "../core/contracts/contractTwoWay.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
@@ -59,8 +62,13 @@ const updateNegotiationList = async () => {
 			fuzz: true,
 		}),
 	);
+	const pendingTeamOptionsAll = await getPendingUserTeamOptions();
+	const pendingTeamOptionMarketDemands =
+		pendingTeamOptionsAll.length === 0
+			? new Map()
+			: await getOptionMarketDemands(pendingTeamOptionsAll);
 	const pendingTeamOptions = addFirstNameShort(
-		await idb.getCopies.playersPlus(await getPendingUserTeamOptions(), {
+		await idb.getCopies.playersPlus(pendingTeamOptionsAll, {
 			attrs: [
 				"pid",
 				"firstName",
@@ -79,6 +87,15 @@ const updateNegotiationList = async () => {
 			fuzz: true,
 		}),
 	);
+	for (const p of pendingTeamOptions) {
+		const projectedContract = pendingTeamOptionMarketDemands.get(
+			p.pid,
+		)?.contract;
+		p.projectedAsk =
+			projectedContract === undefined
+				? undefined
+				: projectedContract.amount / 1000;
+	}
 
 	let sumContracts = 0;
 	for (const p of players) {

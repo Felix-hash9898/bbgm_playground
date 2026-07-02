@@ -4,6 +4,7 @@ import { logEvent, toWorker } from "../util/index.ts";
 // are willing to sign.
 const NegotiateButtons = ({
 	canGoOverCap,
+	canSign,
 	capSpace,
 	disabled,
 	minContract,
@@ -12,6 +13,7 @@ const NegotiateButtons = ({
 	willingToNegotiate,
 }: {
 	canGoOverCap?: boolean;
+	canSign?: boolean;
 	capSpace: number;
 	disabled?: boolean;
 	minContract: number;
@@ -32,8 +34,10 @@ const NegotiateButtons = ({
 	const signDisabled =
 		!canGoOverCap &&
 		(!!disabled ||
-			(contractAmount / 1000 > capSpace + 1 / 1000 &&
-				contractAmount / 1000 > (minContract + 1) / 1000));
+			(canSign !== undefined
+				? !canSign
+				: contractAmount / 1000 > capSpace + 1 / 1000 &&
+					contractAmount / 1000 > (minContract + 1) / 1000));
 	return (
 		<div className="btn-group">
 			<button
