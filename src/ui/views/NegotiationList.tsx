@@ -136,6 +136,18 @@ const NegotiationList = ({
 	const hasRookies = players.some((p) => p.contract.rookie);
 	const hasPendingTeamOptions = pendingTeamOptions.length > 0;
 	const pendingTeamOptionRows: DataTableRow[] = pendingTeamOptions.map((p) => {
+		let projectedWilling;
+		if (p.projectedWilling === true) {
+			projectedWilling = "Yes";
+		} else if (p.projectedWilling === false) {
+			projectedWilling = {
+				value: <span className="badge text-bg-danger">Refuses</span>,
+				searchValue: "Refuses",
+			};
+		} else {
+			projectedWilling = "Unknown";
+		}
+
 		return {
 			key: p.pid,
 			metadata: {
@@ -163,6 +175,7 @@ const NegotiationList = ({
 				p.projectedAsk === undefined
 					? null
 					: wrappedCurrency(p.projectedAsk, "M"),
+				projectedWilling,
 				p.contract.exp,
 				{
 					value: (
@@ -254,6 +267,7 @@ const NegotiationList = ({
 								"Pot",
 								"Amount",
 								"Contract",
+								"Mood",
 								"Exp",
 								"Decision",
 							],
@@ -263,7 +277,11 @@ const NegotiationList = ({
 								},
 								Contract: {
 									desc: "Estimated asking price if you decline the team option and try to re-sign the player.",
-									title: "Projected Ask",
+									title: "Projected Re-sign Ask",
+								},
+								Mood: {
+									desc: "Whether the player is projected to be willing to negotiate if you decline the team option.",
+									title: "Willing?",
 								},
 							},
 						)}

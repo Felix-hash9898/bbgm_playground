@@ -15,6 +15,7 @@ const moodInfo = async (
 	p: Player,
 	tid: number,
 	overrides: {
+		activeNegotiation?: boolean;
 		contractAmount?: number;
 	} = {},
 ) => {
@@ -77,7 +78,8 @@ const moodInfo = async (
 			p.tid === tid ||
 			(resigning &&
 				p.tid === PLAYER.FREE_AGENT &&
-				(await hasActiveNegotiation(tid, p.pid)))
+				(overrides.activeNegotiation ??
+					(await hasActiveNegotiation(tid, p.pid))))
 		) {
 			valueDiff = MAX_RESIGNING_VALUE_DIFF;
 		}

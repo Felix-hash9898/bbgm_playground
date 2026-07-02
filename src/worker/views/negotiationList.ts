@@ -1,12 +1,10 @@
 import { PLAYER } from "../../common/index.ts";
-import { team } from "../core/index.ts";
-import {
-	getOptionMarketDemands,
-	getPendingUserTeamOptions,
-} from "../core/contracts/contractOptionDecisions.ts";
+import { player, team } from "../core/index.ts";
+import { getPendingUserTeamOptions } from "../core/contracts/contractOptionDecisions.ts";
 import { isStandardContract } from "../core/contracts/contractTwoWay.ts";
+import { getNormalizedContractDemandResults } from "../core/freeAgents/normalizeContractDemands.ts";
 import { idb } from "../db/index.ts";
-import { g } from "../util/index.ts";
+import { g, helpers } from "../util/index.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
 import { addMood, freeAgentStats } from "./freeAgents.ts";
 
@@ -63,10 +61,29 @@ const updateNegotiationList = async () => {
 		}),
 	);
 	const pendingTeamOptionsAll = await getPendingUserTeamOptions();
-	const pendingTeamOptionMarketDemands =
-		pendingTeamOptionsAll.length === 0
-			? new Map()
-			: await getOptionMarketDemands(pendingTeamOptionsAll);
+	const declinedTeamOptionsAll = pendingTeamOptionsAll.map((p) => {
+		const p2 = helpers.deepCopy(p);
+		delete p2.contract.option;
+		p2.contract.exp = g.get("season");
+		p2.salaries = (p2.salaries ?? []).filter(
+			(salary) => salary.season <= p2.contract.exp,
+		);
+		return p2;
+	});
+	const projectedReSignDemands =
+		declinedTeamOptionsAll.length === 0
+			? undefined
+			: await getNormalizedContractDemandResults({
+					type: "includeExpiringContracts",
+					pids: declinedTeamOptionsAll.map((p) => p.pid),
+					playersAll: [
+						...(await idb.cache.players.indexGetAll(
+							"playersByTid",
+							PLAYER.FREE_AGENT,
+						)),
+						...declinedTeamOptionsAll,
+					],
+				});
 	const pendingTeamOptions = addFirstNameShort(
 		await idb.getCopies.playersPlus(pendingTeamOptionsAll, {
 			attrs: [
@@ -88,13 +105,19 @@ const updateNegotiationList = async () => {
 		}),
 	);
 	for (const p of pendingTeamOptions) {
-		const projectedContract = pendingTeamOptionMarketDemands.get(
-			p.pid,
-		)?.contract;
-		p.projectedAsk =
-			projectedContract === undefined
-				? undefined
-				: projectedContract.amount / 1000;
+		const pRaw = pendingTeamOptionsAll.find((p2) => p2.pid === p.pid);
+		const projectedContract = projectedReSignDemands?.get(p.pid)?.contract;
+		if (pRaw && projectedContract) {
+			const pAfterDecline = helpers.deepCopy(pRaw);
+			pAfterDecline.contract = helpers.deepCopy(projectedContract);
+			pAfterDecline.tid = PLAYER.FREE_AGENT;
+			pAfterDecline.numDaysFreeAgent = 0;
+			const projectedMood = await player.moodInfo(pAfterDecline, userTid, {
+				activeNegotiation: true,
+			});
+			p.projectedAsk = projectedMood.contractAmount / 1000;
+			p.projectedWilling = projectedMood.willing;
+		}
 	}
 
 	let sumContracts = 0;

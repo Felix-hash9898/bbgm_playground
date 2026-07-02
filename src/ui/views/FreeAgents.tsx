@@ -138,6 +138,7 @@ const FreeAgents = ({
 	const { gameSimInProgress } = useLocalPartial(["gameSimInProgress"]);
 
 	const [showAffordableOnly, setShowAffordableOnly] = useState(false);
+	const [showWillingOnly, setShowWillingOnly] = useState(false);
 
 	if (
 		((phase > PHASE.AFTER_TRADE_DEADLINE && phase <= PHASE.RESIGN_PLAYERS) ||
@@ -178,13 +179,29 @@ const FreeAgents = ({
 		setShowAffordableOnly((showAffordableOnly) => !showAffordableOnly);
 	};
 
+	const toggleShowWillingPlayers = () => {
+		setShowWillingOnly((showWillingOnly) => !showWillingOnly);
+	};
+
 	const playerInfoSeason =
 		freeAgencySeason +
 		(season === "current" && phase < PHASE.FREE_AGENCY ? 1 : 0);
 
-	const playersToShow = showAffordableOnly
-		? players.filter((p) => p.freeAgentType === "available" && p.canAffordNow)
-		: players;
+	const playersToShow = players.filter((p) => {
+		if (showAffordableOnly) {
+			if (p.freeAgentType !== "available" || !p.canAffordNow) {
+				return false;
+			}
+		}
+
+		if (showWillingOnly) {
+			if (p.freeAgentType !== "available" || !p.mood.user.willing) {
+				return false;
+			}
+		}
+
+		return true;
+	});
 
 	const rows: DataTableRow[] = playersToShow.map((p) => {
 		const contractAmount = wrappedContractAmount(p, p.contract.amount);
@@ -284,16 +301,26 @@ const FreeAgents = ({
 						payroll={payroll}
 					/>
 
-					{showShowPlayersAffordButton ? (
+					<div className="d-flex flex-wrap gap-2 mb-3">
+						{showShowPlayersAffordButton ? (
+							<button
+								className="btn btn-secondary"
+								onClick={toggleShowAfforablePlayers}
+							>
+								{showAffordableOnly
+									? "Show players with any asking price"
+									: "Show players you can afford now"}
+							</button>
+						) : null}
 						<button
-							className="btn btn-secondary mb-3"
-							onClick={toggleShowAfforablePlayers}
+							className="btn btn-secondary"
+							onClick={toggleShowWillingPlayers}
 						>
-							{showAffordableOnly
-								? "Show players with any asking price"
-								: "Show players you can afford now"}
+							{showWillingOnly
+								? "Show all players"
+								: "Show players willing to negotiate"}
 						</button>
-					) : null}
+					</div>
 				</>
 			) : null}
 
