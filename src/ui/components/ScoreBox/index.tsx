@@ -297,6 +297,7 @@ const ScoreBox = memo(
 							let imgURL;
 							let teamName;
 							let rosterURL;
+							let branding;
 							if (allStarGame) {
 								imgURL = `https://zengm.com/files/logo-${process.env.SPORT}.svg`;
 								teamName = small
@@ -304,7 +305,7 @@ const ScoreBox = memo(
 									: `All-Stars ${i === 0 ? 2 : 1}`;
 								rosterURL = helpers.leagueUrl(["all_star", "history"]);
 							} else {
-								const branding = t.branding ?? teamInfoCache[t.tid];
+								branding = t.branding ?? teamInfoCache[t.tid];
 								imgURL = branding?.imgURLSmall ?? branding?.imgURL;
 								teamName = small
 									? branding?.abbrev
@@ -475,7 +476,7 @@ const ScoreBox = memo(
 															"game_log",
 															allStarGame
 																? "special"
-																: `${teamInfoCache[t.tid]?.abbrev}_${t.tid}`,
+																: `${branding?.abbrev}_${t.tid}`,
 															gameSeason,
 															game.gid,
 														])}

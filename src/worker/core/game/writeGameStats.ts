@@ -17,6 +17,7 @@ import type {
 import { headToHead, season } from "../index.ts";
 import getWinner from "../../../common/getWinner.ts";
 import formatScoreWithShootout from "../../../common/formatScoreWithShootout.ts";
+import addUILocalGameTeamBranding from "../../util/addUILocalGameTeamBranding.ts";
 
 const allStarMVP = async (
 	game: Game,
@@ -560,28 +561,30 @@ const writeGameStats = async (
 		results.team[1].id === g.get("userTid") ||
 		allStarGame
 	) {
-		gameToUi = {
-			forceWin: results.forceWin,
-			gid: results.gid,
-			overtimes: results.overtimes,
-			numPeriods: g.get("numPeriods"),
-			teams: [
-				{
-					ovr: results.team[0].ovr,
-					pts: results.team[0].stat.pts,
-					sPts: results.team[0].stat.sPts,
-					tid: results.team[0].id,
-					playoffs: gameStats.teams[0].playoffs,
-				},
-				{
-					ovr: results.team[1].ovr,
-					pts: results.team[1].stat.pts,
-					sPts: results.team[1].stat.sPts,
-					tid: results.team[1].id,
-					playoffs: gameStats.teams[1].playoffs,
-				},
-			],
-		};
+		[gameToUi] = await addUILocalGameTeamBranding([
+			{
+				forceWin: results.forceWin,
+				gid: results.gid,
+				overtimes: results.overtimes,
+				numPeriods: g.get("numPeriods"),
+				teams: [
+					{
+						ovr: results.team[0].ovr,
+						pts: results.team[0].stat.pts,
+						sPts: results.team[0].stat.sPts,
+						tid: results.team[0].id,
+						playoffs: gameStats.teams[0].playoffs,
+					},
+					{
+						ovr: results.team[1].ovr,
+						pts: results.team[1].stat.pts,
+						sPts: results.team[1].stat.sPts,
+						tid: results.team[1].id,
+						playoffs: gameStats.teams[1].playoffs,
+					},
+				],
+			},
+		]);
 	}
 
 	for (const clutchPlay of results.clutchPlays) {

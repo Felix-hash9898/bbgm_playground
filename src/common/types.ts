@@ -1008,6 +1008,13 @@ export type LocalStateUI = {
 				pts?: number;
 				sPts?: number;
 				tid: number;
+				branding?: {
+					region: string;
+					name: string;
+					abbrev: string;
+					imgURL?: string;
+					imgURLSmall?: string;
+				};
 				playoffs?: {
 					seed: number;
 					won: number;
@@ -1019,6 +1026,13 @@ export type LocalStateUI = {
 				pts?: number;
 				sPts?: number;
 				tid: number;
+				branding?: {
+					region: string;
+					name: string;
+					abbrev: string;
+					imgURL?: string;
+					imgURLSmall?: string;
+				};
 				playoffs?: {
 					seed: number;
 					won: number;

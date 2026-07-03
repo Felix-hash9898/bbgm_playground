@@ -1,5 +1,6 @@
 import type { LocalStateUI } from "../../common/types.ts";
 import { getUpcoming } from "../views/schedule.ts";
+import addUILocalGameTeamBranding from "./addUILocalGameTeamBranding.ts";
 import g from "./g.ts";
 import toUI from "./toUI.ts";
 
@@ -13,22 +14,25 @@ export const getOneUpcomingGame = async (): Promise<
 		})
 	)[0];
 	if (game) {
-		return {
-			finals: game.finals,
-			gid: game.gid,
-			teams: [
-				{
-					ovr: game.teams[0].ovr,
-					tid: game.teams[0].tid,
-					playoffs: game.teams[0].playoffs,
-				},
-				{
-					ovr: game.teams[1].ovr,
-					tid: game.teams[1].tid,
-					playoffs: game.teams[1].playoffs,
-				},
-			],
-		};
+		const games = await addUILocalGameTeamBranding([
+			{
+				finals: game.finals,
+				gid: game.gid,
+				teams: [
+					{
+						ovr: game.teams[0].ovr,
+						tid: game.teams[0].tid,
+						playoffs: game.teams[0].playoffs,
+					},
+					{
+						ovr: game.teams[1].ovr,
+						tid: game.teams[1].tid,
+						playoffs: game.teams[1].playoffs,
+					},
+				],
+			},
+		]);
+		return games[0];
 	}
 };
 
