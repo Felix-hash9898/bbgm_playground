@@ -1,0 +1,1144 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>BBGM Contract Market Validation 20 Blind</title>
+	<style>
+		:root {
+			color-scheme: light;
+			--border: #c9d1d9;
+			--muted: #5f6b7a;
+			--text: #17202a;
+			--bg: #f6f8fa;
+			--panel: #fff;
+			--accent: #0f6b5f;
+		}
+		body {
+			margin: 0;
+			background: var(--bg);
+			color: var(--text);
+			font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+		}
+		.page-header {
+			position: sticky;
+			top: 0;
+			z-index: 1;
+			padding: 14px 20px;
+			border-bottom: 1px solid var(--border);
+			background: rgba(255, 255, 255, 0.96);
+		}
+		h1 {
+			margin: 0;
+			font-size: 20px;
+		}
+		.bucket-nav {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			margin-top: 8px;
+		}
+		.toolbar {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			align-items: center;
+			margin-top: 10px;
+		}
+		button {
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			background: #fff;
+			color: var(--text);
+			font: inherit;
+			font-weight: 700;
+			padding: 5px 9px;
+			cursor: pointer;
+		}
+		button:hover {
+			border-color: var(--accent);
+			color: var(--accent);
+		}
+		#save-status {
+			color: var(--muted);
+		}
+		.bucket-nav a {
+			color: var(--accent);
+			text-decoration: none;
+			font-weight: 600;
+		}
+		main {
+			display: grid;
+			gap: 16px;
+			padding: 20px;
+		}
+		.bucket-section {
+			display: grid;
+			gap: 12px;
+		}
+		.bucket-section > h2 {
+			margin: 8px 0 0;
+			font-size: 18px;
+		}
+		.player-card {
+			background: var(--panel);
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			padding: 14px;
+		}
+		.player-card header {
+			display: flex;
+			justify-content: space-between;
+			gap: 12px;
+			align-items: start;
+			border-bottom: 1px solid var(--border);
+			padding-bottom: 10px;
+			margin-bottom: 10px;
+		}
+		.player-card h2 {
+			margin: 0;
+			font-size: 18px;
+		}
+		.player-card h2 small {
+			color: var(--muted);
+			font-weight: 500;
+		}
+		.player-card header p {
+			margin: 2px 0 0;
+			color: var(--muted);
+		}
+		.contract-pill {
+			white-space: nowrap;
+			padding: 5px 8px;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			font-weight: 700;
+			color: var(--accent);
+		}
+		section {
+			margin-top: 12px;
+		}
+		h3 {
+			margin: 0 0 6px;
+			font-size: 13px;
+			text-transform: uppercase;
+			letter-spacing: 0;
+			color: var(--muted);
+		}
+		.metric-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+			gap: 6px;
+		}
+		.metric {
+			min-height: 44px;
+			border: 1px solid #d8dee4;
+			border-radius: 6px;
+			padding: 6px 8px;
+			background: #fbfcfd;
+		}
+		.metric span {
+			display: block;
+			color: var(--muted);
+			font-size: 12px;
+		}
+		.metric strong {
+			display: block;
+			font-size: 15px;
+		}
+		.skills {
+			margin: 6px 0 0;
+			color: var(--muted);
+		}
+		.review label {
+			display: block;
+			font-weight: 700;
+			margin-bottom: 4px;
+		}
+		textarea {
+			box-sizing: border-box;
+			width: 100%;
+			resize: vertical;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			padding: 8px;
+			font: inherit;
+		}
+		details {
+			margin-top: 10px;
+			color: var(--muted);
+		}
+		.identity-details {
+			margin-top: 4px;
+		}
+		.identity-details p {
+			margin: 4px 0 0;
+		}
+		.debug-details {
+			border-top: 1px solid var(--border);
+			padding-top: 8px;
+		}
+		@media (max-width: 700px) {
+			.player-card header {
+				display: block;
+			}
+			.contract-pill {
+				display: inline-block;
+				margin-top: 8px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<header class="page-header">
+		<h1>BBGM Contract Market Validation Set (Blind)</h1>
+		<nav class="bucket-nav">
+			<a href="#max_near_max_high_star">Max / near-max / high-star candidate</a><a href="#young_proven_young_starter">Young proven / young starter candidate</a><a href="#low_end_starter_good_rotation">Low-end starter / good rotation candidate</a><a href="#specialist_low_rotation">Specialist / low rotation candidate</a><a href="#veteran_minimum_fringe_negative">Veteran minimum / fringe / negative candidate</a>
+		</nav>
+		<div class="toolbar">
+			<button type="button" id="export-json">Export JSON</button>
+			<button type="button" id="import-json">Import JSON</button>
+			<button type="button" id="clear-notes">Clear local notes</button>
+			<input type="file" id="import-file" accept="application/json,.json" hidden />
+			<span id="save-status">Notes autosave locally.</span>
+		</div>
+	</header>
+	<main>
+		<section class="bucket-section" id="max_near_max_high_star">
+					<h2>Max / near-max / high-star candidate</h2>
+					<article class="player-card" id="V20-01" data-case-id="V20-01" data-pid="1824" data-name="Zion Williamson" data-bucket="max_near_max_high_star">
+	<header>
+		<div>
+			<h2>Case V20-01</h2>
+			<p>Max / near-max / high-star candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Zion Williamson · pid 1824</p>
+			</details>
+		</div>
+		<div class="contract-pill">$45.35M / 3y / 29.3%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>25</strong></div><div class="metric "><span>Pos</span><strong>PF</strong></div><div class="metric "><span>OVR/POT</span><strong>81/85</strong></div><div class="metric "><span>Value</span><strong>77</strong></div><div class="metric "><span>ValueNoPot</span><strong>76.3</strong></div><div class="metric "><span>ContractValue</span><strong>76.4</strong></div><div class="metric "><span>Demand</span><strong>$46.40M</strong></div><div class="metric "><span>Eligible max</span><strong>$46.40M</strong></div><div class="metric "><span>Minimum</span><strong>$2.94M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>72/72</strong></div><div class="metric "><span>MPG</span><strong>36.8</strong></div><div class="metric "><span>PTS</span><strong>28.7</strong></div><div class="metric "><span>TRB</span><strong>12.8</strong></div><div class="metric "><span>AST</span><strong>7.3</strong></div><div class="metric "><span>STL</span><strong>2.6</strong></div><div class="metric "><span>BLK</span><strong>2.5</strong></div><div class="metric "><span>TOV</span><strong>4.7</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>56.0%</strong></div><div class="metric "><span>eFG</span><strong>48.6%</strong></div><div class="metric "><span>PER</span><strong>32.4</strong></div><div class="metric "><span>EWA</span><strong>22.1</strong></div><div class="metric "><span>VORP</span><strong>10.2</strong></div><div class="metric "><span>BPM</span><strong>13.2</strong></div><div class="metric "><span>OBPM</span><strong>9</strong></div><div class="metric "><span>DBPM</span><strong>4.3</strong></div><div class="metric "><span>On-Off</span><strong>14.4</strong></div><div class="metric "><span>USG</span><strong>34</strong></div><div class="metric "><span>AST%</span><strong>37.9</strong></div><div class="metric "><span>TRB%</span><strong>18.2</strong></div><div class="metric "><span>BLK%</span><strong>5.8</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.759</strong></div><div class="metric "><span>Passing</span><strong>0.706</strong></div><div class="metric "><span>Dribbling</span><strong>0.685</strong></div><div class="metric "><span>3pt</span><strong>0.489</strong></div><div class="metric "><span>Rebounding</span><strong>0.685</strong></div><div class="metric "><span>Interior D</span><strong>0.713</strong></div><div class="metric "><span>Perimeter D</span><strong>0.772</strong></div><div class="metric "><span>Blocking</span><strong>0.653</strong></div><div class="metric "><span>Athleticism</span><strong>0.797</strong></div></div>
+		<p class="skills">Generated skills: A B Di Dp Po Ps R V</p>
+		<p class="skills">Skill margins: 3: -0.101 | Ps: 0.076 | R: 0.075 | Di: 0.143 | Dp: 0.162 | A: 0.167</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-01">Human target tier / amount judgment</label>
+		<textarea id="review-V20-01" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-02" data-case-id="V20-02" data-pid="1712" data-name="Jaden Springer" data-bucket="max_near_max_high_star">
+	<header>
+		<div>
+			<h2>Case V20-02</h2>
+			<p>Max / near-max / high-star candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Jaden Springer · pid 1712</p>
+			</details>
+		</div>
+		<div class="contract-pill">$15.45M / 3y / 10.0%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>23</strong></div><div class="metric "><span>Pos</span><strong>G</strong></div><div class="metric "><span>OVR/POT</span><strong>77/83</strong></div><div class="metric "><span>Value</span><strong>74.8</strong></div><div class="metric "><span>ValueNoPot</span><strong>72.4</strong></div><div class="metric "><span>ContractValue</span><strong>72.8</strong></div><div class="metric "><span>Demand</span><strong>$45.37M</strong></div><div class="metric "><span>Eligible max</span><strong>$46.40M</strong></div><div class="metric "><span>Minimum</span><strong>$2.51M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>71/71</strong></div><div class="metric "><span>MPG</span><strong>36.6</strong></div><div class="metric "><span>PTS</span><strong>28</strong></div><div class="metric "><span>TRB</span><strong>7.8</strong></div><div class="metric "><span>AST</span><strong>5.7</strong></div><div class="metric "><span>STL</span><strong>3.4</strong></div><div class="metric "><span>BLK</span><strong>1.1</strong></div><div class="metric "><span>TOV</span><strong>3.5</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>58.3%</strong></div><div class="metric "><span>eFG</span><strong>53.6%</strong></div><div class="metric "><span>PER</span><strong>29</strong></div><div class="metric "><span>EWA</span><strong>18.8</strong></div><div class="metric "><span>VORP</span><strong>10.4</strong></div><div class="metric "><span>BPM</span><strong>13.7</strong></div><div class="metric "><span>OBPM</span><strong>8.8</strong></div><div class="metric "><span>DBPM</span><strong>4.9</strong></div><div class="metric "><span>On-Off</span><strong>9.9</strong></div><div class="metric "><span>USG</span><strong>31.7</strong></div><div class="metric "><span>AST%</span><strong>28.1</strong></div><div class="metric "><span>TRB%</span><strong>11.2</strong></div><div class="metric "><span>BLK%</span><strong>2.6</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.725</strong></div><div class="metric "><span>Passing</span><strong>0.646</strong></div><div class="metric "><span>Dribbling</span><strong>0.64</strong></div><div class="metric "><span>3pt</span><strong>0.777</strong></div><div class="metric "><span>Rebounding</span><strong>0.578</strong></div><div class="metric "><span>Interior D</span><strong>0.602</strong></div><div class="metric "><span>Perimeter D</span><strong>0.688</strong></div><div class="metric "><span>Blocking</span><strong>0.531</strong></div><div class="metric "><span>Athleticism</span><strong>0.571</strong></div></div>
+		<p class="skills">Generated skills: 3 Di Dp Ps V</p>
+		<p class="skills">Skill margins: 3: 0.177 | Ps: 0.006 | R: -0.038 | Di: 0.026 | Dp: 0.069 | A: -0.067</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-02">Human target tier / amount judgment</label>
+		<textarea id="review-V20-02" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-03" data-case-id="V20-03" data-pid="727" data-name="Marvin Bagley III" data-bucket="max_near_max_high_star">
+	<header>
+		<div>
+			<h2>Case V20-03</h2>
+			<p>Max / near-max / high-star candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Marvin Bagley III · pid 727</p>
+			</details>
+		</div>
+		<div class="contract-pill">$41.20M / 2y / 26.6%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>26</strong></div><div class="metric "><span>Pos</span><strong>FC</strong></div><div class="metric "><span>OVR/POT</span><strong>76/78</strong></div><div class="metric "><span>Value</span><strong>71.7</strong></div><div class="metric "><span>ValueNoPot</span><strong>71.6</strong></div><div class="metric "><span>ContractValue</span><strong>71.7</strong></div><div class="metric "><span>Demand</span><strong>$43.42M</strong></div><div class="metric "><span>Eligible max</span><strong>$46.40M</strong></div><div class="metric "><span>Minimum</span><strong>$3.15M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>62/62</strong></div><div class="metric "><span>MPG</span><strong>37.3</strong></div><div class="metric "><span>PTS</span><strong>26.1</strong></div><div class="metric "><span>TRB</span><strong>14.3</strong></div><div class="metric "><span>AST</span><strong>8.7</strong></div><div class="metric "><span>STL</span><strong>2</strong></div><div class="metric "><span>BLK</span><strong>0.8</strong></div><div class="metric "><span>TOV</span><strong>3.9</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>56.1%</strong></div><div class="metric "><span>eFG</span><strong>50.6%</strong></div><div class="metric "><span>PER</span><strong>28.9</strong></div><div class="metric "><span>EWA</span><strong>16.5</strong></div><div class="metric "><span>VORP</span><strong>7.9</strong></div><div class="metric "><span>BPM</span><strong>11.6</strong></div><div class="metric "><span>OBPM</span><strong>7.9</strong></div><div class="metric "><span>DBPM</span><strong>3.7</strong></div><div class="metric "><span>On-Off</span><strong>6.3</strong></div><div class="metric "><span>USG</span><strong>29.8</strong></div><div class="metric "><span>AST%</span><strong>41.8</strong></div><div class="metric "><span>TRB%</span><strong>19.8</strong></div><div class="metric "><span>BLK%</span><strong>1.7</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.672</strong></div><div class="metric "><span>Passing</span><strong>0.659</strong></div><div class="metric "><span>Dribbling</span><strong>0.585</strong></div><div class="metric "><span>3pt</span><strong>0.53</strong></div><div class="metric "><span>Rebounding</span><strong>0.748</strong></div><div class="metric "><span>Interior D</span><strong>0.661</strong></div><div class="metric "><span>Perimeter D</span><strong>0.613</strong></div><div class="metric "><span>Blocking</span><strong>0.598</strong></div><div class="metric "><span>Athleticism</span><strong>0.659</strong></div></div>
+		<p class="skills">Generated skills: A Di Po Ps R V</p>
+		<p class="skills">Skill margins: 3: -0.08 | Ps: 0.009 | R: 0.126 | Di: 0.078 | Dp: -0.014 | A: 0.013</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-03">Human target tier / amount judgment</label>
+		<textarea id="review-V20-03" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-04" data-case-id="V20-04" data-pid="1703" data-name="Zhaire Smith" data-bucket="max_near_max_high_star">
+	<header>
+		<div>
+			<h2>Case V20-04</h2>
+			<p>Max / near-max / high-star candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Zhaire Smith · pid 1703</p>
+			</details>
+		</div>
+		<div class="contract-pill">$27.25M / 2y / 17.6%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>26</strong></div><div class="metric "><span>Pos</span><strong>GF</strong></div><div class="metric "><span>OVR/POT</span><strong>78/79</strong></div><div class="metric "><span>Value</span><strong>72.1</strong></div><div class="metric "><span>ValueNoPot</span><strong>71.9</strong></div><div class="metric "><span>ContractValue</span><strong>71.9</strong></div><div class="metric "><span>Demand</span><strong>$43.93M</strong></div><div class="metric "><span>Eligible max</span><strong>$46.40M</strong></div><div class="metric "><span>Minimum</span><strong>$3.15M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>57/57</strong></div><div class="metric "><span>MPG</span><strong>37.5</strong></div><div class="metric "><span>PTS</span><strong>25.3</strong></div><div class="metric "><span>TRB</span><strong>9.2</strong></div><div class="metric "><span>AST</span><strong>5.2</strong></div><div class="metric "><span>STL</span><strong>2.3</strong></div><div class="metric "><span>BLK</span><strong>0.3</strong></div><div class="metric "><span>TOV</span><strong>2.8</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>58.1%</strong></div><div class="metric "><span>eFG</span><strong>52.8%</strong></div><div class="metric "><span>PER</span><strong>25.1</strong></div><div class="metric "><span>EWA</span><strong>12.4</strong></div><div class="metric "><span>VORP</span><strong>5.9</strong></div><div class="metric "><span>BPM</span><strong>9</strong></div><div class="metric "><span>OBPM</span><strong>6.7</strong></div><div class="metric "><span>DBPM</span><strong>2.3</strong></div><div class="metric "><span>On-Off</span><strong>5.2</strong></div><div class="metric "><span>USG</span><strong>27.8</strong></div><div class="metric "><span>AST%</span><strong>24.4</strong></div><div class="metric "><span>TRB%</span><strong>12.8</strong></div><div class="metric "><span>BLK%</span><strong>0.8</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.709</strong></div><div class="metric "><span>Passing</span><strong>0.757</strong></div><div class="metric "><span>Dribbling</span><strong>0.675</strong></div><div class="metric "><span>3pt</span><strong>0.775</strong></div><div class="metric "><span>Rebounding</span><strong>0.618</strong></div><div class="metric "><span>Interior D</span><strong>0.63</strong></div><div class="metric "><span>Perimeter D</span><strong>0.642</strong></div><div class="metric "><span>Blocking</span><strong>0.529</strong></div><div class="metric "><span>Athleticism</span><strong>0.617</strong></div></div>
+		<p class="skills">Generated skills: 3 Di Dp Po Ps R V</p>
+		<p class="skills">Skill margins: 3: 0.175 | Ps: 0.117 | R: 0.002 | Di: 0.054 | Dp: 0.023 | A: -0.021</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-04">Human target tier / amount judgment</label>
+		<textarea id="review-V20-04" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+				</section>
+<section class="bucket-section" id="young_proven_young_starter">
+					<h2>Young proven / young starter candidate</h2>
+					<article class="player-card" id="V20-05" data-case-id="V20-05" data-pid="1705" data-name="Jeremy Sochan" data-bucket="young_proven_young_starter">
+	<header>
+		<div>
+			<h2>Case V20-05</h2>
+			<p>Young proven / young starter candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Jeremy Sochan · pid 1705</p>
+			</details>
+		</div>
+		<div class="contract-pill">$9.85M / 1y / 6.4%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>22</strong></div><div class="metric "><span>Pos</span><strong>PF</strong></div><div class="metric "><span>OVR/POT</span><strong>69/79</strong></div><div class="metric "><span>Value</span><strong>69.3</strong></div><div class="metric "><span>ValueNoPot</span><strong>63.5</strong></div><div class="metric "><span>ContractValue</span><strong>64.7</strong></div><div class="metric "><span>Demand</span><strong>$31.46M</strong></div><div class="metric "><span>Eligible max</span><strong>$38.66M</strong></div><div class="metric "><span>Minimum</span><strong>$2.43M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>68/68</strong></div><div class="metric "><span>MPG</span><strong>36.2</strong></div><div class="metric "><span>PTS</span><strong>13.4</strong></div><div class="metric "><span>TRB</span><strong>10.3</strong></div><div class="metric "><span>AST</span><strong>2.6</strong></div><div class="metric "><span>STL</span><strong>2.9</strong></div><div class="metric "><span>BLK</span><strong>1.8</strong></div><div class="metric "><span>TOV</span><strong>2.3</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>53.3%</strong></div><div class="metric "><span>eFG</span><strong>51.6%</strong></div><div class="metric "><span>PER</span><strong>18.4</strong></div><div class="metric "><span>EWA</span><strong>6.8</strong></div><div class="metric "><span>VORP</span><strong>2.6</strong></div><div class="metric "><span>BPM</span><strong>2.1</strong></div><div class="metric "><span>OBPM</span><strong>0.1</strong></div><div class="metric "><span>DBPM</span><strong>2.1</strong></div><div class="metric "><span>On-Off</span><strong>2.1</strong></div><div class="metric "><span>USG</span><strong>17.3</strong></div><div class="metric "><span>AST%</span><strong>11.6</strong></div><div class="metric "><span>TRB%</span><strong>14.8</strong></div><div class="metric "><span>BLK%</span><strong>4.3</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.508</strong></div><div class="metric "><span>Passing</span><strong>0.524</strong></div><div class="metric "><span>Dribbling</span><strong>0.555</strong></div><div class="metric "><span>3pt</span><strong>0.451</strong></div><div class="metric "><span>Rebounding</span><strong>0.636</strong></div><div class="metric "><span>Interior D</span><strong>0.648</strong></div><div class="metric "><span>Perimeter D</span><strong>0.647</strong></div><div class="metric "><span>Blocking</span><strong>0.57</strong></div><div class="metric "><span>Athleticism</span><strong>0.582</strong></div></div>
+		<p class="skills">Generated skills: Di Dp R</p>
+		<p class="skills">Skill margins: 3: -0.149 | Ps: -0.116 | R: 0.019 | Di: 0.072 | Dp: 0.028 | A: -0.056</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-05">Human target tier / amount judgment</label>
+		<textarea id="review-V20-05" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-06" data-case-id="V20-06" data-pid="1339" data-name="Isaiah Jackson" data-bucket="young_proven_young_starter">
+	<header>
+		<div>
+			<h2>Case V20-06</h2>
+			<p>Young proven / young starter candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Isaiah Jackson · pid 1339</p>
+			</details>
+		</div>
+		<div class="contract-pill">$28.22M / 5y / 18.2%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>23</strong></div><div class="metric "><span>Pos</span><strong>C</strong></div><div class="metric "><span>OVR/POT</span><strong>70/79</strong></div><div class="metric "><span>Value</span><strong>69.3</strong></div><div class="metric "><span>ValueNoPot</span><strong>64.6</strong></div><div class="metric "><span>ContractValue</span><strong>65.5</strong></div><div class="metric "><span>Demand</span><strong>$32.94M</strong></div><div class="metric "><span>Eligible max</span><strong>$46.40M</strong></div><div class="metric "><span>Minimum</span><strong>$2.51M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>82/82</strong></div><div class="metric "><span>MPG</span><strong>31.2</strong></div><div class="metric "><span>PTS</span><strong>14.4</strong></div><div class="metric "><span>TRB</span><strong>7.9</strong></div><div class="metric "><span>AST</span><strong>1.7</strong></div><div class="metric "><span>STL</span><strong>2.6</strong></div><div class="metric "><span>BLK</span><strong>2.1</strong></div><div class="metric "><span>TOV</span><strong>2.6</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>56.5%</strong></div><div class="metric "><span>eFG</span><strong>49.3%</strong></div><div class="metric "><span>PER</span><strong>19.8</strong></div><div class="metric "><span>EWA</span><strong>9.4</strong></div><div class="metric "><span>VORP</span><strong>4</strong></div><div class="metric "><span>BPM</span><strong>4.1</strong></div><div class="metric "><span>OBPM</span><strong>0.5</strong></div><div class="metric "><span>DBPM</span><strong>3.6</strong></div><div class="metric "><span>On-Off</span><strong>4.7</strong></div><div class="metric "><span>USG</span><strong>20.4</strong></div><div class="metric "><span>AST%</span><strong>8.2</strong></div><div class="metric "><span>TRB%</span><strong>13.2</strong></div><div class="metric "><span>BLK%</span><strong>5.7</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.588</strong></div><div class="metric "><span>Passing</span><strong>0.524</strong></div><div class="metric "><span>Dribbling</span><strong>0.52</strong></div><div class="metric "><span>3pt</span><strong>0.395</strong></div><div class="metric "><span>Rebounding</span><strong>0.681</strong></div><div class="metric "><span>Interior D</span><strong>0.692</strong></div><div class="metric "><span>Perimeter D</span><strong>0.671</strong></div><div class="metric "><span>Blocking</span><strong>0.683</strong></div><div class="metric "><span>Athleticism</span><strong>0.619</strong></div></div>
+		<p class="skills">Generated skills: Di Dp Po R</p>
+		<p class="skills">Skill margins: 3: -0.185 | Ps: -0.096 | R: 0.078 | Di: 0.128 | Dp: 0.07 | A: -0.003</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-06">Human target tier / amount judgment</label>
+		<textarea id="review-V20-06" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-07" data-case-id="V20-07" data-pid="734" data-name="Paolo Banchero" data-bucket="young_proven_young_starter">
+	<header>
+		<div>
+			<h2>Case V20-07</h2>
+			<p>Young proven / young starter candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Paolo Banchero · pid 734</p>
+			</details>
+		</div>
+		<div class="contract-pill">$12.36M / 1y / 8.0%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>23</strong></div><div class="metric "><span>Pos</span><strong>PF</strong></div><div class="metric "><span>OVR/POT</span><strong>66/73</strong></div><div class="metric "><span>Value</span><strong>66</strong></div><div class="metric "><span>ValueNoPot</span><strong>63.6</strong></div><div class="metric "><span>ContractValue</span><strong>64.1</strong></div><div class="metric "><span>Demand</span><strong>$30.52M</strong></div><div class="metric "><span>Eligible max</span><strong>$46.40M</strong></div><div class="metric "><span>Minimum</span><strong>$2.43M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>82/82</strong></div><div class="metric "><span>MPG</span><strong>32.9</strong></div><div class="metric "><span>PTS</span><strong>25.5</strong></div><div class="metric "><span>TRB</span><strong>9.8</strong></div><div class="metric "><span>AST</span><strong>3.5</strong></div><div class="metric "><span>STL</span><strong>0.8</strong></div><div class="metric "><span>BLK</span><strong>0.5</strong></div><div class="metric "><span>TOV</span><strong>3.2</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>61.5%</strong></div><div class="metric "><span>eFG</span><strong>56.1%</strong></div><div class="metric "><span>PER</span><strong>26.1</strong></div><div class="metric "><span>EWA</span><strong>15.7</strong></div><div class="metric "><span>VORP</span><strong>4.7</strong></div><div class="metric "><span>BPM</span><strong>4.9</strong></div><div class="metric "><span>OBPM</span><strong>5.8</strong></div><div class="metric "><span>DBPM</span><strong>-1</strong></div><div class="metric "><span>On-Off</span><strong>1.5</strong></div><div class="metric "><span>USG</span><strong>30.3</strong></div><div class="metric "><span>AST%</span><strong>18.4</strong></div><div class="metric "><span>TRB%</span><strong>16</strong></div><div class="metric "><span>BLK%</span><strong>1.3</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.718</strong></div><div class="metric "><span>Passing</span><strong>0.597</strong></div><div class="metric "><span>Dribbling</span><strong>0.655</strong></div><div class="metric "><span>3pt</span><strong>0.466</strong></div><div class="metric "><span>Rebounding</span><strong>0.657</strong></div><div class="metric "><span>Interior D</span><strong>0.507</strong></div><div class="metric "><span>Perimeter D</span><strong>0.556</strong></div><div class="metric "><span>Blocking</span><strong>0.54</strong></div><div class="metric "><span>Athleticism</span><strong>0.569</strong></div></div>
+		<p class="skills">Generated skills: Po R V</p>
+		<p class="skills">Skill margins: 3: -0.104 | Ps: -0.013 | R: 0.059 | Di: -0.051 | Dp: -0.037 | A: -0.045</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-07">Human target tier / amount judgment</label>
+		<textarea id="review-V20-07" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-08" data-case-id="V20-08" data-pid="1519" data-name="Ja Morant" data-bucket="young_proven_young_starter">
+	<header>
+		<div>
+			<h2>Case V20-08</h2>
+			<p>Young proven / young starter candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Ja Morant · pid 1519</p>
+			</details>
+		</div>
+		<div class="contract-pill">$33.60M / 3y / 21.7%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>26</strong></div><div class="metric "><span>Pos</span><strong>PG</strong></div><div class="metric "><span>OVR/POT</span><strong>69/72</strong></div><div class="metric "><span>Value</span><strong>65.4</strong></div><div class="metric "><span>ValueNoPot</span><strong>65.1</strong></div><div class="metric "><span>ContractValue</span><strong>65.1</strong></div><div class="metric "><span>Demand</span><strong>$32.26M</strong></div><div class="metric "><span>Eligible max</span><strong>$46.40M</strong></div><div class="metric "><span>Minimum</span><strong>$2.94M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>69/69</strong></div><div class="metric "><span>MPG</span><strong>35.3</strong></div><div class="metric "><span>PTS</span><strong>23.5</strong></div><div class="metric "><span>TRB</span><strong>8.3</strong></div><div class="metric "><span>AST</span><strong>8</strong></div><div class="metric "><span>STL</span><strong>1</strong></div><div class="metric "><span>BLK</span><strong>0.3</strong></div><div class="metric "><span>TOV</span><strong>3.6</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>55.3%</strong></div><div class="metric "><span>eFG</span><strong>49.4%</strong></div><div class="metric "><span>PER</span><strong>23.6</strong></div><div class="metric "><span>EWA</span><strong>12.2</strong></div><div class="metric "><span>VORP</span><strong>5.8</strong></div><div class="metric "><span>BPM</span><strong>7.4</strong></div><div class="metric "><span>OBPM</span><strong>5.8</strong></div><div class="metric "><span>DBPM</span><strong>1.6</strong></div><div class="metric "><span>On-Off</span><strong>-4.3</strong></div><div class="metric "><span>USG</span><strong>29.5</strong></div><div class="metric "><span>AST%</span><strong>39.8</strong></div><div class="metric "><span>TRB%</span><strong>12.4</strong></div><div class="metric "><span>BLK%</span><strong>0.8</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.707</strong></div><div class="metric "><span>Passing</span><strong>0.744</strong></div><div class="metric "><span>Dribbling</span><strong>0.74</strong></div><div class="metric "><span>3pt</span><strong>0.455</strong></div><div class="metric "><span>Rebounding</span><strong>0.573</strong></div><div class="metric "><span>Interior D</span><strong>0.464</strong></div><div class="metric "><span>Perimeter D</span><strong>0.604</strong></div><div class="metric "><span>Blocking</span><strong>0.498</strong></div><div class="metric "><span>Athleticism</span><strong>0.623</strong></div></div>
+		<p class="skills">Generated skills: B Ps V</p>
+		<p class="skills">Skill margins: 3: -0.135 | Ps: 0.114 | R: -0.037 | Di: -0.106 | Dp: -0.006 | A: -0.007</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-08">Human target tier / amount judgment</label>
+		<textarea id="review-V20-08" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+				</section>
+<section class="bucket-section" id="low_end_starter_good_rotation">
+					<h2>Low-end starter / good rotation candidate</h2>
+					<article class="player-card" id="V20-09" data-case-id="V20-09" data-pid="45" data-name="Bradley Beal" data-bucket="low_end_starter_good_rotation">
+	<header>
+		<div>
+			<h2>Case V20-09</h2>
+			<p>Low-end starter / good rotation candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Bradley Beal · pid 45</p>
+			</details>
+		</div>
+		<div class="contract-pill">$29.74M / 2y / 19.2%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>32</strong></div><div class="metric "><span>Pos</span><strong>SG</strong></div><div class="metric "><span>OVR/POT</span><strong>66/66</strong></div><div class="metric "><span>Value</span><strong>56.2</strong></div><div class="metric "><span>ValueNoPot</span><strong>61.1</strong></div><div class="metric "><span>ContractValue</span><strong>60.5</strong></div><div class="metric "><span>Demand</span><strong>$26.80M</strong></div><div class="metric "><span>Eligible max</span><strong>$54.13M</strong></div><div class="metric "><span>Minimum</span><strong>$3.71M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>75/75</strong></div><div class="metric "><span>MPG</span><strong>34.6</strong></div><div class="metric "><span>PTS</span><strong>19</strong></div><div class="metric "><span>TRB</span><strong>8.2</strong></div><div class="metric "><span>AST</span><strong>3.9</strong></div><div class="metric "><span>STL</span><strong>1.3</strong></div><div class="metric "><span>BLK</span><strong>0.4</strong></div><div class="metric "><span>TOV</span><strong>3</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>54.4%</strong></div><div class="metric "><span>eFG</span><strong>50.1%</strong></div><div class="metric "><span>PER</span><strong>17.7</strong></div><div class="metric "><span>EWA</span><strong>7.5</strong></div><div class="metric "><span>VORP</span><strong>2</strong></div><div class="metric "><span>BPM</span><strong>1.1</strong></div><div class="metric "><span>OBPM</span><strong>1.5</strong></div><div class="metric "><span>DBPM</span><strong>-0.3</strong></div><div class="metric "><span>On-Off</span><strong>3</strong></div><div class="metric "><span>USG</span><strong>25.2</strong></div><div class="metric "><span>AST%</span><strong>17.9</strong></div><div class="metric "><span>TRB%</span><strong>12.8</strong></div><div class="metric "><span>BLK%</span><strong>1.1</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.612</strong></div><div class="metric "><span>Passing</span><strong>0.667</strong></div><div class="metric "><span>Dribbling</span><strong>0.645</strong></div><div class="metric "><span>3pt</span><strong>0.513</strong></div><div class="metric "><span>Rebounding</span><strong>0.51</strong></div><div class="metric "><span>Interior D</span><strong>0.526</strong></div><div class="metric "><span>Perimeter D</span><strong>0.593</strong></div><div class="metric "><span>Blocking</span><strong>0.484</strong></div><div class="metric "><span>Athleticism</span><strong>0.615</strong></div></div>
+		<p class="skills">Generated skills: Ps V</p>
+		<p class="skills">Skill margins: 3: -0.077 | Ps: 0.037 | R: -0.1 | Di: -0.044 | Dp: -0.017 | A: -0.015</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-09">Human target tier / amount judgment</label>
+		<textarea id="review-V20-09" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-10" data-case-id="V20-10" data-pid="1603" data-name="Jason Preston" data-bucket="low_end_starter_good_rotation">
+	<header>
+		<div>
+			<h2>Case V20-10</h2>
+			<p>Low-end starter / good rotation candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Jason Preston · pid 1603</p>
+			</details>
+		</div>
+		<div class="contract-pill">$10.86M / 2y / 7.0%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>26</strong></div><div class="metric "><span>Pos</span><strong>PG</strong></div><div class="metric "><span>OVR/POT</span><strong>62/64</strong></div><div class="metric "><span>Value</span><strong>59.4</strong></div><div class="metric "><span>ValueNoPot</span><strong>59.3</strong></div><div class="metric "><span>ContractValue</span><strong>59.3</strong></div><div class="metric "><span>Demand</span><strong>$22.29M</strong></div><div class="metric "><span>Eligible max</span><strong>$38.66M</strong></div><div class="metric "><span>Minimum</span><strong>$2.51M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>79/79</strong></div><div class="metric "><span>MPG</span><strong>31.6</strong></div><div class="metric "><span>PTS</span><strong>15.9</strong></div><div class="metric "><span>TRB</span><strong>6.3</strong></div><div class="metric "><span>AST</span><strong>7.4</strong></div><div class="metric "><span>STL</span><strong>0.9</strong></div><div class="metric "><span>BLK</span><strong>0.2</strong></div><div class="metric "><span>TOV</span><strong>2</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>58.0%</strong></div><div class="metric "><span>eFG</span><strong>55.4%</strong></div><div class="metric "><span>PER</span><strong>21.1</strong></div><div class="metric "><span>EWA</span><strong>10</strong></div><div class="metric "><span>VORP</span><strong>5</strong></div><div class="metric "><span>BPM</span><strong>5.9</strong></div><div class="metric "><span>OBPM</span><strong>4.7</strong></div><div class="metric "><span>DBPM</span><strong>1.2</strong></div><div class="metric "><span>On-Off</span><strong>-0.4</strong></div><div class="metric "><span>USG</span><strong>21.2</strong></div><div class="metric "><span>AST%</span><strong>35.9</strong></div><div class="metric "><span>TRB%</span><strong>10.7</strong></div><div class="metric "><span>BLK%</span><strong>0.4</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.582</strong></div><div class="metric "><span>Passing</span><strong>0.759</strong></div><div class="metric "><span>Dribbling</span><strong>0.655</strong></div><div class="metric "><span>3pt</span><strong>0.629</strong></div><div class="metric "><span>Rebounding</span><strong>0.521</strong></div><div class="metric "><span>Interior D</span><strong>0.447</strong></div><div class="metric "><span>Perimeter D</span><strong>0.541</strong></div><div class="metric "><span>Blocking</span><strong>0.408</strong></div><div class="metric "><span>Athleticism</span><strong>0.511</strong></div></div>
+		<p class="skills">Generated skills: 3 Ps</p>
+		<p class="skills">Skill margins: 3: 0.059 | Ps: 0.149 | R: -0.077 | Di: -0.111 | Dp: -0.051 | A: -0.103</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-10">Human target tier / amount judgment</label>
+		<textarea id="review-V20-10" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-11" data-case-id="V20-11" data-pid="153" data-name="Anthony Davis" data-bucket="low_end_starter_good_rotation">
+	<header>
+		<div>
+			<h2>Case V20-11</h2>
+			<p>Low-end starter / good rotation candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Anthony Davis · pid 153</p>
+			</details>
+		</div>
+		<div class="contract-pill">$36.07M / 2y / 23.3%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>32</strong></div><div class="metric "><span>Pos</span><strong>FC</strong></div><div class="metric "><span>OVR/POT</span><strong>66/66</strong></div><div class="metric "><span>Value</span><strong>56.5</strong></div><div class="metric "><span>ValueNoPot</span><strong>61.4</strong></div><div class="metric "><span>ContractValue</span><strong>60.8</strong></div><div class="metric "><span>Demand</span><strong>$27.39M</strong></div><div class="metric "><span>Eligible max</span><strong>$54.13M</strong></div><div class="metric "><span>Minimum</span><strong>$3.71M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>56/56</strong></div><div class="metric "><span>MPG</span><strong>30.3</strong></div><div class="metric "><span>PTS</span><strong>15</strong></div><div class="metric "><span>TRB</span><strong>9</strong></div><div class="metric "><span>AST</span><strong>1.3</strong></div><div class="metric "><span>STL</span><strong>0.9</strong></div><div class="metric "><span>BLK</span><strong>2.2</strong></div><div class="metric "><span>TOV</span><strong>1.9</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>60.7%</strong></div><div class="metric "><span>eFG</span><strong>54.9%</strong></div><div class="metric "><span>PER</span><strong>20.5</strong></div><div class="metric "><span>EWA</span><strong>6.4</strong></div><div class="metric "><span>VORP</span><strong>1.3</strong></div><div class="metric "><span>BPM</span><strong>1</strong></div><div class="metric "><span>OBPM</span><strong>0.5</strong></div><div class="metric "><span>DBPM</span><strong>0.5</strong></div><div class="metric "><span>On-Off</span><strong>5.8</strong></div><div class="metric "><span>USG</span><strong>19.7</strong></div><div class="metric "><span>AST%</span><strong>7.2</strong></div><div class="metric "><span>TRB%</span><strong>15.4</strong></div><div class="metric "><span>BLK%</span><strong>6.3</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.586</strong></div><div class="metric "><span>Passing</span><strong>0.562</strong></div><div class="metric "><span>Dribbling</span><strong>0.52</strong></div><div class="metric "><span>3pt</span><strong>0.354</strong></div><div class="metric "><span>Rebounding</span><strong>0.653</strong></div><div class="metric "><span>Interior D</span><strong>0.651</strong></div><div class="metric "><span>Perimeter D</span><strong>0.571</strong></div><div class="metric "><span>Blocking</span><strong>0.626</strong></div><div class="metric "><span>Athleticism</span><strong>0.644</strong></div></div>
+		<p class="skills">Generated skills: A Di Po R</p>
+		<p class="skills">Skill margins: 3: -0.236 | Ps: -0.068 | R: 0.043 | Di: 0.081 | Dp: -0.039 | A: 0.014</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-11">Human target tier / amount judgment</label>
+		<textarea id="review-V20-11" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-12" data-case-id="V20-12" data-pid="812" data-name="Jared Butler" data-bucket="low_end_starter_good_rotation">
+	<header>
+		<div>
+			<h2>Case V20-12</h2>
+			<p>Low-end starter / good rotation candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Jared Butler · pid 812</p>
+			</details>
+		</div>
+		<div class="contract-pill">$4.82M / 2y / 3.1%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>25</strong></div><div class="metric "><span>Pos</span><strong>G</strong></div><div class="metric "><span>OVR/POT</span><strong>66/69</strong></div><div class="metric "><span>Value</span><strong>61.8</strong></div><div class="metric "><span>ValueNoPot</span><strong>60.7</strong></div><div class="metric "><span>ContractValue</span><strong>61</strong></div><div class="metric "><span>Demand</span><strong>$25.15M</strong></div><div class="metric "><span>Eligible max</span><strong>$38.66M</strong></div><div class="metric "><span>Minimum</span><strong>$2.51M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>57/57</strong></div><div class="metric "><span>MPG</span><strong>32</strong></div><div class="metric "><span>PTS</span><strong>17.3</strong></div><div class="metric "><span>TRB</span><strong>2.6</strong></div><div class="metric "><span>AST</span><strong>4.1</strong></div><div class="metric "><span>STL</span><strong>1.9</strong></div><div class="metric "><span>BLK</span><strong>0.2</strong></div><div class="metric "><span>TOV</span><strong>2.2</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>53.5%</strong></div><div class="metric "><span>eFG</span><strong>49.2%</strong></div><div class="metric "><span>PER</span><strong>16.6</strong></div><div class="metric "><span>EWA</span><strong>4.2</strong></div><div class="metric "><span>VORP</span><strong>2.2</strong></div><div class="metric "><span>BPM</span><strong>2.7</strong></div><div class="metric "><span>OBPM</span><strong>2.1</strong></div><div class="metric "><span>DBPM</span><strong>0.6</strong></div><div class="metric "><span>On-Off</span><strong>2.2</strong></div><div class="metric "><span>USG</span><strong>24.1</strong></div><div class="metric "><span>AST%</span><strong>20.8</strong></div><div class="metric "><span>TRB%</span><strong>4.3</strong></div><div class="metric "><span>BLK%</span><strong>0.4</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.657</strong></div><div class="metric "><span>Passing</span><strong>0.653</strong></div><div class="metric "><span>Dribbling</span><strong>0.69</strong></div><div class="metric "><span>3pt</span><strong>0.731</strong></div><div class="metric "><span>Rebounding</span><strong>0.433</strong></div><div class="metric "><span>Interior D</span><strong>0.487</strong></div><div class="metric "><span>Perimeter D</span><strong>0.604</strong></div><div class="metric "><span>Blocking</span><strong>0.468</strong></div><div class="metric "><span>Athleticism</span><strong>0.545</strong></div></div>
+		<p class="skills">Generated skills: 3 B Dp Ps V</p>
+		<p class="skills">Skill margins: 3: 0.161 | Ps: 0.043 | R: -0.164 | Di: -0.071 | Dp: 0.012 | A: -0.069</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-12">Human target tier / amount judgment</label>
+		<textarea id="review-V20-12" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+				</section>
+<section class="bucket-section" id="specialist_low_rotation">
+					<h2>Specialist / low rotation candidate</h2>
+					<article class="player-card" id="V20-13" data-case-id="V20-13" data-pid="1672" data-name="Landry Shamet" data-bucket="specialist_low_rotation">
+	<header>
+		<div>
+			<h2>Case V20-13</h2>
+			<p>Specialist / low rotation candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Landry Shamet · pid 1672</p>
+			</details>
+		</div>
+		<div class="contract-pill">$4.17M / 1y / 2.7%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>28</strong></div><div class="metric "><span>Pos</span><strong>SG</strong></div><div class="metric "><span>OVR/POT</span><strong>58/58</strong></div><div class="metric "><span>Value</span><strong>51.6</strong></div><div class="metric "><span>ValueNoPot</span><strong>54.3</strong></div><div class="metric "><span>ContractValue</span><strong>53.7</strong></div><div class="metric "><span>Demand</span><strong>$12.80M</strong></div><div class="metric "><span>Eligible max</span><strong>$46.40M</strong></div><div class="metric "><span>Minimum</span><strong>$3.15M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>78/10</strong></div><div class="metric "><span>MPG</span><strong>19.1</strong></div><div class="metric "><span>PTS</span><strong>9.4</strong></div><div class="metric "><span>TRB</span><strong>1.8</strong></div><div class="metric "><span>AST</span><strong>1.2</strong></div><div class="metric "><span>STL</span><strong>0.4</strong></div><div class="metric "><span>BLK</span><strong>0.2</strong></div><div class="metric "><span>TOV</span><strong>0.8</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>65.0%</strong></div><div class="metric "><span>eFG</span><strong>63.0%</strong></div><div class="metric "><span>PER</span><strong>15.9</strong></div><div class="metric "><span>EWA</span><strong>3.2</strong></div><div class="metric "><span>VORP</span><strong>1.4</strong></div><div class="metric "><span>BPM</span><strong>1.8</strong></div><div class="metric "><span>OBPM</span><strong>2.3</strong></div><div class="metric "><span>DBPM</span><strong>-0.5</strong></div><div class="metric "><span>On-Off</span><strong>5.2</strong></div><div class="metric "><span>USG</span><strong>17.6</strong></div><div class="metric "><span>AST%</span><strong>9.4</strong></div><div class="metric "><span>TRB%</span><strong>5.1</strong></div><div class="metric "><span>BLK%</span><strong>0.8</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.548</strong></div><div class="metric "><span>Passing</span><strong>0.528</strong></div><div class="metric "><span>Dribbling</span><strong>0.6</strong></div><div class="metric "><span>3pt</span><strong>0.871</strong></div><div class="metric "><span>Rebounding</span><strong>0.41</strong></div><div class="metric "><span>Interior D</span><strong>0.441</strong></div><div class="metric "><span>Perimeter D</span><strong>0.54</strong></div><div class="metric "><span>Blocking</span><strong>0.453</strong></div><div class="metric "><span>Athleticism</span><strong>0.562</strong></div></div>
+		<p class="skills">Generated skills: 3</p>
+		<p class="skills">Skill margins: 3: 0.291 | Ps: -0.092 | R: -0.193 | Di: -0.123 | Dp: -0.061 | A: -0.06</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-13">Human target tier / amount judgment</label>
+		<textarea id="review-V20-13" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-14" data-case-id="V20-14" data-pid="665" data-name="Hassan Whiteside" data-bucket="specialist_low_rotation">
+	<header>
+		<div>
+			<h2>Case V20-14</h2>
+			<p>Specialist / low rotation candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Hassan Whiteside · pid 665</p>
+			</details>
+		</div>
+		<div class="contract-pill">$5.47M / 3y / 3.5%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>36</strong></div><div class="metric "><span>Pos</span><strong>C</strong></div><div class="metric "><span>OVR/POT</span><strong>57/57</strong></div><div class="metric "><span>Value</span><strong>49.6</strong></div><div class="metric "><span>ValueNoPot</span><strong>54.5</strong></div><div class="metric "><span>ContractValue</span><strong>53.9</strong></div><div class="metric "><span>Demand</span><strong>$13.16M</strong></div><div class="metric "><span>Eligible max</span><strong>$54.13M</strong></div><div class="metric "><span>Minimum</span><strong>$3.71M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>73/0</strong></div><div class="metric "><span>MPG</span><strong>14.1</strong></div><div class="metric "><span>PTS</span><strong>6.2</strong></div><div class="metric "><span>TRB</span><strong>5.6</strong></div><div class="metric "><span>AST</span><strong>1.2</strong></div><div class="metric "><span>STL</span><strong>0.3</strong></div><div class="metric "><span>BLK</span><strong>0.4</strong></div><div class="metric "><span>TOV</span><strong>1.5</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>59.4%</strong></div><div class="metric "><span>eFG</span><strong>57.2%</strong></div><div class="metric "><span>PER</span><strong>16.7</strong></div><div class="metric "><span>EWA</span><strong>2.5</strong></div><div class="metric "><span>VORP</span><strong>0.4</strong></div><div class="metric "><span>BPM</span><strong>-0.6</strong></div><div class="metric "><span>OBPM</span><strong>-0.8</strong></div><div class="metric "><span>DBPM</span><strong>0.2</strong></div><div class="metric "><span>On-Off</span><strong>-7.7</strong></div><div class="metric "><span>USG</span><strong>20.1</strong></div><div class="metric "><span>AST%</span><strong>13</strong></div><div class="metric "><span>TRB%</span><strong>21.2</strong></div><div class="metric "><span>BLK%</span><strong>2.3</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.552</strong></div><div class="metric "><span>Passing</span><strong>0.563</strong></div><div class="metric "><span>Dribbling</span><strong>0.32</strong></div><div class="metric "><span>3pt</span><strong>0.395</strong></div><div class="metric "><span>Rebounding</span><strong>0.771</strong></div><div class="metric "><span>Interior D</span><strong>0.606</strong></div><div class="metric "><span>Perimeter D</span><strong>0.379</strong></div><div class="metric "><span>Blocking</span><strong>0.548</strong></div><div class="metric "><span>Athleticism</span><strong>0.426</strong></div></div>
+		<p class="skills">Generated skills: Di Po R</p>
+		<p class="skills">Skill margins: 3: -0.185 | Ps: -0.057 | R: 0.167 | Di: 0.042 | Dp: -0.222 | A: -0.196</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-14">Human target tier / amount judgment</label>
+		<textarea id="review-V20-14" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-15" data-case-id="V20-15" data-pid="379" data-name="Damian Lillard" data-bucket="specialist_low_rotation">
+	<header>
+		<div>
+			<h2>Case V20-15</h2>
+			<p>Specialist / low rotation candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Damian Lillard · pid 379</p>
+			</details>
+		</div>
+		<div class="contract-pill">$18.47M / 1y / 11.9%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>35</strong></div><div class="metric "><span>Pos</span><strong>PG</strong></div><div class="metric "><span>OVR/POT</span><strong>57/57</strong></div><div class="metric "><span>Value</span><strong>50.1</strong></div><div class="metric "><span>ValueNoPot</span><strong>55.1</strong></div><div class="metric "><span>ContractValue</span><strong>54.5</strong></div><div class="metric "><span>Demand</span><strong>$14.74M</strong></div><div class="metric "><span>Eligible max</span><strong>$54.13M</strong></div><div class="metric "><span>Minimum</span><strong>$3.71M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>79/0</strong></div><div class="metric "><span>MPG</span><strong>18.7</strong></div><div class="metric "><span>PTS</span><strong>7.6</strong></div><div class="metric "><span>TRB</span><strong>2.5</strong></div><div class="metric "><span>AST</span><strong>6</strong></div><div class="metric "><span>STL</span><strong>0.5</strong></div><div class="metric "><span>BLK</span><strong>0.1</strong></div><div class="metric "><span>TOV</span><strong>1.2</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>54.1%</strong></div><div class="metric "><span>eFG</span><strong>49.4%</strong></div><div class="metric "><span>PER</span><strong>18.8</strong></div><div class="metric "><span>EWA</span><strong>4.6</strong></div><div class="metric "><span>VORP</span><strong>2.2</strong></div><div class="metric "><span>BPM</span><strong>4</strong></div><div class="metric "><span>OBPM</span><strong>3.4</strong></div><div class="metric "><span>DBPM</span><strong>0.6</strong></div><div class="metric "><span>On-Off</span><strong>7.8</strong></div><div class="metric "><span>USG</span><strong>18.4</strong></div><div class="metric "><span>AST%</span><strong>48</strong></div><div class="metric "><span>TRB%</span><strong>7.3</strong></div><div class="metric "><span>BLK%</span><strong>0.2</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.553</strong></div><div class="metric "><span>Passing</span><strong>0.676</strong></div><div class="metric "><span>Dribbling</span><strong>0.615</strong></div><div class="metric "><span>3pt</span><strong>0.45</strong></div><div class="metric "><span>Rebounding</span><strong>0.458</strong></div><div class="metric "><span>Interior D</span><strong>0.438</strong></div><div class="metric "><span>Perimeter D</span><strong>0.488</strong></div><div class="metric "><span>Blocking</span><strong>0.384</strong></div><div class="metric "><span>Athleticism</span><strong>0.499</strong></div></div>
+		<p class="skills">Generated skills: Ps</p>
+		<p class="skills">Skill margins: 3: -0.13 | Ps: 0.056 | R: -0.146 | Di: -0.126 | Dp: -0.113 | A: -0.123</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-15">Human target tier / amount judgment</label>
+		<textarea id="review-V20-15" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-16" data-case-id="V20-16" data-pid="1618" data-name="Austin Reaves" data-bucket="specialist_low_rotation">
+	<header>
+		<div>
+			<h2>Case V20-16</h2>
+			<p>Specialist / low rotation candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Austin Reaves · pid 1618</p>
+			</details>
+		</div>
+		<div class="contract-pill">$3.85M / 3y / 2.5%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>27</strong></div><div class="metric "><span>Pos</span><strong>G</strong></div><div class="metric "><span>OVR/POT</span><strong>55/56</strong></div><div class="metric "><span>Value</span><strong>50.7</strong></div><div class="metric "><span>ValueNoPot</span><strong>51.9</strong></div><div class="metric "><span>ContractValue</span><strong>51.7</strong></div><div class="metric "><span>Demand</span><strong>$9.31M</strong></div><div class="metric "><span>Eligible max</span><strong>$38.66M</strong></div><div class="metric "><span>Minimum</span><strong>$2.51M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>64/7</strong></div><div class="metric "><span>MPG</span><strong>18.3</strong></div><div class="metric "><span>PTS</span><strong>9.1</strong></div><div class="metric "><span>TRB</span><strong>2.1</strong></div><div class="metric "><span>AST</span><strong>2.3</strong></div><div class="metric "><span>STL</span><strong>0.4</strong></div><div class="metric "><span>BLK</span><strong>0.1</strong></div><div class="metric "><span>TOV</span><strong>0.8</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>57.0%</strong></div><div class="metric "><span>eFG</span><strong>53.2%</strong></div><div class="metric "><span>PER</span><strong>15.7</strong></div><div class="metric "><span>EWA</span><strong>2.3</strong></div><div class="metric "><span>VORP</span><strong>1</strong></div><div class="metric "><span>BPM</span><strong>1.3</strong></div><div class="metric "><span>OBPM</span><strong>1.6</strong></div><div class="metric "><span>DBPM</span><strong>-0.4</strong></div><div class="metric "><span>On-Off</span><strong>-5.2</strong></div><div class="metric "><span>USG</span><strong>20.4</strong></div><div class="metric "><span>AST%</span><strong>18.6</strong></div><div class="metric "><span>TRB%</span><strong>6.1</strong></div><div class="metric "><span>BLK%</span><strong>0.6</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.576</strong></div><div class="metric "><span>Passing</span><strong>0.603</strong></div><div class="metric "><span>Dribbling</span><strong>0.53</strong></div><div class="metric "><span>3pt</span><strong>0.705</strong></div><div class="metric "><span>Rebounding</span><strong>0.488</strong></div><div class="metric "><span>Interior D</span><strong>0.396</strong></div><div class="metric "><span>Perimeter D</span><strong>0.438</strong></div><div class="metric "><span>Blocking</span><strong>0.396</strong></div><div class="metric "><span>Athleticism</span><strong>0.434</strong></div></div>
+		<p class="skills">Generated skills: 3</p>
+		<p class="skills">Skill margins: 3: 0.115 | Ps: -0.027 | R: -0.122 | Di: -0.174 | Dp: -0.172 | A: -0.196</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-16">Human target tier / amount judgment</label>
+		<textarea id="review-V20-16" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+				</section>
+<section class="bucket-section" id="veteran_minimum_fringe_negative">
+					<h2>Veteran minimum / fringe / negative candidate</h2>
+					<article class="player-card" id="V20-17" data-case-id="V20-17" data-pid="95" data-name="Alec Burks" data-bucket="veteran_minimum_fringe_negative">
+	<header>
+		<div>
+			<h2>Case V20-17</h2>
+			<p>Veteran minimum / fringe / negative candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Alec Burks · pid 95</p>
+			</details>
+		</div>
+		<div class="contract-pill">$3.71M / 1y / 2.4%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>34</strong></div><div class="metric "><span>Pos</span><strong>GF</strong></div><div class="metric "><span>OVR/POT</span><strong>41/41</strong></div><div class="metric "><span>Value</span><strong>36.2</strong></div><div class="metric "><span>ValueNoPot</span><strong>39.7</strong></div><div class="metric "><span>ContractValue</span><strong>39.3</strong></div><div class="metric "><span>Demand</span><strong>$3.71M</strong></div><div class="metric "><span>Eligible max</span><strong>$54.13M</strong></div><div class="metric "><span>Minimum</span><strong>$3.71M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>29/0</strong></div><div class="metric "><span>MPG</span><strong>4.7</strong></div><div class="metric "><span>PTS</span><strong>1.6</strong></div><div class="metric "><span>TRB</span><strong>0.4</strong></div><div class="metric "><span>AST</span><strong>0.1</strong></div><div class="metric "><span>STL</span><strong>0.2</strong></div><div class="metric "><span>BLK</span><strong>0</strong></div><div class="metric "><span>TOV</span><strong>0.5</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>48.6%</strong></div><div class="metric "><span>eFG</span><strong>42.9%</strong></div><div class="metric "><span>PER</span><strong>4.6</strong></div><div class="metric "><span>EWA</span><strong>-0.3</strong></div><div class="metric "><span>VORP</span><strong>-0.2</strong></div><div class="metric "><span>BPM</span><strong>-8.7</strong></div><div class="metric "><span>OBPM</span><strong>-5.9</strong></div><div class="metric "><span>DBPM</span><strong>-2.8</strong></div><div class="metric "><span>On-Off</span><strong>1</strong></div><div class="metric "><span>USG</span><strong>18.7</strong></div><div class="metric "><span>AST%</span><strong>4.5</strong></div><div class="metric "><span>TRB%</span><strong>4.2</strong></div><div class="metric "><span>BLK%</span><strong>0.6</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.456</strong></div><div class="metric "><span>Passing</span><strong>0.463</strong></div><div class="metric "><span>Dribbling</span><strong>0.415</strong></div><div class="metric "><span>3pt</span><strong>0.407</strong></div><div class="metric "><span>Rebounding</span><strong>0.487</strong></div><div class="metric "><span>Interior D</span><strong>0.45</strong></div><div class="metric "><span>Perimeter D</span><strong>0.394</strong></div><div class="metric "><span>Blocking</span><strong>0.388</strong></div><div class="metric "><span>Athleticism</span><strong>0.381</strong></div></div>
+		<p class="skills">Generated skills: none</p>
+		<p class="skills">Skill margins: 3: -0.183 | Ps: -0.167 | R: -0.123 | Di: -0.12 | Dp: -0.216 | A: -0.249</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-17">Human target tier / amount judgment</label>
+		<textarea id="review-V20-17" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-18" data-case-id="V20-18" data-pid="340" data-name="Terrence Jones" data-bucket="veteran_minimum_fringe_negative">
+	<header>
+		<div>
+			<h2>Case V20-18</h2>
+			<p>Veteran minimum / fringe / negative candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Terrence Jones · pid 340</p>
+			</details>
+		</div>
+		<div class="contract-pill">$3.71M / 2y / 2.4%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>33</strong></div><div class="metric "><span>Pos</span><strong>PF</strong></div><div class="metric "><span>OVR/POT</span><strong>45/45</strong></div><div class="metric "><span>Value</span><strong>39.7</strong></div><div class="metric "><span>ValueNoPot</span><strong>43.1</strong></div><div class="metric "><span>ContractValue</span><strong>42.7</strong></div><div class="metric "><span>Demand</span><strong>$3.71M</strong></div><div class="metric "><span>Eligible max</span><strong>$54.13M</strong></div><div class="metric "><span>Minimum</span><strong>$3.71M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>35/0</strong></div><div class="metric "><span>MPG</span><strong>6.5</strong></div><div class="metric "><span>PTS</span><strong>1.4</strong></div><div class="metric "><span>TRB</span><strong>1.4</strong></div><div class="metric "><span>AST</span><strong>0.2</strong></div><div class="metric "><span>STL</span><strong>0.3</strong></div><div class="metric "><span>BLK</span><strong>0.1</strong></div><div class="metric "><span>TOV</span><strong>0.5</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>39.4%</strong></div><div class="metric "><span>eFG</span><strong>37.3%</strong></div><div class="metric "><span>PER</span><strong>4.1</strong></div><div class="metric "><span>EWA</span><strong>-0.7</strong></div><div class="metric "><span>VORP</span><strong>-0.3</strong></div><div class="metric "><span>BPM</span><strong>-7.4</strong></div><div class="metric "><span>OBPM</span><strong>-6.7</strong></div><div class="metric "><span>DBPM</span><strong>-0.6</strong></div><div class="metric "><span>On-Off</span><strong>-0.5</strong></div><div class="metric "><span>USG</span><strong>14.7</strong></div><div class="metric "><span>AST%</span><strong>4.9</strong></div><div class="metric "><span>TRB%</span><strong>11.3</strong></div><div class="metric "><span>BLK%</span><strong>1.5</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.451</strong></div><div class="metric "><span>Passing</span><strong>0.446</strong></div><div class="metric "><span>Dribbling</span><strong>0.45</strong></div><div class="metric "><span>3pt</span><strong>0.379</strong></div><div class="metric "><span>Rebounding</span><strong>0.508</strong></div><div class="metric "><span>Interior D</span><strong>0.494</strong></div><div class="metric "><span>Perimeter D</span><strong>0.457</strong></div><div class="metric "><span>Blocking</span><strong>0.48</strong></div><div class="metric "><span>Athleticism</span><strong>0.48</strong></div></div>
+		<p class="skills">Generated skills: none</p>
+		<p class="skills">Skill margins: 3: -0.191 | Ps: -0.164 | R: -0.089 | Di: -0.064 | Dp: -0.136 | A: -0.134</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-18">Human target tier / amount judgment</label>
+		<textarea id="review-V20-18" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-19" data-case-id="V20-19" data-pid="484" data-name="Jusuf Nurkić" data-bucket="veteran_minimum_fringe_negative">
+	<header>
+		<div>
+			<h2>Case V20-19</h2>
+			<p>Veteran minimum / fringe / negative candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Jusuf Nurkić · pid 484</p>
+			</details>
+		</div>
+		<div class="contract-pill">$3.71M / 2y / 2.4%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>31</strong></div><div class="metric "><span>Pos</span><strong>C</strong></div><div class="metric "><span>OVR/POT</span><strong>45/45</strong></div><div class="metric "><span>Value</span><strong>39.6</strong></div><div class="metric "><span>ValueNoPot</span><strong>43</strong></div><div class="metric "><span>ContractValue</span><strong>42.6</strong></div><div class="metric "><span>Demand</span><strong>$3.71M</strong></div><div class="metric "><span>Eligible max</span><strong>$54.13M</strong></div><div class="metric "><span>Minimum</span><strong>$3.71M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>60/0</strong></div><div class="metric "><span>MPG</span><strong>5.6</strong></div><div class="metric "><span>PTS</span><strong>1.8</strong></div><div class="metric "><span>TRB</span><strong>1.4</strong></div><div class="metric "><span>AST</span><strong>0.2</strong></div><div class="metric "><span>STL</span><strong>0.1</strong></div><div class="metric "><span>BLK</span><strong>0.2</strong></div><div class="metric "><span>TOV</span><strong>0.8</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>50.8%</strong></div><div class="metric "><span>eFG</span><strong>47.4%</strong></div><div class="metric "><span>PER</span><strong>6.7</strong></div><div class="metric "><span>EWA</span><strong>-0.5</strong></div><div class="metric "><span>VORP</span><strong>-0.5</strong></div><div class="metric "><span>BPM</span><strong>-8</strong></div><div class="metric "><span>OBPM</span><strong>-7.1</strong></div><div class="metric "><span>DBPM</span><strong>-0.9</strong></div><div class="metric "><span>On-Off</span><strong>0.6</strong></div><div class="metric "><span>USG</span><strong>18.8</strong></div><div class="metric "><span>AST%</span><strong>5.1</strong></div><div class="metric "><span>TRB%</span><strong>12.8</strong></div><div class="metric "><span>BLK%</span><strong>3.3</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.456</strong></div><div class="metric "><span>Passing</span><strong>0.417</strong></div><div class="metric "><span>Dribbling</span><strong>0.32</strong></div><div class="metric "><span>3pt</span><strong>0.235</strong></div><div class="metric "><span>Rebounding</span><strong>0.63</strong></div><div class="metric "><span>Interior D</span><strong>0.572</strong></div><div class="metric "><span>Perimeter D</span><strong>0.406</strong></div><div class="metric "><span>Blocking</span><strong>0.55</strong></div><div class="metric "><span>Athleticism</span><strong>0.465</strong></div></div>
+		<p class="skills">Generated skills: Di Po R</p>
+		<p class="skills">Skill margins: 3: -0.355 | Ps: -0.213 | R: 0.02 | Di: 0.002 | Dp: -0.204 | A: -0.165</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-19">Human target tier / amount judgment</label>
+		<textarea id="review-V20-19" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+<article class="player-card" id="V20-20" data-case-id="V20-20" data-pid="459" data-name="Johnathan Motley" data-bucket="veteran_minimum_fringe_negative">
+	<header>
+		<div>
+			<h2>Case V20-20</h2>
+			<p>Veteran minimum / fringe / negative candidate</p>
+			<details class="identity-details">
+				<summary>Reveal player identity</summary>
+				<p>Johnathan Motley · pid 459</p>
+			</details>
+		</div>
+		<div class="contract-pill">$3.36M / 2y / 2.2%</div>
+	</header>
+
+	<section>
+		<h3>Market proxies</h3>
+		<div class="metric-grid"><div class="metric "><span>Age</span><strong>30</strong></div><div class="metric "><span>Pos</span><strong>PF</strong></div><div class="metric "><span>OVR/POT</span><strong>46/46</strong></div><div class="metric "><span>Value</span><strong>40.7</strong></div><div class="metric "><span>ValueNoPot</span><strong>43.8</strong></div><div class="metric "><span>ContractValue</span><strong>43.4</strong></div><div class="metric "><span>Demand</span><strong>$3.36M</strong></div><div class="metric "><span>Eligible max</span><strong>$46.40M</strong></div><div class="metric "><span>Minimum</span><strong>$3.36M</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Regular season</h3>
+		<div class="metric-grid"><div class="metric "><span>GP/GS</span><strong>37/0</strong></div><div class="metric "><span>MPG</span><strong>5.3</strong></div><div class="metric "><span>PTS</span><strong>2.1</strong></div><div class="metric "><span>TRB</span><strong>0.9</strong></div><div class="metric "><span>AST</span><strong>0.2</strong></div><div class="metric "><span>STL</span><strong>0.1</strong></div><div class="metric "><span>BLK</span><strong>0.1</strong></div><div class="metric "><span>TOV</span><strong>0.4</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Advanced stats</h3>
+		<div class="metric-grid"><div class="metric "><span>TS</span><strong>43.6%</strong></div><div class="metric "><span>eFG</span><strong>40.1%</strong></div><div class="metric "><span>PER</span><strong>5.8</strong></div><div class="metric "><span>EWA</span><strong>-0.4</strong></div><div class="metric "><span>VORP</span><strong>-0.3</strong></div><div class="metric "><span>BPM</span><strong>-8.1</strong></div><div class="metric "><span>OBPM</span><strong>-5.8</strong></div><div class="metric "><span>DBPM</span><strong>-2.3</strong></div><div class="metric "><span>On-Off</span><strong>-4.1</strong></div><div class="metric "><span>USG</span><strong>22.8</strong></div><div class="metric "><span>AST%</span><strong>4.9</strong></div><div class="metric "><span>TRB%</span><strong>9.4</strong></div><div class="metric "><span>BLK%</span><strong>1.3</strong></div></div>
+	</section>
+
+	<section>
+		<h3>Composite ratings</h3>
+		<div class="metric-grid"><div class="metric "><span>Usage</span><strong>0.489</strong></div><div class="metric "><span>Passing</span><strong>0.479</strong></div><div class="metric "><span>Dribbling</span><strong>0.415</strong></div><div class="metric "><span>3pt</span><strong>0.38</strong></div><div class="metric "><span>Rebounding</span><strong>0.55</strong></div><div class="metric "><span>Interior D</span><strong>0.49</strong></div><div class="metric "><span>Perimeter D</span><strong>0.411</strong></div><div class="metric "><span>Blocking</span><strong>0.448</strong></div><div class="metric "><span>Athleticism</span><strong>0.447</strong></div></div>
+		<p class="skills">Generated skills: none</p>
+		<p class="skills">Skill margins: 3: -0.21 | Ps: -0.151 | R: -0.06 | Di: -0.08 | Dp: -0.199 | A: -0.183</p>
+	</section>
+
+	<section class="review">
+		<label for="review-V20-20">Human target tier / amount judgment</label>
+		<textarea id="review-V20-20" data-field="humanNotes" rows="4" placeholder="Tier, amount range, years, rationale"></textarea>
+	</section>
+
+	
+</article>
+				</section>
+	</main>
+	<script>
+		const STORAGE_KEY = "bbgm.contractMarket.validation20.blind.notes";
+		const EXPORT_FILENAME = "contract_market_validation20_human_notes.json";
+		const seedNotes = {"validation20-1824":{"caseId":"V20-01","pid":1824,"name":"Zion Williamson","bucket":"max_near_max_high_star","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-1712":{"caseId":"V20-02","pid":1712,"name":"Jaden Springer","bucket":"max_near_max_high_star","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-727":{"caseId":"V20-03","pid":727,"name":"Marvin Bagley III","bucket":"max_near_max_high_star","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-1703":{"caseId":"V20-04","pid":1703,"name":"Zhaire Smith","bucket":"max_near_max_high_star","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-1705":{"caseId":"V20-05","pid":1705,"name":"Jeremy Sochan","bucket":"young_proven_young_starter","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-1339":{"caseId":"V20-06","pid":1339,"name":"Isaiah Jackson","bucket":"young_proven_young_starter","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-734":{"caseId":"V20-07","pid":734,"name":"Paolo Banchero","bucket":"young_proven_young_starter","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-1519":{"caseId":"V20-08","pid":1519,"name":"Ja Morant","bucket":"young_proven_young_starter","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-45":{"caseId":"V20-09","pid":45,"name":"Bradley Beal","bucket":"low_end_starter_good_rotation","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-1603":{"caseId":"V20-10","pid":1603,"name":"Jason Preston","bucket":"low_end_starter_good_rotation","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-153":{"caseId":"V20-11","pid":153,"name":"Anthony Davis","bucket":"low_end_starter_good_rotation","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-812":{"caseId":"V20-12","pid":812,"name":"Jared Butler","bucket":"low_end_starter_good_rotation","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-1672":{"caseId":"V20-13","pid":1672,"name":"Landry Shamet","bucket":"specialist_low_rotation","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-665":{"caseId":"V20-14","pid":665,"name":"Hassan Whiteside","bucket":"specialist_low_rotation","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-379":{"caseId":"V20-15","pid":379,"name":"Damian Lillard","bucket":"specialist_low_rotation","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-1618":{"caseId":"V20-16","pid":1618,"name":"Austin Reaves","bucket":"specialist_low_rotation","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-95":{"caseId":"V20-17","pid":95,"name":"Alec Burks","bucket":"veteran_minimum_fringe_negative","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-340":{"caseId":"V20-18","pid":340,"name":"Terrence Jones","bucket":"veteran_minimum_fringe_negative","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-484":{"caseId":"V20-19","pid":484,"name":"Jusuf Nurkić","bucket":"veteran_minimum_fringe_negative","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""},"validation20-459":{"caseId":"V20-20","pid":459,"name":"Johnathan Motley","bucket":"veteran_minimum_fringe_negative","humanTargetTier":"","humanAmountRangeM":"","humanYears":"","humanNotes":""}};
+		const textareas = Array.from(document.querySelectorAll("textarea[data-field='humanNotes']"));
+		const statusEl = document.getElementById("save-status");
+
+		const cloneSeed = () => JSON.parse(JSON.stringify(seedNotes));
+		const normalizeImported = (data) => {
+			const next = cloneSeed();
+			for (const [key, value] of Object.entries(data || {})) {
+				if (!next[key]) continue;
+				next[key] = {
+					...next[key],
+					humanTargetTier: value.humanTargetTier ?? "",
+					humanAmountRangeM: value.humanAmountRangeM ?? "",
+					humanYears: value.humanYears ?? "",
+					humanNotes: value.humanNotes ?? value.note ?? "",
+				};
+			}
+			return next;
+		};
+		const loadNotes = () => {
+			try {
+				const raw = localStorage.getItem(STORAGE_KEY);
+				return raw ? normalizeImported(JSON.parse(raw)) : cloneSeed();
+			} catch {
+				return cloneSeed();
+			}
+		};
+		let notes = loadNotes();
+		const keyForTextarea = (textarea) => {
+			const card = textarea.closest(".player-card");
+			return "validation20-" + card.dataset.pid;
+		};
+		const render = () => {
+			for (const textarea of textareas) {
+				const key = keyForTextarea(textarea);
+				textarea.value = notes[key]?.humanNotes ?? "";
+			}
+		};
+		const persist = () => {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+			statusEl.textContent = "Saved locally " + new Date().toLocaleTimeString();
+		};
+		for (const textarea of textareas) {
+			textarea.addEventListener("input", () => {
+				const key = keyForTextarea(textarea);
+				notes[key].humanNotes = textarea.value;
+				persist();
+			});
+		}
+		document.getElementById("export-json").addEventListener("click", () => {
+			const blob = new Blob([JSON.stringify(notes, null, "\t") + "\n"], { type: "application/json" });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = EXPORT_FILENAME;
+			a.click();
+			URL.revokeObjectURL(url);
+		});
+		const importFile = document.getElementById("import-file");
+		document.getElementById("import-json").addEventListener("click", () => importFile.click());
+		importFile.addEventListener("change", async () => {
+			const file = importFile.files[0];
+			if (!file) return;
+			notes = normalizeImported(JSON.parse(await file.text()));
+			render();
+			persist();
+			importFile.value = "";
+		});
+		document.getElementById("clear-notes").addEventListener("click", () => {
+			if (!confirm("Clear all locally saved validation notes?")) return;
+			notes = cloneSeed();
+			render();
+			localStorage.removeItem(STORAGE_KEY);
+			statusEl.textContent = "Local notes cleared.";
+		});
+		render();
+	</script>
+</body>
+</html>

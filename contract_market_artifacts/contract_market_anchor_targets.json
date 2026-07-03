@@ -1,0 +1,107 @@
+[
+	{
+		"pid": 1294,
+		"name": "Sam Hauser",
+		"targetTier": "SPECIALIST_ROTATION",
+		"targetRangeM": [5, 7],
+		"notes": "specialist rotation target from current discussion"
+	},
+	{
+		"pid": 361,
+		"name": "Skal Labissiere",
+		"targetTier": "MINIMUM_LEVEL",
+		"targetRangeM": null,
+		"notes": "minimum level"
+	},
+	{
+		"pid": 225,
+		"name": "Rudy Gobert",
+		"targetTier": "VETERAN_MINIMUM_PLUS",
+		"targetRangeM": [null, 2.5],
+		"notes": "minimum to 2.5M"
+	},
+	{
+		"pid": 8,
+		"name": "Jarrett Allen",
+		"targetTier": "STAR_NEAR_MAX",
+		"targetRangeM": [42, 46.4],
+		"notes": "near max"
+	},
+	{
+		"pid": 1669,
+		"name": "Alperen Sengun",
+		"targetTier": "YOUNG_PROVEN_STARTER",
+		"targetRangeM": [26, 34],
+		"notes": "young proven starter"
+	},
+	{
+		"pid": 906,
+		"name": "Ayo Dosunmu",
+		"targetTier": "YOUNG_PROVEN_STARTER",
+		"targetRangeM": [28, 34],
+		"notes": "young proven starter"
+	},
+	{
+		"pid": 1479,
+		"name": "Jaden McDaniels",
+		"targetTier": "LOW_END_STARTER",
+		"targetRangeM": [13, 20],
+		"notes": "low-end starter"
+	},
+	{
+		"pid": 1409,
+		"name": "Vit Krejci",
+		"targetTier": "LOW_ROTATION_PLUS",
+		"targetRangeM": [3, 5],
+		"notes": "low rotation plus"
+	},
+	{
+		"pid": 65,
+		"name": "Eric Bledsoe",
+		"targetTier": "VETERAN_MINIMUM_LEVEL",
+		"targetRangeM": null,
+		"notes": "veteran minimum level"
+	},
+	{
+		"pid": 1363,
+		"name": "Keon Johnson",
+		"targetTier": "YOUNG_UPSIDE_SUSPECT",
+		"targetRangeM": [4, 6],
+		"notes": "young upside suspect"
+	},
+	{
+		"pid": 1266,
+		"name": "Jalen Green",
+		"targetTier": "SUPERSTAR_MAX",
+		"targetRangeM": [46.4, 46.4],
+		"notes": "must max"
+	},
+	{
+		"pid": 1744,
+		"name": "Isaiah Todd",
+		"targetTier": "LOW_END_STARTER",
+		"targetRangeM": [8, 14],
+		"notes": "low-end starter"
+	},
+	{
+		"pid": 187,
+		"name": "Tyler Ennis",
+		"targetTier": "VETERAN_MINIMUM_LEVEL",
+		"targetRangeM": null,
+		"notes": "veteran minimum level"
+	},
+	{
+		"pid": 578,
+		"name": "Dennis Schroder",
+		"targetTier": "VETERAN_ROTATION_GUARD",
+		"targetRangeM": [6, 8],
+		"notes": "veteran rotation guard"
+	},
+	{
+		"pid": 517,
+		"name": "London Perrantes",
+		"targetTier": "LOW_END_STARTER_GUARD_LENGTH_RISK",
+		"targetRangeM": null,
+		"notes": "AAV reasonable, length risk"
+	}
+]
