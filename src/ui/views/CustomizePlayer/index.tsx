@@ -14,6 +14,7 @@ import {
 	MOOD_TRAITS,
 	WEBSITE_ROOT,
 	bySport,
+	isSport,
 	NOT_REAL_POSITIONS,
 } from "../../../common/index.ts";
 import { HelpPopover } from "../../components/index.tsx";
@@ -33,6 +34,49 @@ import CustomMoodItemsForm from "./CustomMoodItemsForm.tsx";
 import { roundContract } from "../../../common/roundContract.ts";
 import { Face } from "./Face.tsx";
 import { CurrencyInputGroup } from "../../components/CurrencyInputGroup.tsx";
+
+// God Mode only overrides rookie/two-way restrictions. Non-basketball leagues and
+// one-year contracts still cannot carry player/team options.
+const getGodModeContractOptionEligibility = ({
+	exp,
+	phase,
+	season,
+}: {
+	exp: number;
+	phase: Phase;
+	season: number;
+}) => {
+	if (!isSport("basketball")) {
+		return {
+			canHaveOption: false,
+			reason: "Contract options are only available in basketball.",
+		};
+	}
+
+	const offset = phase <= PHASE.PLAYOFFS ? 1 : 0;
+	const contractLength = exp - season + offset;
+	if (contractLength < 2) {
+		return {
+			canHaveOption: false,
+			reason: "Contract options require at least a two-year contract.",
+		};
+	}
+
+	return {
+		canHaveOption: true,
+		reason: undefined,
+	};
+};
+
+const normalizeContractOptionValue = (
+	value: string,
+): PlayerWithoutKey["contract"]["option"] | undefined => {
+	if (value === "player" || value === "team") {
+		return value;
+	}
+
+	return undefined;
+};
 
 const copyValidValues = (
 	source: PlayerWithoutKey,
@@ -176,6 +220,24 @@ const copyValidValues = (
 				contractChanged = true;
 			}
 		}
+	}
+
+	const contractOptionEligibility = getGodModeContractOptionEligibility({
+		exp: target.contract.exp,
+		phase,
+		season,
+	});
+	if (contractOptionEligibility.canHaveOption) {
+		if (
+			source.contract.option === "player" ||
+			source.contract.option === "team"
+		) {
+			target.contract.option = source.contract.option;
+		} else {
+			delete target.contract.option;
+		}
+	} else {
+		delete target.contract.option;
 	}
 
 	// Keep salaries log updated with contract
@@ -472,6 +534,19 @@ const CustomizePlayer = (props: View<"customizePlayer">) => {
 					p.moodTraits.sort();
 				}
 			} else if (["born", "contract", "draft", "injury"].includes(type)) {
+				if (type === "contract" && field === "option") {
+					const option = normalizeContractOptionValue(val);
+					if (option === undefined) {
+						delete p.contract.option;
+					} else {
+						p.contract.option = option;
+					}
+					return {
+						...prevState,
+						p,
+					};
+				}
+
 				p[type][field] = val;
 			} else if (type === "rating") {
 				p.ratings[p.ratings.length - 1] = {
@@ -598,6 +673,32 @@ const CustomizePlayer = (props: View<"customizePlayer">) => {
 	const draftTeamUndrafted =
 		p.draft.tid === PLAYER.UNDRAFTED ||
 		(p.draft.tid as any) === String(PLAYER.UNDRAFTED);
+	const contractExpiration = Number.parseInt(String(p.contract.exp));
+	const contractOptionEligibility = getGodModeContractOptionEligibility({
+		exp: Number.isNaN(contractExpiration) ? props.season : contractExpiration,
+		phase: props.phase,
+		season: props.season,
+	});
+
+	useEffect(() => {
+		if (
+			contractOptionEligibility.canHaveOption ||
+			p.contract.option === undefined
+		) {
+			return;
+		}
+
+		setState((prevState) => ({
+			...prevState,
+			p: {
+				...prevState.p,
+				contract: {
+					...prevState.p.contract,
+					option: undefined,
+				},
+			},
+		}));
+	}, [contractOptionEligibility.canHaveOption, p.contract.option]);
 
 	return (
 		<>
@@ -1087,6 +1188,24 @@ const CustomizePlayer = (props: View<"customizePlayer">) => {
 									value={p.contract.exp}
 									disabled={!godMode}
 								/>
+							</div>
+							<div className="col-12 col-sm-6 mb-3">
+								<label className="form-label">Contract Option</label>
+								<select
+									className="form-select"
+									onChange={handleChange.bind(null, "contract", "option")}
+									value={p.contract.option ?? ""}
+									disabled={!godMode || !contractOptionEligibility.canHaveOption}
+								>
+									<option value="">No option</option>
+									<option value="player">Player Option</option>
+									<option value="team">Team Option</option>
+								</select>
+								{contractOptionEligibility.reason ? (
+									<div className="form-text">
+										{contractOptionEligibility.reason}
+									</div>
+								) : null}
 							</div>
 							{playerMoodTraits ? (
 								<div className="col-3 mb-3">

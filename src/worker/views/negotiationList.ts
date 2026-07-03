@@ -25,16 +25,19 @@ const updateNegotiationList = async () => {
 	const userTid = g.get("userTid");
 
 	const negotiationPids = await getNegotiationPids(userTid);
+	// During re-signing, active negotiations are the authoritative list. Relying on
+	// the free-agent index can miss players who should still appear here.
+	const negotiationPlayers = (
+		await Promise.all(
+			[...negotiationPids].map((pid) => idb.cache.players.get(pid)),
+		)
+	).filter((p) => p !== undefined);
 
 	const userPlayersAll = await idb.cache.players.indexGetAll(
 		"playersByTid",
 		userTid,
 	);
-	const playersAll = await addMood(
-		(
-			await idb.cache.players.indexGetAll("playersByTid", PLAYER.FREE_AGENT)
-		).filter((p) => negotiationPids.has(p.pid)),
-	);
+	const playersAll = await addMood(negotiationPlayers);
 
 	const players = addFirstNameShort(
 		await idb.getCopies.playersPlus(playersAll, {

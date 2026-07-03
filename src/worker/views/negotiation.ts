@@ -55,13 +55,19 @@ const getContractExceptionType = ({
 		return "twoWay";
 	}
 
-	return getContractException({
+	const contractExceptionType = getContractException({
 		birdException,
 		contract: withContractCapHitForPlayer(p, contract),
 		p,
 		payroll,
 		team,
 	}).type;
+
+	if (birdException && contractExceptionType === "midLevel") {
+		return "bird";
+	}
+
+	return contractExceptionType;
 };
 
 const generateContractOptions = async (
@@ -329,7 +335,9 @@ const updateNegotiation = async (
 						: g.get("season") + 1,
 			}) / 1000;
 		const midLevelExceptionInfo =
-			isSport("basketball") && g.get("salaryCapType") === "soft"
+			!negotiation.resigning &&
+			isSport("basketball") &&
+			g.get("salaryCapType") === "soft"
 				? {
 						midLevelExceptionAmount: getMidLevelExceptionAmount() / 1000,
 						midLevelExceptionAvailable: isMidLevelExceptionAvailable(
