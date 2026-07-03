@@ -5,6 +5,7 @@ import { idb } from "../../db/index.ts";
 import { g, local, random } from "../../util/index.ts";
 import { orderBy } from "../../../common/utils.ts";
 import { getContractException } from "../contracts/contractLimits.ts";
+import { getMidLevelExceptionSeason } from "../contracts/contractMidLevel.ts";
 import { isMinimumContractForPlayer } from "../contracts/contractMinimum.ts";
 import {
 	canOfferTwoWay,
@@ -116,7 +117,7 @@ const autoSign = async () => {
 
 				await player.sign(pMidLevel, t.tid, pMidLevel.contract, g.get("phase"));
 				await idb.cache.players.put(pMidLevel);
-				t.midLevelExceptionUsedSeason = g.get("season");
+				t.midLevelExceptionUsedSeason = getMidLevelExceptionSeason();
 				await idb.cache.teams.put(t);
 				playersOnRoster = [...playersOnRoster, pMidLevel];
 				await team.rosterAutoSort(t.tid);

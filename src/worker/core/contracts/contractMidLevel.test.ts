@@ -1,6 +1,6 @@
 import { beforeEach, assert, test } from "vitest";
 import defaultGameAttributes from "../../../common/defaultGameAttributes.ts";
-import { PLAYER } from "../../../common/index.ts";
+import { PHASE, PLAYER } from "../../../common/index.ts";
 import { resetG } from "../../../test/helpers.ts";
 import { g } from "../../util/index.ts";
 import { player, team } from "../index.ts";
@@ -9,6 +9,7 @@ import {
 	getContractExceptionResult,
 	getMidLevelExceptionAmount,
 	getMidLevelExceptionMaxContractLength,
+	getMidLevelExceptionSeason,
 	getMidLevelFailureReason,
 	isMidLevelExceptionAvailable,
 } from "./contractMidLevel.ts";
@@ -89,6 +90,18 @@ test("MLE is unavailable when the team already used it this season and available
 	assert.strictEqual(isMidLevelExceptionAvailable(t), false);
 	t.midLevelExceptionUsedSeason = g.get("season") - 1;
 	assert.strictEqual(isMidLevelExceptionAvailable(t), true);
+});
+
+test("MLE availability uses signing season in free agency", () => {
+	const t = makeTeam({ midLevelExceptionUsedSeason: g.get("season") });
+
+	g.setWithoutSavingToDB("phase", PHASE.FREE_AGENCY);
+
+	assert.strictEqual(getMidLevelExceptionSeason(), g.get("season") + 1);
+	assert.strictEqual(isMidLevelExceptionAvailable(t), true);
+
+	t.midLevelExceptionUsedSeason = getMidLevelExceptionSeason();
+	assert.strictEqual(isMidLevelExceptionAvailable(t), false);
 });
 
 test("MLE max contract length is capped at 4 years", () => {

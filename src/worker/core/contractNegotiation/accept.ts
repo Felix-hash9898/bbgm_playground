@@ -19,6 +19,7 @@ import {
 } from "../contracts/contractMinimum.ts";
 import {
 	getMidLevelExceptionAmount,
+	getMidLevelExceptionSeason,
 	getMidLevelExceptionMaxContractLength,
 } from "../contracts/contractMidLevel.ts";
 import {
@@ -170,7 +171,7 @@ const accept = async ({
 
 	if (!dryRun) {
 		if (contractWithCapHit.exception === "midLevel" && userTeam) {
-			userTeam.midLevelExceptionUsedSeason = g.get("season");
+			userTeam.midLevelExceptionUsedSeason = getMidLevelExceptionSeason();
 			await idb.cache.teams.put(userTeam);
 		}
 

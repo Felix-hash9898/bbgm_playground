@@ -39,6 +39,12 @@ export const getMidLevelExceptionMaxContractLength = () => {
 	return Math.min(4, g.get("maxContractLength"));
 };
 
+export const getMidLevelExceptionSeason = () => {
+	return g.get("phase") >= PHASE.RESIGN_PLAYERS
+		? g.get("season") + 1
+		: g.get("season");
+};
+
 export const isMidLevelExceptionAvailable = (
 	team: TeamForMidLevel | undefined,
 ) => {
@@ -46,7 +52,7 @@ export const isMidLevelExceptionAvailable = (
 		team !== undefined &&
 		isSport("basketball") &&
 		g.get("salaryCapType") === "soft" &&
-		team.midLevelExceptionUsedSeason !== g.get("season")
+		team.midLevelExceptionUsedSeason !== getMidLevelExceptionSeason()
 	);
 };
 
