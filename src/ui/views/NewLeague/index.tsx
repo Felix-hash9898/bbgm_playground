@@ -684,6 +684,7 @@ const NewLeague = (props: View<"newLeague">) => {
 	>("default");
 
 	const leagueCreationID = useRef(Math.random());
+	const createLeagueInFlight = useRef(false);
 	const { leagueCreation, leagueCreationPercent } = useLocalPartial([
 		"leagueCreation",
 		"leagueCreationPercent",
@@ -798,6 +799,11 @@ const NewLeague = (props: View<"newLeague">) => {
 			: teamsDefault;
 
 	const createLeague = async (settingsOverride?: State["settings"]) => {
+		if (createLeagueInFlight.current) {
+			return;
+		}
+		createLeagueInFlight.current = true;
+
 		if (importing) {
 			const result = await confirm(
 				`Are you sure you want to import this league? All the data currently in "${props.name}" will be overwritten.`,
@@ -806,6 +812,7 @@ const NewLeague = (props: View<"newLeague">) => {
 				},
 			);
 			if (!result) {
+				createLeagueInFlight.current = false;
 				return;
 			}
 		}
@@ -907,8 +914,10 @@ const NewLeague = (props: View<"newLeague">) => {
 				analyticsEventLocal("new_league");
 			}
 
+			createLeagueInFlight.current = false;
 			realtimeUpdate([], `/l/${lid}`);
 		} catch (error) {
+			createLeagueInFlight.current = false;
 			dispatch({
 				type: "error",
 			});
