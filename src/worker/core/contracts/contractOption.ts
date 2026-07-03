@@ -3,7 +3,10 @@ import type { MinimalPlayerRatings, Player, PlayerContract } from "../../../comm
 import { g, helpers } from "../../util/index.ts";
 import { isLowEndYoungFreeAgent } from "./contractLowEnd.ts";
 import { getMaxContractForPlayer } from "./contractLimits.ts";
-import { getMinContractForPlayer } from "./contractMinimum.ts";
+import {
+	getMinContractForPlayer,
+	isMinimumContractForPlayer,
+} from "./contractMinimum.ts";
 import { isStandardContract } from "./contractTwoWay.ts";
 
 export const OPTION_VALUE_RATE = 0.1;
@@ -107,6 +110,13 @@ const isEligibleOptionAmount = (
 	return true;
 };
 
+const isMinimumMarketDemand = (
+	p: PlayerForAIOption,
+	marketDemand: number,
+) => {
+	return isMinimumContractForPlayer(p, marketDemand);
+};
+
 export const getAIContractOption = (
 	p: PlayerForAIOption,
 	contract: Pick<
@@ -152,12 +162,18 @@ export const getAIContractWithOption = (
 };
 
 export const shouldExercisePlayerOption = ({
+	p,
 	marketDemand,
 	optionSalary,
 }: {
+	p: PlayerForAIOption;
 	marketDemand: number;
 	optionSalary: number;
 }) => {
+	if (isMinimumMarketDemand(p, marketDemand)) {
+		return true;
+	}
+
 	return getEffectiveOfferAmount(optionSalary, "player") >= marketDemand;
 };
 

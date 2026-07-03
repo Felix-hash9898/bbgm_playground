@@ -185,6 +185,7 @@ export const processContractOptions = async () => {
 		const exercise =
 			option === "player"
 				? shouldExercisePlayerOption({
+						p,
 						optionSalary: p.contract.amount,
 						marketDemand,
 					})

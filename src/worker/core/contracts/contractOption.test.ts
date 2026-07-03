@@ -4,6 +4,7 @@ import { DEFAULT_LEVEL } from "../../../common/budgetLevels.ts";
 import { resetG } from "../../../test/helpers.ts";
 import { g } from "../../util/index.ts";
 import { player } from "../index.ts";
+import { getMinContractForPlayer } from "./contractMinimum.ts";
 import {
 	canContractHaveOption,
 	getAIContractWithOption,
@@ -81,8 +82,19 @@ test("option effective offer values use the centralized 10 percent value", () =>
 });
 
 test("player and team option decisions use effective offer value", () => {
+	const p = makePlayer({
+		age: 26,
+		draftRound: 2,
+		draftYearsAgo: 4,
+		ovr: 55,
+		pot: 58,
+		value: 55,
+		valueNoPot: 54,
+	});
+
 	assert.strictEqual(
 		shouldExercisePlayerOption({
+			p,
 			optionSalary: 10000,
 			marketDemand: 11000,
 		}),
@@ -90,6 +102,7 @@ test("player and team option decisions use effective offer value", () => {
 	);
 	assert.strictEqual(
 		shouldExercisePlayerOption({
+			p,
 			optionSalary: 10000,
 			marketDemand: 11010,
 		}),
@@ -106,6 +119,56 @@ test("player and team option decisions use effective offer value", () => {
 		shouldExerciseTeamOption({
 			optionSalary: 10000,
 			marketDemand: 8990,
+		}),
+		false,
+	);
+});
+
+test("minimum player option exercises when the market is still minimum after inflation", () => {
+	const p = makePlayer({
+		age: 34,
+		draftRound: 2,
+		draftYearsAgo: 10,
+		ovr: 40,
+		pot: 42,
+		value: 40,
+		valueNoPot: 40,
+	});
+	const optionSalary = getMinContractForPlayer(p);
+	const baseMinContract = g.get("minContract");
+	g.setWithoutSavingToDB("minContract", baseMinContract + 5000);
+	const marketDemand = getMinContractForPlayer(p);
+
+	assert.strictEqual(
+		shouldExercisePlayerOption({
+			p,
+			optionSalary,
+			marketDemand,
+		}),
+		true,
+	);
+});
+
+test("minimum player option still declines when the market is clearly above the floor", () => {
+	const p = makePlayer({
+		age: 34,
+		draftRound: 2,
+		draftYearsAgo: 10,
+		ovr: 40,
+		pot: 42,
+		value: 40,
+		valueNoPot: 40,
+	});
+	const optionSalary = getMinContractForPlayer(p);
+	const baseMinContract = g.get("minContract");
+	g.setWithoutSavingToDB("minContract", baseMinContract + 5000);
+	const marketDemand = getMinContractForPlayer(p) + 1000;
+
+	assert.strictEqual(
+		shouldExercisePlayerOption({
+			p,
+			optionSalary,
+			marketDemand,
 		}),
 		false,
 	);

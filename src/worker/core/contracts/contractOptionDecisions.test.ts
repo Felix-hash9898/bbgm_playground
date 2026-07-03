@@ -5,6 +5,7 @@ import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
 import { player, team } from "../index.ts";
 import * as contractDemands from "../freeAgents/contractDemands.ts";
+import { getMinContractForPlayer } from "./contractMinimum.ts";
 import {
 	decideUserTeamOption,
 	getPendingUserTeamOptions,
@@ -251,6 +252,45 @@ test("team option decisions use the market contract effective value rather than 
 		const updated = await idb.cache.players.get(3);
 		assert.strictEqual(updated?.contract.option, undefined);
 		assert.strictEqual(updated?.contract.exp, g.get("season"));
+	} finally {
+		getContractDemandResultsSpy.mockRestore();
+	}
+});
+
+test("minimum player options still exercise after the floor rises above the old salary", async () => {
+	const p = await idb.cache.players.get(2);
+	if (!p) {
+		throw new Error("Invalid pid");
+	}
+
+	const oldOptionSalary = getMinContractForPlayer(p);
+	p.contract.amount = oldOptionSalary;
+	await idb.cache.players.put(p);
+	g.setWithoutSavingToDB("minContract", oldOptionSalary + 5000);
+	const updatedMarketFloor = getMinContractForPlayer(p);
+
+	const marketDemands = new Map([
+		[
+			2,
+			{
+				contract: {
+					amount: updatedMarketFloor,
+					exp: g.get("season") + 2,
+				},
+			},
+		],
+	]);
+	const getContractDemandResultsSpy = vi
+		.spyOn(contractDemands, "getContractDemandResults")
+		.mockReturnValue(marketDemands);
+
+	try {
+		await processContractOptions();
+
+		const updated = await idb.cache.players.get(2);
+		assert.strictEqual(updated?.contract.option, undefined);
+		assert.strictEqual(updated?.contract.exp, g.get("season") + 1);
+		assert.strictEqual(updated?.contract.amount, oldOptionSalary);
 	} finally {
 		getContractDemandResultsSpy.mockRestore();
 	}
