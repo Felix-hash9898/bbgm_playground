@@ -72,6 +72,16 @@ export const MODEL_TIERS = {
 		minPct: 0.06,
 		maxPct: 0.12,
 	},
+	HIGH_END_ROTATION: {
+		rangeType: "capPct",
+		minPct: 0.07,
+		maxPct: 0.12,
+	},
+	SOLID_STARTER: {
+		rangeType: "capPct",
+		minPct: 0.12,
+		maxPct: 0.17,
+	},
 	YOUNG_PROVEN_STARTER: {
 		rangeType: "capPct",
 		minPct: 0.17,
@@ -106,10 +116,8 @@ const isGuard = (row) => hasPosition(row, "G");
 const isBig = (row) => hasPosition(row, "C") || hasPosition(row, "F");
 
 export const featureFlags = (row) => ({
-	establishedStarter:
-		row.GP >= 50 && row.MPG >= 26 && row.starterShare >= 0.55,
-	fullTimeStarter:
-		row.GP >= 50 && row.MPG >= 28 && row.starterShare >= 0.75,
+	establishedStarter: row.GP >= 50 && row.MPG >= 26 && row.starterShare >= 0.55,
+	fullTimeStarter: row.GP >= 50 && row.MPG >= 28 && row.starterShare >= 0.75,
 	limitedRotation: row.MPG < 16 || row.min < 1000,
 	smallButRealRole: row.GP >= 40 && row.MPG >= 6 && row.MPG < 16,
 	highProduction:
@@ -145,7 +153,7 @@ export const featureFlags = (row) => ({
 			row.skill_Di_margin >= 0.05),
 });
 
-export const scoreTier = (row) => {
+export const scoreBaseTier = (row) => {
 	const flags = featureFlags(row);
 
 	if (
@@ -271,6 +279,359 @@ export const scoreTier = (row) => {
 	};
 };
 
+const num = (row, key, fallback = undefined) => {
+	const value = row?.[key];
+	if (value === "" || value === undefined || value === null) return fallback;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const signal = (label, passed, weight = 1) => ({ label, passed, weight });
+
+const supportScore = (entries) =>
+	entries
+		.filter((entry) => entry.passed)
+		.reduce((total, entry) => total + entry.weight, 0);
+
+const supportLabels = (entries) =>
+	entries.filter((entry) => entry.passed).map((entry) => entry.label);
+
+const defenseConnectorSupport = (row) => {
+	const checks = [
+		num(row, "comp_defenseInterior", 0) >= 0.62,
+		num(row, "comp_defensePerimeter", 0) >= 0.62,
+		num(row, "comp_rebounding", 0) >= 0.62,
+		num(row, "comp_blocking", 0) >= 0.62,
+		num(row, "comp_passing", 0) >= 0.58,
+		num(row, "BPM", -99) >= 0.5 || num(row, "VORP", -99) >= 0.8,
+	];
+	return checks.filter(Boolean).length >= 2;
+};
+
+const shootingSpacingSupport = (row) =>
+	num(row, "comp_shootingThreePointer", 0) >= 0.64 &&
+	num(row, "skill_3_margin", -1) >= 0.04 &&
+	num(row, "TS", 0) >= 0.54;
+
+const hardFloorFailReasons1A = (row) => {
+	const reasons = [];
+	if (num(row, "GP", 0) < 45) reasons.push("GP < 45");
+	if (num(row, "MPG", 0) < 18) reasons.push("MPG < 18");
+	if (num(row, "valueNoPot", 0) < 52) reasons.push("valueNoPot < 52");
+	if (num(row, "getContractValue", 0) < 52 && num(row, "value", 0) < 54) {
+		reasons.push("contractValue < 52 and value < 54");
+	}
+	if (num(row, "PER", 12) < 9 && num(row, "BPM", 0) < -3) {
+		reasons.push("PER < 9 and BPM < -3");
+	}
+	return reasons;
+};
+
+const minimumStrongerFloorFailReasons1A = (row) => {
+	const reasons = [];
+	if (num(row, "MPG", 0) < 22) reasons.push("minimum stronger floor: MPG < 22");
+	if (num(row, "valueNoPot", 0) < 55) {
+		reasons.push("minimum stronger floor: valueNoPot < 55");
+	}
+	if (num(row, "getContractValue", 0) < 55) {
+		reasons.push("minimum stronger floor: contractValue < 55");
+	}
+	if (
+		!(
+			num(row, "EWA", 0) >= 2 ||
+			num(row, "VORP", -99) >= 0.2 ||
+			num(row, "BPM", -99) >= -0.5
+		)
+	) {
+		reasons.push("minimum stronger floor: no neutral production");
+	}
+	return reasons;
+};
+
+const roleSignals1A = (row) => [
+	signal(
+		"strong rotation role: GP >= 50 and MPG >= 22",
+		num(row, "GP", 0) >= 50 && num(row, "MPG", 0) >= 22,
+	),
+	signal("real role fallback: MPG >= 22", num(row, "MPG", 0) >= 22, 0.75),
+	signal(
+		"real role fallback: GP >= 55 and MPG >= 20",
+		num(row, "GP", 0) >= 55 && num(row, "MPG", 0) >= 20,
+		0.75,
+	),
+];
+
+const coreIdentitySignals1A = (row) => [
+	signal(
+		"creator/scorer core",
+		(num(row, "USG", 0) >= 22 && num(row, "PTS", 0) >= 12) ||
+			num(row, "AST%", 0) >= 18 ||
+			num(row, "AST", 0) >= 4,
+	),
+	signal(
+		"portable shooting core",
+		num(row, "comp_shootingThreePointer", 0) >= 0.64 &&
+			num(row, "skill_3_margin", -1) >= 0.04 &&
+			num(row, "TS", 0) >= 0.54,
+	),
+	signal(
+		"young productive core",
+		num(row, "age", 99) <= 25 &&
+			num(row, "MPG", 0) >= 18 &&
+			(num(row, "EWA", 0) >= 1.5 ||
+				num(row, "BPM", -99) >= -1 ||
+				num(row, "value", 0) >= 57),
+	),
+	signal(
+		"connector/defense core",
+		num(row, "MPG", 0) >= 20 &&
+			(num(row, "valueNoPot", 0) >= 52 ||
+				num(row, "getContractValue", 0) >= 52) &&
+			supportScore([
+				signal(
+					"defense interior composite",
+					num(row, "comp_defenseInterior", 0) >= 0.62,
+				),
+				signal(
+					"defense perimeter composite",
+					num(row, "comp_defensePerimeter", 0) >= 0.62,
+				),
+				signal("rebounding composite", num(row, "comp_rebounding", 0) >= 0.62),
+				signal("blocking composite", num(row, "comp_blocking", 0) >= 0.62),
+				signal("passing composite", num(row, "comp_passing", 0) >= 0.58, 0.75),
+				signal(
+					"impact stat support",
+					num(row, "BPM", -99) >= 0 || num(row, "VORP", -99) >= 0.5,
+					0.75,
+				),
+			]) >= 2,
+	),
+];
+
+const valueProductionSignals1A = (row) => [
+	signal("value support: valueNoPot >= 55", num(row, "valueNoPot", 0) >= 55),
+	signal(
+		"value support: contractValue >= 55",
+		num(row, "getContractValue", 0) >= 55,
+	),
+	signal(
+		"production support: EWA/VORP/BPM/PER",
+		num(row, "EWA", 0) >= 2 ||
+			num(row, "VORP", -99) >= 0.2 ||
+			num(row, "BPM", -99) >= -0.5 ||
+			num(row, "PER", 0) >= 14,
+	),
+];
+
+const highEndRotationCheck = (row, baseTier) => {
+	const hardFloorFails = hardFloorFailReasons1A(row);
+	const minimumFloorFails =
+		baseTier === "MINIMUM_LEVEL" ? minimumStrongerFloorFailReasons1A(row) : [];
+	const protectedStarterTier = [
+		"SUPERSTAR_MAX",
+		"STAR_NEAR_MAX",
+		"YOUNG_PROVEN_STARTER",
+		"LOW_END_STARTER",
+	].includes(baseTier);
+	const role = roleSignals1A(row);
+	const core = coreIdentitySignals1A(row);
+	const valueProduction = valueProductionSignals1A(row);
+	const supportEntries = [
+		...role.filter((entry) => entry.passed),
+		...core.filter((entry) => entry.passed),
+		...valueProduction.filter((entry) => entry.passed),
+	];
+	const score = supportScore(supportEntries);
+	const failReasons = [
+		...hardFloorFails,
+		...minimumFloorFails,
+		protectedStarterTier
+			? "protected current starter/star tier; 1A only tests below LOW_END_STARTER"
+			: "",
+		supportScore(role) >= 0.75 ? "" : "missing real role support",
+		core.some((entry) => entry.passed) ? "" : "missing core identity",
+		valueProduction.some((entry) => entry.passed)
+			? ""
+			: "missing value/production support",
+		score >= 3 ? "" : "support score < 3",
+	].filter(Boolean);
+
+	return {
+		passed: failReasons.length === 0,
+		failReasons,
+		supportScore: score,
+		passedSignals: supportEntries.map((entry) => entry.label),
+		reason: [
+			"V3-1A HIGH_END_ROTATION: hard floor + real role + core identity + value/production support",
+			`core: ${supportLabels(core).join("; ") || "none"}`,
+			`support: ${[...supportLabels(role), ...supportLabels(valueProduction)].join("; ") || "none"}`,
+		].join(" | "),
+	};
+};
+
+const roleSignals1B = (row) => [
+	signal("role: starterShare >= 0.65", num(row, "starterShare", 0) >= 0.65),
+	signal("role: GS >= 50", num(row, "GS", 0) >= 50),
+	signal("role: MPG >= 31", num(row, "MPG", 0) >= 31),
+];
+
+const productionSignals1B = (row) => [
+	signal("production: BPM >= 1", num(row, "BPM", -99) >= 1),
+	signal("production: EWA >= 5", num(row, "EWA", 0) >= 5),
+	signal("production: VORP >= 1", num(row, "VORP", -99) >= 1),
+	signal("production: PER >= 16", num(row, "PER", 0) >= 16),
+];
+
+const extraSignals1B = (row) => [
+	signal("extra: BPM >= 1.5", num(row, "BPM", -99) >= 1.5),
+	signal("extra: EWA >= 6", num(row, "EWA", 0) >= 6),
+	signal("extra: VORP >= 1.5", num(row, "VORP", -99) >= 1.5),
+	signal("extra: PER >= 17", num(row, "PER", 0) >= 17),
+	signal(
+		"extra: defense/rebounding/connector support",
+		defenseConnectorSupport(row),
+	),
+	signal("extra: shooting/spacing support", shootingSpacingSupport(row)),
+	signal(
+		"extra: age <= 27 with value/pot support",
+		num(row, "age", 99) <= 27 &&
+			(num(row, "value", 0) >= 58 || num(row, "pot", 0) >= 65),
+	),
+];
+
+const exceptionSignals1B = (row) => [
+	signal("exception: MPG >= 30", num(row, "MPG", 0) >= 30),
+	signal("exception: valueNoPot >= 61", num(row, "valueNoPot", 0) >= 61),
+	signal(
+		"exception: contractValue >= 61",
+		num(row, "getContractValue", 0) >= 61,
+	),
+	signal(
+		"exception: strong production",
+		num(row, "EWA", 0) >= 5 ||
+			num(row, "VORP", -99) >= 1 ||
+			num(row, "PER", 0) >= 17,
+	),
+	signal(
+		"exception: portable support",
+		defenseConnectorSupport(row) || shootingSpacingSupport(row),
+	),
+	signal("exception: PER >= 12", num(row, "PER", 0) >= 12),
+];
+
+const solidStarterCheck = (row, baseTier) => {
+	const failReasons = [];
+	if (baseTier !== "LOW_END_STARTER")
+		failReasons.push(`current tier ${baseTier} blocked`);
+	if (num(row, "GP", 0) < 55) failReasons.push("GP < 55");
+	if (num(row, "MPG", 0) < 29) failReasons.push("MPG < 29");
+	if (num(row, "valueNoPot", 0) < 60) failReasons.push("valueNoPot < 60");
+	if (num(row, "getContractValue", 0) < 60) {
+		failReasons.push("contractValue < 60");
+	}
+
+	const role = roleSignals1B(row);
+	const production = productionSignals1B(row);
+	const extra = extraSignals1B(row);
+	const productionCount = production.filter((entry) => entry.passed).length;
+	const exception =
+		num(row, "BPM", 0) < 0 &&
+		baseTier === "LOW_END_STARTER" &&
+		exceptionSignals1B(row).every((entry) => entry.passed);
+
+	if (!role.some((entry) => entry.passed))
+		failReasons.push("missing role core");
+	if (productionCount < 2) failReasons.push("production core count < 2");
+	if (!extra.some((entry) => entry.passed))
+		failReasons.push("missing extra support");
+	if (num(row, "BPM", 0) < 0 && !exception) {
+		failReasons.push("BPM < 0 without exception path");
+	}
+
+	const passedSignals = [
+		...supportLabels(role),
+		"value core: valueNoPot >= 60 and contractValue >= 60",
+		...supportLabels(production),
+		...supportLabels(extra),
+		exception ? "BPM<0 exception path" : "",
+	].filter(Boolean);
+
+	return {
+		passed: failReasons.length === 0,
+		failReasons,
+		productionCount,
+		exception,
+		passedSignals,
+		reason: [
+			"V3-1B-narrow-B SOLID_STARTER bridge",
+			`role: ${supportLabels(role).join("; ") || "none"}`,
+			`production ${productionCount}/2: ${supportLabels(production).join("; ") || "none"}`,
+			`extra: ${supportLabels(extra).join("; ") || "none"}`,
+			exception ? "BPM<0 exception path" : "",
+		]
+			.filter(Boolean)
+			.join(" | "),
+	};
+};
+
+export const scoreTier = (row) => {
+	const base = scoreBaseTier(row);
+	const oneA = highEndRotationCheck(row, base.tier);
+	const oneB = solidStarterCheck(row, base.tier);
+
+	if (oneA.passed && oneB.passed) {
+		return {
+			tier: "SOLID_STARTER",
+			reason: `CONFLICT: ${oneA.reason} || ${oneB.reason}`,
+			baseTier: base.tier,
+			baseReason: base.reason,
+			responsibleModule: "conflict",
+			conflict: "yes",
+			passedSignals: [...oneA.passedSignals, ...oneB.passedSignals],
+			failReasons: [],
+		};
+	}
+
+	if (oneB.passed) {
+		return {
+			tier: "SOLID_STARTER",
+			reason: oneB.reason,
+			baseTier: base.tier,
+			baseReason: base.reason,
+			responsibleModule: "1B-B",
+			conflict: "no",
+			passedSignals: oneB.passedSignals,
+			failReasons: oneB.failReasons,
+		};
+	}
+
+	if (oneA.passed) {
+		return {
+			tier: "HIGH_END_ROTATION",
+			reason: oneA.reason,
+			baseTier: base.tier,
+			baseReason: base.reason,
+			responsibleModule: "1A",
+			conflict: "no",
+			passedSignals: oneA.passedSignals,
+			failReasons: oneA.failReasons,
+		};
+	}
+
+	return {
+		...base,
+		baseTier: base.tier,
+		baseReason: base.reason,
+		responsibleModule: "none",
+		conflict: "no",
+		passedSignals: [],
+		failReasons: [
+			...oneA.failReasons.map((reason) => `1A: ${reason}`),
+			...oneB.failReasons.map((reason) => `1B-B: ${reason}`),
+		],
+	};
+};
+
 export const tierRange = (tier, row, attrs) => {
 	const spec = MODEL_TIERS[tier];
 	if (!spec) {
@@ -313,6 +674,387 @@ export const tierRange = (tier, row, attrs) => {
 	};
 };
 
+const finite = (value) => Number.isFinite(Number(value));
+
+const scale = (value, min, max, fallback = 0.5) => {
+	if (!Number.isFinite(value)) return fallback;
+	return bound((value - min) / (max - min), 0, 1);
+};
+
+const weightedAverage = (entries, fallback = 0.5) => {
+	let numerator = 0;
+	let denominator = 0;
+	for (const [value, weight = 1] of entries) {
+		if (Number.isFinite(value)) {
+			numerator += value * weight;
+			denominator += weight;
+		}
+	}
+	return denominator > 0 ? numerator / denominator : fallback;
+};
+
+const normalizePlacementRow = (row) => {
+	const getContractValue = num(
+		row,
+		"getContractValue",
+		num(row, "contractValue"),
+	);
+	const value = num(row, "value");
+	const valueNoPot = num(row, "valueNoPot");
+	return {
+		...row,
+		getContractValue,
+		contractValue: num(row, "contractValue", getContractValue),
+		value,
+		valueNoPot,
+		potentialPremium: num(
+			row,
+			"potentialPremium",
+			Number.isFinite(value) && Number.isFinite(valueNoPot)
+				? value - valueNoPot
+				: 0,
+		),
+		normalNoOptionContractYears: num(
+			row,
+			"normalNoOptionContractYears",
+			num(row, "currentNoOptionYears"),
+		),
+	};
+};
+
+const currentImpactComponent = (row) =>
+	weightedAverage([
+		[scale(num(row, "getContractValue"), 48, 70), 1.4],
+		[scale(num(row, "valueNoPot"), 48, 70), 1.2],
+		[scale(num(row, "MPG"), 8, 32), 0.9],
+		[scale(num(row, "starterShare"), 0, 0.8), 0.7],
+		[scale(num(row, "PER"), 8, 22), 0.9],
+		[scale(num(row, "EWA"), 0, 10), 0.9],
+		[scale(num(row, "VORP"), -0.5, 4), 0.8],
+		[scale(num(row, "BPM"), -3, 5), 0.9],
+	]);
+
+const roleCertaintyComponent = (row) =>
+	weightedAverage([
+		[scale(num(row, "GP"), 20, 75), 0.9],
+		[scale(num(row, "MPG"), 8, 30), 1.2],
+		[scale(num(row, "starterShare"), 0, 0.85), 0.9],
+		[scale(num(row, "valueNoPot"), 48, 66), 0.7],
+		[scale(num(row, "EWA"), 0, 8), 0.6],
+	]);
+
+const futureUpsideComponent = (row) => {
+	const age = num(row, "age");
+	const potentialPremium = num(row, "potentialPremium", 0);
+	const pot = num(row, "pot");
+	const roleSupport = weightedAverage([
+		[scale(num(row, "MPG"), 8, 26), 0.6],
+		[scale(num(row, "BPM"), -3, 2), 0.5],
+		[scale(num(row, "EWA"), 0, 5), 0.5],
+	]);
+	const upside =
+		0.45 * scale(age, 27, 19) +
+		0.3 * scale(pot, 58, 76) +
+		0.25 * scale(potentialPremium, 0, 12);
+	const potOnlyDiscount = roleSupport < 0.35 && upside > 0.6 ? 0.12 : 0;
+	return bound(0.78 * upside + 0.22 * roleSupport - potOnlyDiscount, 0, 1);
+};
+
+const shootingPackage = (row) => {
+	const comp3 = num(row, "comp_shootingThreePointer");
+	const skill3 = num(row, "skill_3_margin");
+	const efg = num(row, "eFG");
+	const ts = num(row, "TS");
+	const volumeRole = weightedAverage([
+		[scale(num(row, "MPG"), 10, 28), 0.6],
+		[scale(num(row, "USG"), 12, 24), 0.4],
+	]);
+
+	return weightedAverage([
+		[Number.isFinite(comp3) ? scale(comp3, 0.5, 0.75) : undefined, 0.9],
+		[Number.isFinite(skill3) ? scale(skill3, -0.04, 0.12) : undefined, 0.8],
+		[scale(ts, 0.5, 0.63), 0.8],
+		[scale(efg, 0.47, 0.6), 0.5],
+		[volumeRole, 0.35],
+	]);
+};
+
+const playmakingPackage = (row) =>
+	weightedAverage([
+		[scale(num(row, "comp_passing"), 0.45, 0.72), 0.8],
+		[scale(num(row, "AST%"), 8, 28), 0.8],
+		[scale(num(row, "AST"), 1, 7), 0.6],
+		[scale(num(row, "OBPM"), -3, 3), 0.4],
+	]);
+
+const defenseReboundPackage = (row) => {
+	const statSupport = isBig(row)
+		? weightedAverage([
+				[scale(num(row, "TRB"), 3, 10), 0.5],
+				[scale(num(row, "BLK"), 0.2, 1.8), 0.5],
+				[scale(num(row, "DBPM"), -1, 3), 0.5],
+			])
+		: weightedAverage([
+				[scale(num(row, "STL"), 0.4, 1.5), 0.35],
+				[scale(num(row, "DBPM"), -1, 2), 0.35],
+				[scale(num(row, "TRB"), 2, 6), 0.2],
+			]);
+
+	return weightedAverage([
+		[scale(num(row, "comp_defenseInterior"), 0.45, 0.72), 0.7],
+		[scale(num(row, "comp_defensePerimeter"), 0.45, 0.72), 0.7],
+		[scale(num(row, "comp_rebounding"), 0.45, 0.72), 0.55],
+		[scale(num(row, "comp_blocking"), 0.45, 0.72), 0.45],
+		[statSupport, 0.75],
+	]);
+};
+
+const skillPortabilityComponent = (row) =>
+	weightedAverage([
+		[shootingPackage(row), 0.45],
+		[playmakingPackage(row), isGuard(row) ? 0.25 : 0.16],
+		[defenseReboundPackage(row), isBig(row) ? 0.35 : 0.22],
+		[scale(num(row, "MPG"), 8, 28), 0.2],
+		[scale(num(row, "TS"), 0.48, 0.6), 0.18],
+	]);
+
+const turnoverRiskInfo = (row) => {
+	const tov = num(row, "TOV", 0);
+	const usg = num(row, "USG", 0);
+	const ast = num(row, "AST", 0);
+	const astPct = num(row, "AST%", 0);
+	const mpg = num(row, "MPG", 0);
+	const creatorLoad = usg >= 24 || ast >= 5 || astPct >= 24;
+	const realRole = mpg >= 16;
+
+	if (tov >= 2.2 && creatorLoad && realRole) {
+		return {
+			flag: "high_turnover_creator_risk",
+			penalty: bound((tov - 2.1) / 3.5, 0.04, 0.18),
+		};
+	}
+	if (tov >= 1.4 && !creatorLoad && realRole) {
+		return {
+			flag: "high_turnover_role_player_risk",
+			penalty: bound((tov - 1.3) / 2.2, 0.08, 0.28),
+		};
+	}
+	return { flag: "", penalty: 0 };
+};
+
+const smallGuardDefenseRisk = (row) => {
+	const pos = String(row.pos ?? "").toUpperCase();
+	const guardOnly =
+		isGuard(row) &&
+		!pos.includes("SF") &&
+		!pos.includes("F") &&
+		!pos.includes("C");
+	if (!guardOnly) return false;
+	const noisyAdvancedDefense =
+		num(row, "DBPM", -99) >= 1.1 || num(row, "On-Off", -99) >= 3.5;
+	const weakPhysicalSupport =
+		num(row, "BLK", 0) < 0.35 &&
+		num(row, "TRB", 0) < 4.5 &&
+		num(row, "comp_defensePerimeter", 0.55) < 0.62;
+	return noisyAdvancedDefense && weakPhysicalSupport;
+};
+
+const archetypeRiskComponent = (row, flags) => {
+	const turnover = turnoverRiskInfo(row);
+	const lowEfficiencyRisk =
+		num(row, "TS", 0.56) < 0.52 && num(row, "USG", 0) >= 18 ? 0.18 : 0;
+	const lowRoleRisk =
+		num(row, "MPG", 0) < 14 && num(row, "starterShare", 0) < 0.2 ? 0.16 : 0;
+	const poorImpactRisk =
+		num(row, "BPM", 0) < -2 || num(row, "PER", 12) < 9 ? 0.18 : 0;
+	const guardDefenseRisk = smallGuardDefenseRisk(row) ? 0.12 : 0;
+	const nonPortableShootingRisk =
+		flags.includes("shooting_rating_without_role") ||
+		flags.includes("low_efficiency_shooter_risk")
+			? 0.1
+			: 0;
+
+	return bound(
+		turnover.penalty +
+			lowEfficiencyRisk +
+			lowRoleRisk +
+			poorImpactRisk +
+			guardDefenseRisk +
+			nonPortableShootingRisk,
+		0,
+		0.75,
+	);
+};
+
+const ageYearsRiskComponent = (row, modelYears) => {
+	const age = num(row, "age", 27);
+	const yearsText = String(modelYears ?? "");
+	const longTerm =
+		yearsText.includes("4") ||
+		yearsText.includes("5") ||
+		num(row, "normalNoOptionContractYears", 0) >= 3;
+	const ageRisk = scale(age, 29, 35, 0.25);
+	const longTermAdd = longTerm && age >= 30 ? 0.12 : 0;
+	const durabilityAdd = num(row, "GP", 82) < 45 ? 0.1 : 0;
+	return bound(ageRisk + longTermAdd + durabilityAdd, 0, 0.75);
+};
+
+const productionReliabilityComponent = (row) =>
+	weightedAverage([
+		[scale(num(row, "GP"), 25, 75), 0.8],
+		[scale(num(row, "MPG"), 8, 28), 0.8],
+		[scale(num(row, "EWA"), 0, 8), 0.7],
+		[scale(num(row, "VORP"), -0.5, 3), 0.5],
+		[scale(num(row, "BPM"), -3, 3), 0.55],
+		[scale(num(row, "PER"), 9, 18), 0.5],
+	]);
+
+const buildRiskFlags = (row) => {
+	const flags = [];
+	const age = num(row, "age");
+	const pot = num(row, "pot");
+	const potentialPremium = num(row, "potentialPremium", 0);
+	const mpg = num(row, "MPG", 0);
+	const bpm = num(row, "BPM", 0);
+	const ewa = num(row, "EWA", 0);
+	const per = num(row, "PER", 0);
+	const ts = num(row, "TS");
+	const turnover = turnoverRiskInfo(row);
+
+	if (age <= 24 && pot >= 65 && potentialPremium >= 4) {
+		if (mpg >= 18 && (bpm >= -0.5 || ewa >= 2 || per >= 14)) {
+			flags.push("young_proven_positive");
+		} else if (
+			mpg >= 14 &&
+			(ewa >= 1.5 || per >= 13) &&
+			(ts < 0.54 || bpm < -1 || turnover.flag)
+		) {
+			flags.push("young_productive_but_risky");
+		} else if (mpg < 16 || (bpm < -2 && ewa < 1)) {
+			flags.push("young_pot_only");
+		}
+
+		if (ts < 0.51 && bpm < -2 && mpg < 20) {
+			flags.push("young_bad_archetype_risk");
+		}
+	}
+
+	if (smallGuardDefenseRisk(row)) {
+		flags.push("small_guard_defense_stat_risk");
+	}
+	if (turnover.flag) {
+		flags.push(turnover.flag);
+	}
+
+	const shoot = shootingPackage(row);
+	if (shoot >= 0.68 && mpg >= 16 && ts >= 0.55) {
+		flags.push("shooting_portable");
+	} else if (shoot >= 0.64 && (mpg < 14 || ts < 0.53)) {
+		flags.push("shooting_rating_without_role");
+	}
+	if (ts < 0.51 && num(row, "USG", 0) >= 16) {
+		flags.push("low_efficiency_shooter_risk");
+	}
+
+	const defense = defenseReboundPackage(row);
+	const lowUsage = num(row, "USG", 20) < 17 || num(row, "PTS", 12) < 10;
+	if (
+		mpg >= 18 &&
+		lowUsage &&
+		(defense >= 0.62 || num(row, "BPM", 0) >= 0.5 || num(row, "VORP", 0) >= 1)
+	) {
+		flags.push("non_scoring_impact_positive");
+	}
+	if (ts < 0.5 && num(row, "OBPM", 0) < -2) {
+		flags.push("offensive_liability_risk");
+	}
+	if (defense >= 0.66 && !flags.includes("small_guard_defense_stat_risk")) {
+		flags.push("defense_impact_supported");
+	} else if (num(row, "DBPM", 0) >= 1.2 && defense < 0.58) {
+		flags.push("defense_impact_noisy");
+	}
+
+	return [...new Set(flags)];
+};
+
+const yearsForPlacement = (row, tier, tierYears, riskFlags) => {
+	if (tierYears) return tierYears;
+	const age = num(row, "age", 27);
+	if (tier === "SUPERSTAR_MAX" || tier === "STAR_NEAR_MAX") return "4-5";
+	if (tier === "YOUNG_PROVEN_STARTER") return "3-5";
+	if (tier === "LOW_END_STARTER") return age <= 28 ? "2-4" : "1-3";
+	if (
+		riskFlags.includes("young_pot_only") ||
+		riskFlags.includes("young_bad_archetype_risk")
+	) {
+		return "1-2";
+	}
+	if (age >= 31) return "1";
+	if (tier === "MINIMUM_LEVEL") return "1";
+	return "1-2";
+};
+
+export const scoreContractMarketPlacement = (inputRow, attrs, options = {}) => {
+	const row = normalizePlacementRow(inputRow);
+	const score = options.score ?? scoreTier(row);
+	const range = options.range ?? tierRange(score.tier, row, attrs);
+	const riskFlags = buildRiskFlags(row);
+	const components = {
+		currentImpactComponent: currentImpactComponent(row),
+		roleCertaintyComponent: roleCertaintyComponent(row),
+		futureUpsideComponent: futureUpsideComponent(row),
+		skillPortabilityComponent: skillPortabilityComponent(row),
+		archetypeRiskComponent: archetypeRiskComponent(row, riskFlags),
+		ageYearsRiskComponent: ageYearsRiskComponent(row, range.modelYears),
+		productionReliabilityComponent: productionReliabilityComponent(row),
+	};
+
+	const positivePlacement =
+		components.currentImpactComponent * 0.28 +
+		components.roleCertaintyComponent * 0.17 +
+		components.futureUpsideComponent * 0.13 +
+		components.skillPortabilityComponent * 0.14 +
+		components.productionReliabilityComponent * 0.14 +
+		(1 - components.archetypeRiskComponent) * 0.08 +
+		(1 - components.ageYearsRiskComponent) * 0.06;
+	const tierPlacementScore = bound(positivePlacement, 0.04, 0.96);
+	const rangeMinM = range.modelRangeMin / 1000;
+	const rangeMaxM = range.modelRangeMax / 1000;
+	const rangeWidthM = rangeMaxM - rangeMinM;
+	const pointM =
+		rangeWidthM <= 0 ? rangeMinM : rangeMinM + tierPlacementScore * rangeWidthM;
+	const roundedPointM = round(pointM, 2);
+	const modelYears = yearsForPlacement(
+		row,
+		score.tier,
+		range.modelYears,
+		riskFlags,
+	);
+
+	return {
+		modelTier: score.tier,
+		modelRangeMinM: rangeMinM,
+		modelRangeMaxM: rangeMaxM,
+		modelPointEstimateM: roundedPointM,
+		modelPointAmount: Math.round(roundedPointM * 1000),
+		modelPointCapPct: (roundedPointM * 1000) / attrs.salaryCap,
+		modelPointText: `$${roundedPointM.toFixed(2)}M`,
+		modelYears,
+		tierPlacementScore,
+		modelComponents: Object.fromEntries(
+			Object.entries(components).map(([key, value]) => [key, round(value, 4)]),
+		),
+		riskFlags,
+		riskFlagsText: riskFlags.join("; "),
+		modelPlacementReason: [
+			`v2 placement keeps formal tier/range (${score.tier}) and places ask at ${pct(tierPlacementScore)} inside the range`,
+			riskFlags.length > 0
+				? `flags: ${riskFlags.join(", ")}`
+				: "no major risk flags",
+		].join("; "),
+	};
+};
+
 const targetRangeK = (target, row) => {
 	if (!Array.isArray(target?.targetRangeM)) {
 		return {};
@@ -332,8 +1074,7 @@ const targetRangeK = (target, row) => {
 	return {
 		targetRangeMin: min,
 		targetRangeMax: max,
-		targetRangeText:
-			min === max ? money(min) : `${money(min)}-${money(max)}`,
+		targetRangeText: min === max ? money(min) : `${money(min)}-${money(max)}`,
 	};
 };
 
@@ -392,16 +1133,32 @@ export const scoreRows = ({ proxyRows, targets, attrs }) => {
 		const target = targetByPid[row.pid];
 		const score = scoreTier(row);
 		const range = tierRange(score.tier, row, attrs);
+		const placement = scoreContractMarketPlacement(row, attrs, {
+			score,
+			range,
+		});
 		const evaluation = evaluateHit(row, target, score, range);
 		const modelMid = (range.modelRangeMin + range.modelRangeMax) / 2;
 
 		return {
 			...row,
 			modelTier: score.tier,
+			baseModelTier: score.baseTier ?? score.tier,
+			responsibleModule: score.responsibleModule ?? "none",
+			conflict: score.conflict ?? "no",
 			modelReason: score.reason,
 			...range,
+			modelYears: placement.modelYears,
 			modelMidAmount: modelMid,
 			modelMidCapPct: modelMid / attrs.salaryCap,
+			modelPointAmount: placement.modelPointAmount,
+			modelPointEstimateM: placement.modelPointEstimateM,
+			modelPointText: placement.modelPointText,
+			modelPointCapPct: placement.modelPointCapPct,
+			tierPlacementScore: placement.tierPlacementScore,
+			modelPlacementReason: placement.modelPlacementReason,
+			modelComponents: JSON.stringify(placement.modelComponents),
+			riskFlags: placement.riskFlagsText,
 			targetTierOriginal: target?.targetTier,
 			targetTierComparable: evaluation.comparableTargetTier,
 			targetRangeText: evaluation.targetRangeText,
@@ -436,13 +1193,20 @@ const main = () => {
 		"targetTierOriginal",
 		"targetTierComparable",
 		"targetRangeText",
+		"baseModelTier",
 		"modelTier",
+		"responsibleModule",
 		"modelRangeText",
 		"modelCapRangeText",
 		"modelYears",
+		"modelPointText",
+		"modelPointCapPct",
+		"tierPlacementScore",
 		"hitStatus",
 		"missReason",
 		"modelReason",
+		"modelPlacementReason",
+		"riskFlags",
 		"normalNoOptionContractAmount",
 		"normalNoOptionContractYears",
 		"normalNoOptionContractCapPct",
@@ -498,9 +1262,12 @@ const main = () => {
 		{ key: "pid", label: "pid" },
 		{ key: "name", label: "player" },
 		{ key: "targetTierOriginal", label: "target tier" },
+		{ key: "baseModelTier", label: "base tier" },
 		{ key: "modelTier", label: "model tier" },
+		{ key: "responsibleModule", label: "module" },
 		{ key: "targetRangeText", label: "target range" },
 		{ key: "modelRangeText", label: "model range" },
+		{ key: "modelPointText", label: "model point" },
 		{ key: "modelCapRangeText", label: "model cap%" },
 		{ key: "modelYears", label: "years" },
 		{ key: "hitStatus", label: "hit/miss" },
@@ -510,7 +1277,9 @@ const main = () => {
 	const proxyColumns = [
 		{ key: "pid", label: "pid" },
 		{ key: "name", label: "player" },
+		{ key: "baseModelTier", label: "base tier" },
 		{ key: "modelTier", label: "model tier" },
+		{ key: "modelPointText", label: "point" },
 		{
 			key: "normalNoOptionContractAmount",
 			label: "normal current",
@@ -579,12 +1348,17 @@ ${missText}
 | YOUNG_UPSIDE_SUSPECT | 2.5%-4.5% cap |
 | VETERAN_ROTATION_GUARD | 4.0%-6.0% cap, length 1-2 years |
 | LOW_END_STARTER | 6.0%-12.0% cap |
+| HIGH_END_ROTATION | 7.0%-12.0% cap |
+| SOLID_STARTER | 12.0%-17.0% cap |
 | YOUNG_PROVEN_STARTER | 17.0%-22.5% cap |
 | STAR_NEAR_MAX | 88%-100% eligible max |
 | SUPERSTAR_MAX | 100% eligible max |
 
 ## Rules That Need Validation
 
+- Formal point estimates use the migrated V2 placement layer: after the formal tier/range is selected, component scoring places the ask within that range rather than using the midpoint.
+- \`HIGH_END_ROTATION\` is limited to V3-1A candidates below current \`LOW_END_STARTER\`; it does not create a broad \`HIGH_IMPACT_STARTER\` tier.
+- \`SOLID_STARTER\` is limited to the V3-1B-narrow-B subset of current \`LOW_END_STARTER\`; no broad 1C layer is enabled.
 - The thresholds for \`YOUNG_PROVEN_STARTER\` vs \`STAR_NEAR_MAX\` are still coarse. They lean on \`getContractValue\`, \`valueNoPot\`, starter load, and EWA/VORP/BPM, but need a larger validation set around upper-end starters.
 - \`LOW_END_STARTER\` currently treats starter role plus BBGM current value as enough. It needs validation for inefficient starters with strong minutes but weak impact stats.
 - \`YOUNG_UPSIDE_SUSPECT\` uses potential premium and pot with role uncertainty. This should be checked against young athletic wings/guards who start because of roster context.

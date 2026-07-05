@@ -1,0 +1,9 @@
+source,caseId,pid,name,humanRangeText,currentTier,formalTier,responsibleModule,formalPointM,formalDirection,formalGapM,formalGapBand,priorArtifactPointM,formalMinusPriorArtifactPointM,notes
+blind_validation30,BV30-25,741,RJ Barrett,25-35,MINIMUM_LEVEL,HIGH_END_ROTATION,1A,16.44,too_low,8.56,major,16.44,0,major human-range miss
+blind_validation30,BV30-28,347,Luke Kennard,28-38,STAR_NEAR_MAX,STAR_NEAR_MAX,none,45.66,too_high,7.66,review,45.66,0,review-band human-range miss
+validation20,V20-10,1603,Jason Preston,$24.00M-$29.00M,LOW_END_STARTER,LOW_END_STARTER,none,16.86,too_low,7.14,review,16.86,0,review-band human-range miss
+validation20,V20-06,1339,Isaiah Jackson,$40.00M-$46.40M,YOUNG_PROVEN_STARTER,YOUNG_PROVEN_STARTER,none,33.47,too_low,6.53,review,33.48,-0.01,review-band human-range miss
+boundary40,G-03,20,OG Anunoby,$12.00M-$18.00M,LOW_END_STARTER,SOLID_STARTER,1B-B,24.17,too_high,6.17,review,24.17,0,review-band human-range miss
+blind_validation30,BV30-29,108,Willie Cauley-Stein,4-8,VETERAN_MINIMUM_PLUS,HIGH_END_ROTATION,1A,13.86,too_high,5.86,review,13.86,0,review-band human-range miss
+boundary40,F-01,1675,Shaedon Sharpe,$20.00M-$30.00M,LOW_END_STARTER,LOW_END_STARTER,none,14.85,too_low,5.15,review,14.85,0,review-band human-range miss
+boundary40,H-02,589,Ben Simmons,$30.00M-$35.00M,LOW_END_STARTER,SOLID_STARTER,1B-B,24.99,too_low,5.01,review,24.99,0,review-band human-range miss
