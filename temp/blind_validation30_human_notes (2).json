@@ -1,0 +1,512 @@
+{
+	"blind_validation30-204": {
+		"caseId": "BV30-01",
+		"pid": 204,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "medium",
+		"role_note": "16-24",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1335": {
+		"caseId": "BV30-02",
+		"pid": 1335,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "25-33",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-14": {
+		"caseId": "BV30-03",
+		"pid": 14,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "底薪",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1818": {
+		"caseId": "BV30-04",
+		"pid": 1818,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "2-4，我觉得，如果给的时间多一点的话能拿多点。只是他现在确实没有时间。只不过在有限出场时间内打的是很不错的。",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-468": {
+		"caseId": "BV30-05",
+		"pid": 468,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "16-24",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1384": {
+		"caseId": "BV30-06",
+		"pid": 1384,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "16-24",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-462": {
+		"caseId": "BV30-07",
+		"pid": 462,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "8-14",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-102": {
+		"caseId": "BV30-08",
+		"pid": 102,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "底薪",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1434": {
+		"caseId": "BV30-09",
+		"pid": 1434,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "8-14",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1311": {
+		"caseId": "BV30-10",
+		"pid": 1311,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "6-10",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-865": {
+		"caseId": "BV30-11",
+		"pid": 865,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "low",
+		"role_note": "8-20",
+		"uncertainty_note": "还是太年轻了，有潜力。但是目前完全没有兑现..我跟你讲了，这个东西不太能可靠，因为你不可能有这么多人，不可能有新秀这么年轻的新秀在自由市场上面给你签的。这人家都是还要培养的，你这个没法儿特别合适的定价。你懂吧",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1406": {
+		"caseId": "BV30-12",
+		"pid": 1406,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "3-6",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1200": {
+		"caseId": "BV30-13",
+		"pid": 1200,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "4-8",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-8": {
+		"caseId": "BV30-14",
+		"pid": 8,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "34-max",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-447": {
+		"caseId": "BV30-15",
+		"pid": 447,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "max",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-210": {
+		"caseId": "BV30-16",
+		"pid": 210,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "16-24",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-116": {
+		"caseId": "BV30-17",
+		"pid": 116,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "10-18",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1802": {
+		"caseId": "BV30-18",
+		"pid": 1802,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "low",
+		"role_note": "8-16",
+		"uncertainty_note": "rookie，不太能决定，正常来说，不会有这么有价值的。这么年轻的全流入到市场中。",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-530": {
+		"caseId": "BV30-19",
+		"pid": 530,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "10-16",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1634": {
+		"caseId": "BV30-20",
+		"pid": 1634,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "low",
+		"role_note": "太年轻了，新秀不会有20岁这么高高潜力的球员流入到市场中",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-906": {
+		"caseId": "BV30-21",
+		"pid": 906,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "27-39",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-567": {
+		"caseId": "BV30-22",
+		"pid": 567,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "18-30",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": true,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1699": {
+		"caseId": "BV30-23",
+		"pid": 1699,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "low",
+		"role_note": "依旧和之前一样的原因，不会有这么年轻的球员来，所以不太好判断。我说实话.",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1197": {
+		"caseId": "BV30-24",
+		"pid": 1197,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "low",
+		"role_note": "25-35",
+		"uncertainty_note": "感觉不是特别确定，因为他身体是真好，也是真有潜力，但是现在打出来数据确实一般般，但我觉得现实里会有球队为了他这么爆炸的身体这么强大的上限去给一些高合同.",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-741": {
+		"caseId": "BV30-25",
+		"pid": 741,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "25-35",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-219": {
+		"caseId": "BV30-26",
+		"pid": 219,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "12-20",
+		"uncertainty_note": "首先有下滑风险，而且失误控制太差，BPM也不是特别负面，但是考虑到他辉煌的履历以及整体基础数据还可以吧，命中率还可以，所以会给他一个12~20。但是我觉得再给低一点，甚至面儿上他过不去，如果给低，把这个名字把他履历盖掉，我说实话，我能给到8~14就不错了，他的基础数据还可以，但是高阶数据实在不太优秀。而且失误太多",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1250": {
+		"caseId": "BV30-27",
+		"pid": 1250,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "14-22",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-347": {
+		"caseId": "BV30-28",
+		"pid": 347,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "28-38",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-108": {
+		"caseId": "BV30-29",
+		"pid": 108,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "4-8",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1780": {
+		"caseId": "BV30-30",
+		"pid": 1780,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "low",
+		"role_note": "和之前那几个年轻人的总结结论一样",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	}
+}

@@ -1,0 +1,2 @@
+pid,name,team,pos,ratings_hgt,ratings_diq,skills,gp,mpg,dbpm,obpm,bpm,rawBPM,rawOBPM,rawDBPM,teamAdjBPM,teamAdjOBPM,teamAdjDBPM,scoring_BPM,ballhandle_BPM,defense_BPM,interBPM,scoring_OBPM,ballhandle_OBPM,defense_OBPM,interOBPM,stl100,blk100,orb100,drb100,trb100,pf100,est_pos,est_role,tmRate,ofRate
+200,Yogi Ferrell,PHI,G,29,54,3,Ps,62,21.18,1.1160,2.4650,3.5809,11.0011,6.8395,4.1616,-7.4201,-4.3745,-3.0457,5.8931,3.5995,1.9861,-0.4776,5.9107,2.6149,-0.6948,-0.9913,1.4080,0.3249,0.9026,3.8269,4.7295,3.2493,1.8324,1.6960,7.5620,2.8695

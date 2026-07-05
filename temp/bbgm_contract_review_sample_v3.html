@@ -1,0 +1,3012 @@
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>BBGM Contract Review Sample v3</title>
+		<style>
+			:root {
+				--bg: #f6f7f9;
+				--card: #fff;
+				--text: #172033;
+				--muted: #667085;
+				--line: #e5e7eb;
+				--soft: #f8fafc;
+				--blue: #eef4ff;
+				--green: #ecfdf3;
+				--red: #fef3f2;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				background: var(--bg);
+				color: var(--text);
+				font-family:
+					-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					"Helvetica Neue", Arial, "Noto Sans", sans-serif;
+			}
+			header {
+				background: #111827;
+				color: white;
+				padding: 22px 28px;
+			}
+			header h1 {
+				margin: 0 0 8px;
+				font-size: 24px;
+			}
+			header p {
+				margin: 4px 0;
+				color: #d1d5db;
+			}
+			main {
+				max-width: 1320px;
+				margin: 0 auto;
+				padding: 20px;
+			}
+			.toolbar {
+				position: sticky;
+				top: 0;
+				z-index: 3;
+				background: rgba(246, 247, 249, 0.95);
+				backdrop-filter: blur(8px);
+				padding: 10px 0;
+				border-bottom: 1px solid var(--line);
+				display: flex;
+				gap: 10px;
+				flex-wrap: wrap;
+			}
+			button {
+				border: 1px solid #cbd5e1;
+				background: #fff;
+				border-radius: 10px;
+				padding: 8px 12px;
+				cursor: pointer;
+			}
+			.notice {
+				background: #fff7ed;
+				border: 1px solid #fed7aa;
+				border-radius: 12px;
+				padding: 13px 15px;
+				margin: 14px 0;
+				line-height: 1.55;
+			}
+			.section h2 {
+				font-size: 22px;
+				margin: 24px 0 12px;
+			}
+			.section h2 small {
+				display: block;
+				font-size: 13px;
+				color: var(--muted);
+				font-weight: 500;
+				margin-top: 3px;
+			}
+			.card {
+				background: var(--card);
+				border: 1px solid var(--line);
+				border-radius: 16px;
+				padding: 16px;
+				margin: 16px 0;
+				box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+			}
+			.title-row {
+				display: flex;
+				justify-content: space-between;
+				gap: 12px;
+				align-items: flex-start;
+				margin-bottom: 12px;
+			}
+			h3 {
+				margin: 0;
+				font-size: 23px;
+			}
+			h3 small {
+				color: var(--muted);
+				font-size: 12px;
+				font-weight: 500;
+			}
+			.muted {
+				color: var(--muted);
+				font-size: 13px;
+			}
+			.verdict {
+				font-weight: 800;
+				border-radius: 999px;
+				padding: 7px 12px;
+				background: var(--blue);
+				border: 1px solid #b2ccff;
+				white-space: nowrap;
+			}
+			.pill-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+				gap: 8px;
+				margin: 10px 0 14px;
+			}
+			.pill {
+				background: #fff;
+				border: 1px solid var(--line);
+				border-radius: 11px;
+				padding: 9px 10px;
+				min-height: 58px;
+			}
+			.pill.primary {
+				background: #ecfdf3;
+				border-color: #86efac;
+			}
+			.pill span {
+				display: block;
+				color: var(--muted);
+				font-size: 12px;
+				margin-bottom: 4px;
+			}
+			.pill b {
+				font-size: 15px;
+			}
+			.why {
+				background: #eef4ff;
+				border: 1px solid #b2ccff;
+				border-radius: 12px;
+				padding: 10px 12px;
+				margin: 10px 0 14px;
+			}
+			.why summary {
+				font-weight: 800;
+				cursor: pointer;
+			}
+			.why p {
+				margin: 8px 0 0;
+				line-height: 1.55;
+			}
+			.content-grid {
+				display: grid;
+				grid-template-columns: minmax(280px, 430px) minmax(360px, 1fr);
+				gap: 16px;
+				align-items: start;
+			}
+			@media (max-width: 920px) {
+				.content-grid {
+					grid-template-columns: 1fr;
+				}
+			}
+			.panel h4 {
+				margin: 0 0 10px;
+				font-size: 17px;
+			}
+			.ratings-wrap {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+				gap: 10px;
+				width: 100%;
+			}
+			.ratings-group {
+				border: 1px solid var(--line);
+				border-radius: 12px;
+				overflow: hidden;
+				background: #fff;
+			}
+			.ratings-group h4 {
+				margin: 0;
+				padding: 8px 10px;
+				background: #f2f4f7;
+				border-bottom: 1px solid var(--line);
+				font-size: 14px;
+			}
+			.ratings-group table {
+				width: 100%;
+				border-collapse: collapse;
+				table-layout: fixed;
+			}
+			.ratings-group td {
+				padding: 7px 10px;
+				border-bottom: 1px solid #eef2f7;
+				font-size: 13px;
+				vertical-align: middle;
+			}
+			.ratings-group tr:last-child td {
+				border-bottom: 0;
+			}
+			.ratings-group td:first-child {
+				width: 72%;
+				white-space: normal;
+				overflow: visible;
+				line-height: 1.2;
+			}
+			.ratings-group td:last-child {
+				width: 28%;
+				text-align: right;
+				font-weight: 800;
+				font-size: 15px;
+			}
+			.good {
+				color: #067647;
+			}
+			.mid {
+				color: #175cd3;
+			}
+			.low {
+				color: #b42318;
+			}
+			.subhead {
+				font-weight: 800;
+				color: #475467;
+				font-size: 13px;
+				margin: 2px 0 8px;
+			}
+			.stat-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+				gap: 7px;
+				margin-bottom: 12px;
+			}
+			.stat {
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				padding: 7px 9px;
+				background: #fff;
+				min-height: 50px;
+			}
+			.stat span {
+				display: block;
+				color: var(--muted);
+				font-size: 11px;
+				margin-bottom: 3px;
+			}
+			.stat b {
+				font-size: 14px;
+			}
+			.extra {
+				margin-top: 12px;
+				border-top: 1px solid var(--line);
+				padding-top: 10px;
+			}
+			.extra summary {
+				cursor: pointer;
+				font-weight: 800;
+				color: #344054;
+			}
+			.extra p {
+				line-height: 1.5;
+				color: #344054;
+			}
+			.debug-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+				gap: 8px;
+				margin-top: 9px;
+			}
+			.debug-grid div {
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				background: #fff;
+				padding: 8px 10px;
+			}
+			.debug-grid span {
+				display: block;
+				color: var(--muted);
+				font-size: 12px;
+				margin-bottom: 3px;
+			}
+			.note-label {
+				display: block;
+				margin: 14px 0 6px;
+				font-weight: 800;
+				color: #344054;
+			}
+			textarea {
+				width: 100%;
+				min-height: 100px;
+				resize: vertical;
+				border: 1px solid #cbd5e1;
+				border-radius: 12px;
+				padding: 10px 12px;
+				font:
+					14px/1.5 -apple-system,
+					BlinkMacSystemFont,
+					"Segoe UI",
+					Roboto,
+					"Helvetica Neue",
+					Arial,
+					"Noto Sans",
+					sans-serif;
+				background: #fff;
+			}
+		</style>
+	</head>
+	<body>
+		<header>
+			<h1>BBGM Contract Review Sample v3</h1>
+			<p>Season 2025, phase 7 re-sign players, salary cap $154.65M</p>
+			<p>合同显示为 normal/no-option comparison，避免 PO/TO 名义价格混淆。</p>
+		</header>
+		<main>
+			<div class="toolbar">
+				<button onclick="exportNotes()">Export notes JSON</button
+				><button onclick="clearNotes()">Clear notes on this page</button>
+			</div>
+			<div class="notice">
+				<b>这版改动：</b>名字旁边突出合同大小；POTO 不再显示在主信息里；Value /
+				getContractValue 放入折叠 debug；All Ratings 改成更紧凑的 BBGM
+				三组竖排，避免截图里那种看不全/挤压。
+			</div>
+			<section class="section">
+				<h2>user_re_sign_all <small>用户队 re-sign 抽样</small></h2>
+				<article class="card" id="p1294-user_re_sign_all">
+					<div class="title-row">
+						<div>
+							<h3>Sam Hauser <small>pid 1294</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">可能合理/略低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$2.87M / 3y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>56/56</b></div>
+						<div class="pill"><span>Age / Pos</span><b>28 / F</b></div>
+						<div class="pill"><span>Team</span><b>Free Agent</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>6.6 / 1.9 / 0.5</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>13.8 / 14.9</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>66.2 / 0.4 / 1.6</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>1.9% / 7.4%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$10.53M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$7.05M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>
+							这是 re-sign / phase 7 口径，不是正式 FA day 1
+							之后可能出现的高版价格；我的初筛仅按
+							OVR/POT、产量、高阶和合同占比粗看：可能合理/略低
+						</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="low">48</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="low">42</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="low">41</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="low">32</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="mid">55</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="good">82</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="good">75</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="good">78</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="low">40</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="mid">55</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="low">48</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="mid">68</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>74</b></div>
+								<div class="stat"><span>GS</span><b>7</b></div>
+								<div class="stat"><span>MPG</span><b>13.8</b></div>
+								<div class="stat"><span>PTS</span><b>6.6</b></div>
+								<div class="stat"><span>TRB</span><b>1.9</b></div>
+								<div class="stat"><span>AST</span><b>0.5</b></div>
+								<div class="stat"><span>STL</span><b>0.4</b></div>
+								<div class="stat"><span>BLK</span><b>0.1</b></div>
+								<div class="stat"><span>TOV</span><b>0.8</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>66.2</b></div>
+								<div class="stat"><span>eFG%</span><b>63.0</b></div>
+								<div class="stat"><span>PER</span><b>14.9</b></div>
+								<div class="stat"><span>EWA</span><b>1.6</b></div>
+								<div class="stat"><span>USG%</span><b>17.6</b></div>
+								<div class="stat"><span>ORtg</span><b>117.9</b></div>
+								<div class="stat"><span>DRtg</span><b>110.1</b></div>
+								<div class="stat"><span>+/- per 100</span><b>7.4</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>0.9</b></div>
+								<div class="stat"><span>OBPM</span><b>1.2</b></div>
+								<div class="stat"><span>DBPM</span><b>-0.8</b></div>
+								<div class="stat"><span>BPM</span><b>0.4</b></div>
+								<div class="stat"><span>VORP</span><b>0.6</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>None</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>50.3</b></div>
+							<div><span>ValueNoPot</span><b>52.9</b></div>
+							<div><span>getContractValue</span><b>52.4</b></div>
+							<div><span>Eligible Max</span><b>$38.66M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-user_re_sign_all-1294"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-user_re_sign_all-1294"
+						data-note-key="note-user_re_sign_all-1294"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p361-user_re_sign_all">
+					<div class="title-row">
+						<div>
+							<h3>Skal Labissière <small>pid 361</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">可能合理/略低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$3.78M / 3y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>56/56</b></div>
+						<div class="pill"><span>Age / Pos</span><b>29 / FC</b></div>
+						<div class="pill"><span>Team</span><b>Free Agent</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>3.7 / 2.7 / 0.6</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>11.5 / 9.3</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>50.3 / -4.3 / -0.4</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>2.4% / 8.1%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$9.56M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$1.51M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>
+							这是 re-sign / phase 7 口径，不是正式 FA day 1
+							之后可能出现的高版价格；我的初筛仅按
+							OVR/POT、产量、高阶和合同占比粗看：可能合理/略低
+						</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="mid">65</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">65</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="low">43</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="low">43</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="low">43</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="mid">56</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="mid">55</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">53</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="low">45</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">38</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="low">48</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="low">51</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="low">50</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="low">49</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="mid">62</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>47</b></div>
+								<div class="stat"><span>GS</span><b>2</b></div>
+								<div class="stat"><span>MPG</span><b>11.5</b></div>
+								<div class="stat"><span>PTS</span><b>3.7</b></div>
+								<div class="stat"><span>TRB</span><b>2.7</b></div>
+								<div class="stat"><span>AST</span><b>0.6</b></div>
+								<div class="stat"><span>STL</span><b>0.3</b></div>
+								<div class="stat"><span>BLK</span><b>0.4</b></div>
+								<div class="stat"><span>TOV</span><b>1.0</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>50.3</b></div>
+								<div class="stat"><span>eFG%</span><b>44.7</b></div>
+								<div class="stat"><span>PER</span><b>9.3</b></div>
+								<div class="stat"><span>EWA</span><b>-0.4</b></div>
+								<div class="stat"><span>USG%</span><b>16.8</b></div>
+								<div class="stat"><span>ORtg</span><b>94.8</b></div>
+								<div class="stat"><span>DRtg</span><b>107.2</b></div>
+								<div class="stat"><span>+/- per 100</span><b>-7.9</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>-16.9</b></div>
+								<div class="stat"><span>OBPM</span><b>-3.6</b></div>
+								<div class="stat"><span>DBPM</span><b>-0.7</b></div>
+								<div class="stat"><span>BPM</span><b>-4.3</b></div>
+								<div class="stat"><span>VORP</span><b>-0.3</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>None</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>49.1</b></div>
+							<div><span>ValueNoPot</span><b>52.2</b></div>
+							<div><span>getContractValue</span><b>51.8</b></div>
+							<div><span>Eligible Max</span><b>$46.40M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-user_re_sign_all-361"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-user_re_sign_all-361"
+						data-note-key="note-user_re_sign_all-361"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p225-user_re_sign_all">
+					<div class="title-row">
+						<div>
+							<h3>Rudy Gobert <small>pid 225</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">可能合理/略低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$3.83M / 3y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>55/55</b></div>
+						<div class="pill"><span>Age / Pos</span><b>33 / C</b></div>
+						<div class="pill"><span>Team</span><b>Free Agent</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>2.6 / 3.5 / 0.6</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>10.5 / 13.4</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>62.5 / -0.8 / 0.9</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>2.5% / 7.1%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$8.98M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$3.72M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>
+							这是 re-sign / phase 7 口径，不是正式 FA day 1
+							之后可能出现的高版价格；我的初筛仅按
+							OVR/POT、产量、高阶和合同占比粗看：可能合理/略低
+						</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="good">77</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="good">73</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="low">25</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="low">35</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="low">48</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="low">50</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="mid">68</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">32</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="low">11</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">8</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="low">49</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="mid">61</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="low">49</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="low">50</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="good">75</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>81</b></div>
+								<div class="stat"><span>GS</span><b>2</b></div>
+								<div class="stat"><span>MPG</span><b>10.5</b></div>
+								<div class="stat"><span>PTS</span><b>2.6</b></div>
+								<div class="stat"><span>TRB</span><b>3.5</b></div>
+								<div class="stat"><span>AST</span><b>0.6</b></div>
+								<div class="stat"><span>STL</span><b>0.2</b></div>
+								<div class="stat"><span>BLK</span><b>0.5</b></div>
+								<div class="stat"><span>TOV</span><b>0.7</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>62.5</b></div>
+								<div class="stat"><span>eFG%</span><b>61.3</b></div>
+								<div class="stat"><span>PER</span><b>13.4</b></div>
+								<div class="stat"><span>EWA</span><b>0.9</b></div>
+								<div class="stat"><span>USG%</span><b>11.1</b></div>
+								<div class="stat"><span>ORtg</span><b>113.6</b></div>
+								<div class="stat"><span>DRtg</span><b>104.2</b></div>
+								<div class="stat"><span>+/- per 100</span><b>-1.4</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>-10.3</b></div>
+								<div class="stat"><span>OBPM</span><b>-1.4</b></div>
+								<div class="stat"><span>DBPM</span><b>0.6</b></div>
+								<div class="stat"><span>BPM</span><b>-0.8</b></div>
+								<div class="stat"><span>VORP</span><b>0.3</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>
+							2022: Third Team All-Defensive; 2019: Third Team All-Defensive;
+							2018: Second Team All-Defensive; 2018: League Blocks Leader; 2017:
+							Second Team All-League; 2017: League Blocks Leader; 2017: First
+							Team All-Defensive
+						</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>47.8</b></div>
+							<div><span>ValueNoPot</span><b>52.0</b></div>
+							<div><span>getContractValue</span><b>51.5</b></div>
+							<div><span>Eligible Max</span><b>$54.13M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-user_re_sign_all-225"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-user_re_sign_all-225"
+						data-note-key="note-user_re_sign_all-225"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+			</section>
+			<section class="section">
+				<h2>ai_resigned_high_priority <small>AI 已续约抽样</small></h2>
+				<article class="card" id="p8-ai_resigned_high_priority">
+					<div class="title-row">
+						<div>
+							<h3>Jarrett Allen <small>pid 8</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">可能偏低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$33.11M / 5y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>72/74</b></div>
+						<div class="pill"><span>Age / Pos</span><b>27 / C</b></div>
+						<div class="pill"><span>Team</span><b>BKN</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>18.0 / 10.1 / 3.1</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>32.3 / 21.6</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>59.8 / 4.8 / 11.6</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>21.4% / 71.4%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$34.14M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$22.88M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>
+							这是 re-sign / phase 7 口径，不是正式 FA day 1
+							之后可能出现的高版价格；我的初筛仅按
+							OVR/POT、产量、高阶和合同占比粗看：可能偏低
+						</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="good">71</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="good">88</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="mid">59</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="mid">55</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="good">70</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="good">76</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="mid">60</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="low">47</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">50</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="mid">63</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="mid">68</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="low">53</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="low">54</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="good">75</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>82</b></div>
+								<div class="stat"><span>GS</span><b>82</b></div>
+								<div class="stat"><span>MPG</span><b>32.3</b></div>
+								<div class="stat"><span>PTS</span><b>18.0</b></div>
+								<div class="stat"><span>TRB</span><b>10.1</b></div>
+								<div class="stat"><span>AST</span><b>3.1</b></div>
+								<div class="stat"><span>STL</span><b>1.4</b></div>
+								<div class="stat"><span>BLK</span><b>1.3</b></div>
+								<div class="stat"><span>TOV</span><b>3.0</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>59.8</b></div>
+								<div class="stat"><span>eFG%</span><b>54.6</b></div>
+								<div class="stat"><span>PER</span><b>21.6</b></div>
+								<div class="stat"><span>EWA</span><b>11.6</b></div>
+								<div class="stat"><span>USG%</span><b>23.2</b></div>
+								<div class="stat"><span>ORtg</span><b>112.6</b></div>
+								<div class="stat"><span>DRtg</span><b>98.3</b></div>
+								<div class="stat"><span>+/- per 100</span><b>8.8</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>11.3</b></div>
+								<div class="stat"><span>OBPM</span><b>3.0</b></div>
+								<div class="stat"><span>DBPM</span><b>1.8</b></div>
+								<div class="stat"><span>BPM</span><b>4.8</b></div>
+								<div class="stat"><span>VORP</span><b>4.5</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>
+							2025: Third Team All-League; 2025: First Team All-Defensive; 2025:
+							All-Star; 2024: First Team All-League; 2024: First Team
+							All-Defensive; 2024: All-Star; 2023: First Team All-Defensive;
+							2023: Defensive Player of the Year; 2023: All-Star; 2022: First
+							Team All-Defensive; 2022: Defensive Player of the Year; 2022:
+							All-Star; …
+						</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>64.9</b></div>
+							<div><span>ValueNoPot</span><b>66.5</b></div>
+							<div><span>getContractValue</span><b>66.2</b></div>
+							<div><span>Eligible Max</span><b>$46.40M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-ai_resigned_high_priority-8"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-ai_resigned_high_priority-8"
+						data-note-key="note-ai_resigned_high_priority-8"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p1669-ai_resigned_high_priority">
+					<div class="title-row">
+						<div>
+							<h3>Alperen Şengün <small>pid 1669</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">待人工判断</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$18.18M / 5y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>64/72</b></div>
+						<div class="pill"><span>Age / Pos</span><b>23 / C</b></div>
+						<div class="pill"><span>Team</span><b>LAC</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>15.0 / 7.9 / 4.0</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>29.9 / 17.6</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>55.6 / 1.1 / 6.3</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>11.8% / 47.0%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$24.25M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$8.38M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>
+							这是 re-sign / phase 7 口径，不是正式 FA day 1
+							之后可能出现的高版价格；我的初筛仅按
+							OVR/POT、产量、高阶和合同占比粗看：待人工判断
+						</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="mid">61</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">64</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="mid">57</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="low">36</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="mid">60</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="good">73</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="good">72</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">54</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="mid">60</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">44</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="mid">68</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="low">54</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="mid">60</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="good">71</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>76</b></div>
+								<div class="stat"><span>GS</span><b>76</b></div>
+								<div class="stat"><span>MPG</span><b>29.9</b></div>
+								<div class="stat"><span>PTS</span><b>15.0</b></div>
+								<div class="stat"><span>TRB</span><b>7.9</b></div>
+								<div class="stat"><span>AST</span><b>4.0</b></div>
+								<div class="stat"><span>STL</span><b>1.0</b></div>
+								<div class="stat"><span>BLK</span><b>0.7</b></div>
+								<div class="stat"><span>TOV</span><b>2.8</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>55.6</b></div>
+								<div class="stat"><span>eFG%</span><b>50.9</b></div>
+								<div class="stat"><span>PER</span><b>17.6</b></div>
+								<div class="stat"><span>EWA</span><b>6.3</b></div>
+								<div class="stat"><span>USG%</span><b>23.0</b></div>
+								<div class="stat"><span>ORtg</span><b>107.1</b></div>
+								<div class="stat"><span>DRtg</span><b>104.2</b></div>
+								<div class="stat"><span>+/- per 100</span><b>6.3</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>3.4</b></div>
+								<div class="stat"><span>OBPM</span><b>0.9</b></div>
+								<div class="stat"><span>DBPM</span><b>0.2</b></div>
+								<div class="stat"><span>BPM</span><b>1.1</b></div>
+								<div class="stat"><span>VORP</span><b>1.8</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>None</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>63.7</b></div>
+							<div><span>ValueNoPot</span><b>59.6</b></div>
+							<div><span>getContractValue</span><b>60.4</b></div>
+							<div><span>Eligible Max</span><b>$38.66M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-ai_resigned_high_priority-1669"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-ai_resigned_high_priority-1669"
+						data-note-key="note-ai_resigned_high_priority-1669"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p906-ai_resigned_high_priority">
+					<div class="title-row">
+						<div>
+							<h3>Ayo Dosunmu <small>pid 906</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">待人工判断</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$22.71M / 5y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>69/72</b></div>
+						<div class="pill"><span>Age / Pos</span><b>25 / SG</b></div>
+						<div class="pill"><span>Team</span><b>HOU</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>17.3 / 6.6 / 8.3</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>36.0 / 20.2</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>53.3 / 7.1 / 7.5</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>14.7% / 58.7%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$29.36M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$6.09M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>
+							这是 re-sign / phase 7 口径，不是正式 FA day 1
+							之后可能出现的高版价格；我的初筛仅按
+							OVR/POT、产量、高阶和合同占比粗看：待人工判断
+						</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="low">46</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">66</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="mid">64</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="mid">61</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="mid">69</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="good">70</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">38</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="mid">62</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="mid">65</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="mid">67</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="mid">65</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="mid">58</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="mid">62</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="good">71</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>54</b></div>
+								<div class="stat"><span>GS</span><b>54</b></div>
+								<div class="stat"><span>MPG</span><b>36.0</b></div>
+								<div class="stat"><span>PTS</span><b>17.3</b></div>
+								<div class="stat"><span>TRB</span><b>6.6</b></div>
+								<div class="stat"><span>AST</span><b>8.3</b></div>
+								<div class="stat"><span>STL</span><b>2.0</b></div>
+								<div class="stat"><span>BLK</span><b>0.4</b></div>
+								<div class="stat"><span>TOV</span><b>2.6</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>53.3</b></div>
+								<div class="stat"><span>eFG%</span><b>50.6</b></div>
+								<div class="stat"><span>PER</span><b>20.2</b></div>
+								<div class="stat"><span>EWA</span><b>7.5</b></div>
+								<div class="stat"><span>USG%</span><b>21.5</b></div>
+								<div class="stat"><span>ORtg</span><b>113.1</b></div>
+								<div class="stat"><span>DRtg</span><b>107.0</b></div>
+								<div class="stat"><span>+/- per 100</span><b>-2.3</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>7.0</b></div>
+								<div class="stat"><span>OBPM</span><b>4.3</b></div>
+								<div class="stat"><span>DBPM</span><b>2.8</b></div>
+								<div class="stat"><span>BPM</span><b>7.1</b></div>
+								<div class="stat"><span>VORP</span><b>4.5</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>None</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>64.3</b></div>
+							<div><span>ValueNoPot</span><b>63.2</b></div>
+							<div><span>getContractValue</span><b>63.4</b></div>
+							<div><span>Eligible Max</span><b>$38.66M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-ai_resigned_high_priority-906"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-ai_resigned_high_priority-906"
+						data-note-key="note-ai_resigned_high_priority-906"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+			</section>
+			<section class="section">
+				<h2>current_fa_high_priority <small>当前 FA pool 抽样</small></h2>
+				<article class="card" id="p1479-current_fa_high_priority">
+					<div class="title-row">
+						<div>
+							<h3>Jaden McDaniels <small>pid 1479</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">待人工判断</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$12.43M / 5y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>63/67</b></div>
+						<div class="pill"><span>Age / Pos</span><b>25 / F</b></div>
+						<div class="pill"><span>Team</span><b>Free Agent</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>12.3 / 6.9 / 1.1</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>28.3 / 16.3</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>55.8 / -0.7 / 4.5</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>8.0% / 32.2%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$21.36M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$5.53M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>
+							这是 phase 7 pre-FA ask，不等于正式 FA day 1
+							之后价格；我的初筛仅按
+							OVR/POT、产量、高阶和合同占比粗看：待人工判断
+						</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="mid">60</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">60</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="mid">59</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="mid">61</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="low">44</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="mid">63</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="mid">64</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="good">71</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">46</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="low">54</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="mid">63</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="low">48</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="low">53</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="mid">67</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>76</b></div>
+								<div class="stat"><span>GS</span><b>76</b></div>
+								<div class="stat"><span>MPG</span><b>28.3</b></div>
+								<div class="stat"><span>PTS</span><b>12.3</b></div>
+								<div class="stat"><span>TRB</span><b>6.9</b></div>
+								<div class="stat"><span>AST</span><b>1.1</b></div>
+								<div class="stat"><span>STL</span><b>1.2</b></div>
+								<div class="stat"><span>BLK</span><b>1.4</b></div>
+								<div class="stat"><span>TOV</span><b>1.8</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>55.8</b></div>
+								<div class="stat"><span>eFG%</span><b>50.6</b></div>
+								<div class="stat"><span>PER</span><b>16.3</b></div>
+								<div class="stat"><span>EWA</span><b>4.5</b></div>
+								<div class="stat"><span>USG%</span><b>19.0</b></div>
+								<div class="stat"><span>ORtg</span><b>107.1</b></div>
+								<div class="stat"><span>DRtg</span><b>104.0</b></div>
+								<div class="stat"><span>+/- per 100</span><b>-1.2</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>-0.5</b></div>
+								<div class="stat"><span>OBPM</span><b>-0.7</b></div>
+								<div class="stat"><span>DBPM</span><b>-0.0</b></div>
+								<div class="stat"><span>BPM</span><b>-0.7</b></div>
+								<div class="stat"><span>VORP</span><b>0.7</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>None</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>59.7</b></div>
+							<div><span>ValueNoPot</span><b>58.5</b></div>
+							<div><span>getContractValue</span><b>58.7</b></div>
+							<div><span>Eligible Max</span><b>$38.66M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-current_fa_high_priority-1479"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-current_fa_high_priority-1479"
+						data-note-key="note-current_fa_high_priority-1479"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p1409-current_fa_high_priority">
+					<div class="title-row">
+						<div>
+							<h3>Vit Krejci <small>pid 1409</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">可能合理/略低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$3.15M / 3y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>54/58</b></div>
+						<div class="pill"><span>Age / Pos</span><b>25 / G</b></div>
+						<div class="pill"><span>Team</span><b>Free Agent</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>3.0 / 1.0 / 1.6</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>7.8 / 14.8</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>58.9 / 1.5 / 1.0</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>2.0% / 8.1%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$8.73M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$1.15M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>
+							这是 phase 7 pre-FA ask，不等于正式 FA day 1
+							之后价格；我的初筛仅按
+							OVR/POT、产量、高阶和合同占比粗看：可能合理/略低
+						</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="low">48</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="low">37</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="low">50</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="low">39</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="low">42</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="mid">60</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">43</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="low">48</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">52</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="mid">59</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="low">39</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="mid">61</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="mid">66</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="low">50</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>81</b></div>
+								<div class="stat"><span>GS</span><b>0</b></div>
+								<div class="stat"><span>MPG</span><b>7.8</b></div>
+								<div class="stat"><span>PTS</span><b>3.0</b></div>
+								<div class="stat"><span>TRB</span><b>1.0</b></div>
+								<div class="stat"><span>AST</span><b>1.6</b></div>
+								<div class="stat"><span>STL</span><b>0.1</b></div>
+								<div class="stat"><span>BLK</span><b>0.1</b></div>
+								<div class="stat"><span>TOV</span><b>0.5</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>58.9</b></div>
+								<div class="stat"><span>eFG%</span><b>55.9</b></div>
+								<div class="stat"><span>PER</span><b>14.8</b></div>
+								<div class="stat"><span>EWA</span><b>1.0</b></div>
+								<div class="stat"><span>USG%</span><b>16.2</b></div>
+								<div class="stat"><span>ORtg</span><b>120.7</b></div>
+								<div class="stat"><span>DRtg</span><b>112.4</b></div>
+								<div class="stat"><span>+/- per 100</span><b>7.0</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>3.6</b></div>
+								<div class="stat"><span>OBPM</span><b>1.5</b></div>
+								<div class="stat"><span>DBPM</span><b>0.1</b></div>
+								<div class="stat"><span>BPM</span><b>1.5</b></div>
+								<div class="stat"><span>VORP</span><b>0.6</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>None</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>52.2</b></div>
+							<div><span>ValueNoPot</span><b>51.1</b></div>
+							<div><span>getContractValue</span><b>51.4</b></div>
+							<div><span>Eligible Max</span><b>$38.66M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-current_fa_high_priority-1409"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-current_fa_high_priority-1409"
+						data-note-key="note-current_fa_high_priority-1409"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p65-current_fa_high_priority">
+					<div class="title-row">
+						<div>
+							<h3>Eric Bledsoe <small>pid 65</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">可能合理/略低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$3.96M / 2y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>55/55</b></div>
+						<div class="pill"><span>Age / Pos</span><b>36 / G</b></div>
+						<div class="pill"><span>Team</span><b>Free Agent</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>3.0 / 1.3 / 1.5</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>10.4 / 9.6</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>51.4 / -2.4 / -0.1</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>2.6% / 7.3%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$8.18M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$8.09M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>
+							这是 phase 7 pre-FA ask，不等于正式 FA day 1
+							之后价格；我的初筛仅按
+							OVR/POT、产量、高阶和合同占比粗看：可能合理/略低
+						</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="low">41</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">55</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="low">41</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="low">38</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="low">44</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="low">54</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">50</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="low">50</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">46</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="low">47</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="mid">65</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="mid">68</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="mid">66</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="low">45</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>24</b></div>
+								<div class="stat"><span>GS</span><b>0</b></div>
+								<div class="stat"><span>MPG</span><b>10.4</b></div>
+								<div class="stat"><span>PTS</span><b>3.0</b></div>
+								<div class="stat"><span>TRB</span><b>1.3</b></div>
+								<div class="stat"><span>AST</span><b>1.5</b></div>
+								<div class="stat"><span>STL</span><b>0.5</b></div>
+								<div class="stat"><span>BLK</span><b>0.0</b></div>
+								<div class="stat"><span>TOV</span><b>0.8</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>51.4</b></div>
+								<div class="stat"><span>eFG%</span><b>49.3</b></div>
+								<div class="stat"><span>PER</span><b>9.6</b></div>
+								<div class="stat"><span>EWA</span><b>-0.1</b></div>
+								<div class="stat"><span>USG%</span><b>15.3</b></div>
+								<div class="stat"><span>ORtg</span><b>98.9</b></div>
+								<div class="stat"><span>DRtg</span><b>106.2</b></div>
+								<div class="stat"><span>+/- per 100</span><b>10.2</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>7.0</b></div>
+								<div class="stat"><span>OBPM</span><b>-3.2</b></div>
+								<div class="stat"><span>DBPM</span><b>0.8</b></div>
+								<div class="stat"><span>BPM</span><b>-2.4</b></div>
+								<div class="stat"><span>VORP</span><b>-0.0</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>2021: Second Team All-Defensive; 2020: League Steals Leader</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>46.9</b></div>
+							<div><span>ValueNoPot</span><b>51.6</b></div>
+							<div><span>getContractValue</span><b>51.0</b></div>
+							<div><span>Eligible Max</span><b>$54.13M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-current_fa_high_priority-65"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-current_fa_high_priority-65"
+						data-note-key="note-current_fa_high_priority-65"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+			</section>
+			<section class="section">
+				<h2>young_proven_or_suspect <small>年轻已兑现/可疑抽样</small></h2>
+				<article class="card" id="p1363-young_proven_or_suspect">
+					<div class="title-row">
+						<div>
+							<h3>Keon Johnson <small>pid 1363</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">待人工判断</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$7.51M / 4y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>59/68</b></div>
+						<div class="pill"><span>Age / Pos</span><b>23 / SG</b></div>
+						<div class="pill"><span>Team</span><b>NYK</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>6.6 / 3.6 / 1.5</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>22.4 / 10.4</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>48.6 / -2.9 / -0.1</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>4.9% / 19.4%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$14.49M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$5.36M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>我的初筛仅按 OVR/POT、产量、高阶和合同占比粗看：待人工判断</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="low">38</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">61</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="mid">66</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="good">86</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="mid">64</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="low">50</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="low">51</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">32</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="low">45</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">41</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="low">49</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="mid">55</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="low">47</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="mid">60</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="low">42</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>59</b></div>
+								<div class="stat"><span>GS</span><b>36</b></div>
+								<div class="stat"><span>MPG</span><b>22.4</b></div>
+								<div class="stat"><span>PTS</span><b>6.6</b></div>
+								<div class="stat"><span>TRB</span><b>3.6</b></div>
+								<div class="stat"><span>AST</span><b>1.5</b></div>
+								<div class="stat"><span>STL</span><b>1.0</b></div>
+								<div class="stat"><span>BLK</span><b>1.0</b></div>
+								<div class="stat"><span>TOV</span><b>1.5</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>48.6</b></div>
+								<div class="stat"><span>eFG%</span><b>45.1</b></div>
+								<div class="stat"><span>PER</span><b>10.4</b></div>
+								<div class="stat"><span>EWA</span><b>-0.1</b></div>
+								<div class="stat"><span>USG%</span><b>15.6</b></div>
+								<div class="stat"><span>ORtg</span><b>93.3</b></div>
+								<div class="stat"><span>DRtg</span><b>108.7</b></div>
+								<div class="stat"><span>+/- per 100</span><b>4.1</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>11.5</b></div>
+								<div class="stat"><span>OBPM</span><b>-3.1</b></div>
+								<div class="stat"><span>DBPM</span><b>0.2</b></div>
+								<div class="stat"><span>BPM</span><b>-2.9</b></div>
+								<div class="stat"><span>VORP</span><b>-0.3</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>2023: Slam Dunk Contest Winner</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>59.2</b></div>
+							<div><span>ValueNoPot</span><b>54.0</b></div>
+							<div><span>getContractValue</span><b>55.5</b></div>
+							<div><span>Eligible Max</span><b>$38.66M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-young_proven_or_suspect-1363"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-young_proven_or_suspect-1363"
+						data-note-key="note-young_proven_or_suspect-1363"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p1266-young_proven_or_suspect">
+					<div class="title-row">
+						<div>
+							<h3>Jalen Green <small>pid 1266</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">可能偏低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$34.65M / 5y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>72/78</b></div>
+						<div class="pill"><span>Age / Pos</span><b>23 / SG</b></div>
+						<div class="pill"><span>Team</span><b>OKC</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>34.8 / 7.5 / 4.8</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>37.2 / 28.2</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>59.4 / 10.4 / 18.3</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>22.4% / 74.7%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$38.86M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$9.52M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>我的初筛仅按 OVR/POT、产量、高阶和合同占比粗看：可能偏低</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="low">45</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">58</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="good">77</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="good">78</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="good">91</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="good">78</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="good">100</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="mid">69</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="good">94</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="mid">56</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="good">74</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="low">51</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="mid">55</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="mid">60</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="mid">56</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>70</b></div>
+								<div class="stat"><span>GS</span><b>70</b></div>
+								<div class="stat"><span>MPG</span><b>37.2</b></div>
+								<div class="stat"><span>PTS</span><b>34.8</b></div>
+								<div class="stat"><span>TRB</span><b>7.5</b></div>
+								<div class="stat"><span>AST</span><b>4.8</b></div>
+								<div class="stat"><span>STL</span><b>1.2</b></div>
+								<div class="stat"><span>BLK</span><b>1.1</b></div>
+								<div class="stat"><span>TOV</span><b>4.6</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>59.4</b></div>
+								<div class="stat"><span>eFG%</span><b>53.7</b></div>
+								<div class="stat"><span>PER</span><b>28.2</b></div>
+								<div class="stat"><span>EWA</span><b>18.3</b></div>
+								<div class="stat"><span>USG%</span><b>38.3</b></div>
+								<div class="stat"><span>ORtg</span><b>110.8</b></div>
+								<div class="stat"><span>DRtg</span><b>106.5</b></div>
+								<div class="stat"><span>+/- per 100</span><b>3.2</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>9.7</b></div>
+								<div class="stat"><span>OBPM</span><b>8.9</b></div>
+								<div class="stat"><span>DBPM</span><b>1.5</b></div>
+								<div class="stat"><span>BPM</span><b>10.4</b></div>
+								<div class="stat"><span>VORP</span><b>8.2</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>
+							2025: League Scoring Leader; 2025: First Team All-League; 2025:
+							All-Star MVP; 2025: All-Star; 2024: Third Team All-League; 2024:
+							Slam Dunk Contest Winner; 2024: League Scoring Leader; 2024:
+							All-Star
+						</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>70.6</b></div>
+							<div><span>ValueNoPot</span><b>68.6</b></div>
+							<div><span>getContractValue</span><b>69.0</b></div>
+							<div><span>Eligible Max</span><b>$46.40M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-young_proven_or_suspect-1266"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-young_proven_or_suspect-1266"
+						data-note-key="note-young_proven_or_suspect-1266"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p1744-young_proven_or_suspect">
+					<div class="title-row">
+						<div>
+							<h3>Isaiah Todd <small>pid 1744</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">偏低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$8.14M / 5y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>60/67</b></div>
+						<div class="pill"><span>Age / Pos</span><b>24 / PF</b></div>
+						<div class="pill"><span>Team</span><b>DET</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>13.1 / 6.9 / 0.9</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>28.9 / 15.2</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>55.3 / -1.5 / 2.4</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>5.3% / 21.1%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$18.04M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$1.68M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>我的初筛仅按 OVR/POT、产量、高阶和合同占比粗看：偏低</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="mid">56</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">66</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="mid">59</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="good">70</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="low">48</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="mid">62</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="mid">69</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">39</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="mid">57</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">49</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="low">54</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="low">35</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="low">43</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="good">78</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>57</b></div>
+								<div class="stat"><span>GS</span><b>57</b></div>
+								<div class="stat"><span>MPG</span><b>28.9</b></div>
+								<div class="stat"><span>PTS</span><b>13.1</b></div>
+								<div class="stat"><span>TRB</span><b>6.9</b></div>
+								<div class="stat"><span>AST</span><b>0.9</b></div>
+								<div class="stat"><span>STL</span><b>0.9</b></div>
+								<div class="stat"><span>BLK</span><b>1.4</b></div>
+								<div class="stat"><span>TOV</span><b>2.2</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>55.3</b></div>
+								<div class="stat"><span>eFG%</span><b>52.3</b></div>
+								<div class="stat"><span>PER</span><b>15.2</b></div>
+								<div class="stat"><span>EWA</span><b>2.4</b></div>
+								<div class="stat"><span>USG%</span><b>20.5</b></div>
+								<div class="stat"><span>ORtg</span><b>102.7</b></div>
+								<div class="stat"><span>DRtg</span><b>105.0</b></div>
+								<div class="stat"><span>+/- per 100</span><b>4.2</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>1.7</b></div>
+								<div class="stat"><span>OBPM</span><b>-0.7</b></div>
+								<div class="stat"><span>DBPM</span><b>-0.9</b></div>
+								<div class="stat"><span>BPM</span><b>-1.5</b></div>
+								<div class="stat"><span>VORP</span><b>0.2</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>2025: Won Championship</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>59.1</b></div>
+							<div><span>ValueNoPot</span><b>56.2</b></div>
+							<div><span>getContractValue</span><b>56.8</b></div>
+							<div><span>Eligible Max</span><b>$38.66M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-young_proven_or_suspect-1744"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-young_proven_or_suspect-1744"
+						data-note-key="note-young_proven_or_suspect-1744"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+			</section>
+			<section class="section">
+				<h2>veterans_to_check <small>老将抽样</small></h2>
+				<article class="card" id="p187-veterans_to_check">
+					<div class="title-row">
+						<div>
+							<h3>Tyler Ennis <small>pid 187</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">可能合理/略低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$3.74M / 3y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>55/55</b></div>
+						<div class="pill"><span>Age / Pos</span><b>31 / PG</b></div>
+						<div class="pill"><span>Team</span><b>Free Agent</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>2.0 / 1.0 / 1.4</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>7.9 / 9.1</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>45.2 / -3.3 / -0.5</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>2.4% / 6.9%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$7.86M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$6.43M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>我的初筛仅按 OVR/POT、产量、高阶和合同占比粗看：可能合理/略低</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="low">38</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">57</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="low">47</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="low">51</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="low">49</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="low">43</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="low">41</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="mid">57</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">49</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="low">51</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="low">54</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="mid">63</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="mid">64</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="low">52</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>81</b></div>
+								<div class="stat"><span>GS</span><b>0</b></div>
+								<div class="stat"><span>MPG</span><b>7.9</b></div>
+								<div class="stat"><span>PTS</span><b>2.0</b></div>
+								<div class="stat"><span>TRB</span><b>1.0</b></div>
+								<div class="stat"><span>AST</span><b>1.4</b></div>
+								<div class="stat"><span>STL</span><b>0.2</b></div>
+								<div class="stat"><span>BLK</span><b>0.0</b></div>
+								<div class="stat"><span>TOV</span><b>0.5</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>45.2</b></div>
+								<div class="stat"><span>eFG%</span><b>42.9</b></div>
+								<div class="stat"><span>PER</span><b>9.1</b></div>
+								<div class="stat"><span>EWA</span><b>-0.5</b></div>
+								<div class="stat"><span>USG%</span><b>13.9</b></div>
+								<div class="stat"><span>ORtg</span><b>98.6</b></div>
+								<div class="stat"><span>DRtg</span><b>108.7</b></div>
+								<div class="stat"><span>+/- per 100</span><b>-3.0</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>-2.9</b></div>
+								<div class="stat"><span>OBPM</span><b>-3.0</b></div>
+								<div class="stat"><span>DBPM</span><b>-0.2</b></div>
+								<div class="stat"><span>BPM</span><b>-3.3</b></div>
+								<div class="stat"><span>VORP</span><b>-0.2</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>None</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>47.2</b></div>
+							<div><span>ValueNoPot</span><b>51.3</b></div>
+							<div><span>getContractValue</span><b>50.8</b></div>
+							<div><span>Eligible Max</span><b>$54.13M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-veterans_to_check-187"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-veterans_to_check-187"
+						data-note-key="note-veterans_to_check-187"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p578-veterans_to_check">
+					<div class="title-row">
+						<div>
+							<h3>Dennis Schröder <small>pid 578</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">可能合理/略低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$3.99M / 3y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>56/56</b></div>
+						<div class="pill"><span>Age / Pos</span><b>32 / G</b></div>
+						<div class="pill"><span>Team</span><b>ATL</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>8.7 / 2.5 / 4.9</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>20.3 / 16.3</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>53.2 / 1.2 / 3.7</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>2.6% / 7.4%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$12.94M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$8.43M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>我的初筛仅按 OVR/POT、产量、高阶和合同占比粗看：可能合理/略低</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="low">28</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">63</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="low">47</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="low">44</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="mid">59</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="mid">69</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="mid">61</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="mid">60</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="mid">69</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">34</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="mid">64</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="low">50</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="mid">67</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="mid">67</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="low">54</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>82</b></div>
+								<div class="stat"><span>GS</span><b>37</b></div>
+								<div class="stat"><span>MPG</span><b>20.3</b></div>
+								<div class="stat"><span>PTS</span><b>8.7</b></div>
+								<div class="stat"><span>TRB</span><b>2.5</b></div>
+								<div class="stat"><span>AST</span><b>4.9</b></div>
+								<div class="stat"><span>STL</span><b>0.6</b></div>
+								<div class="stat"><span>BLK</span><b>0.1</b></div>
+								<div class="stat"><span>TOV</span><b>1.6</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>53.2</b></div>
+								<div class="stat"><span>eFG%</span><b>48.9</b></div>
+								<div class="stat"><span>PER</span><b>16.3</b></div>
+								<div class="stat"><span>EWA</span><b>3.7</b></div>
+								<div class="stat"><span>USG%</span><b>20.2</b></div>
+								<div class="stat"><span>ORtg</span><b>111.4</b></div>
+								<div class="stat"><span>DRtg</span><b>109.6</b></div>
+								<div class="stat"><span>+/- per 100</span><b>-0.8</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>-0.1</b></div>
+								<div class="stat"><span>OBPM</span><b>0.5</b></div>
+								<div class="stat"><span>DBPM</span><b>0.7</b></div>
+								<div class="stat"><span>BPM</span><b>1.2</b></div>
+								<div class="stat"><span>VORP</span><b>1.4</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>None</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>49.3</b></div>
+							<div><span>ValueNoPot</span><b>53.6</b></div>
+							<div><span>getContractValue</span><b>53.1</b></div>
+							<div><span>Eligible Max</span><b>$54.13M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-veterans_to_check-578"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-veterans_to_check-578"
+						data-note-key="note-veterans_to_check-578"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+
+				<article class="card" id="p517-veterans_to_check">
+					<div class="title-row">
+						<div>
+							<h3>London Perrantes <small>pid 517</small></h3>
+							<div class="muted">
+								游戏字段保留英文；中文只用于我的说明和你的备注。
+							</div>
+						</div>
+						<div class="verdict">偏低</div>
+					</div>
+					<div class="pill-grid">
+						<div class="pill primary">
+							<span>Contract</span><b>$8.16M / 4y</b>
+						</div>
+						<div class="pill"><span>OVR/POT</span><b>61/61</b></div>
+						<div class="pill"><span>Age / Pos</span><b>31 / PG</b></div>
+						<div class="pill"><span>Team</span><b>DAL</b></div>
+						<div class="pill">
+							<span>PTS/TRB/AST</span><b>10.0 / 3.9 / 4.5</b>
+						</div>
+						<div class="pill"><span>MPG / PER</span><b>26.5 / 13.5</b></div>
+						<div class="pill">
+							<span>TS% / BPM / EWA</span><b>50.7 / 0.7 / 2.2</b>
+						</div>
+						<div class="pill"><span>Cap / Max</span><b>5.3% / 17.6%</b></div>
+						<div class="pill"><span>Diagnostic Base</span><b>$17.46M</b></div>
+						<div class="pill"><span>Old Salary Proxy</span><b>$3.13M</b></div>
+					</div>
+					<details class="why" open>
+						<summary>我的初筛说明</summary>
+						<p>我的初筛仅按 OVR/POT、产量、高阶和合同占比粗看：偏低</p>
+					</details>
+					<div class="content-grid">
+						<div class="panel">
+							<h4>All Ratings</h4>
+							<div class="ratings-wrap">
+								<div class="ratings-group">
+									<h4>Physical</h4>
+									<table>
+										<tr>
+											<td>Height</td>
+											<td class="low">43</td>
+										</tr>
+										<tr>
+											<td>Strength</td>
+											<td class="mid">66</td>
+										</tr>
+										<tr>
+											<td>Speed</td>
+											<td class="mid">59</td>
+										</tr>
+										<tr>
+											<td>Jumping</td>
+											<td class="mid">56</td>
+										</tr>
+										<tr>
+											<td>Endurance</td>
+											<td class="low">47</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Shooting</h4>
+									<table>
+										<tr>
+											<td>Inside</td>
+											<td class="low">52</td>
+										</tr>
+										<tr>
+											<td>Dunks/Layups</td>
+											<td class="mid">55</td>
+										</tr>
+										<tr>
+											<td>Free Throws</td>
+											<td class="low">51</td>
+										</tr>
+										<tr>
+											<td>Mid Range</td>
+											<td class="mid">56</td>
+										</tr>
+										<tr>
+											<td>Three Pointers</td>
+											<td class="low">52</td>
+										</tr>
+									</table>
+								</div>
+								<div class="ratings-group">
+									<h4>Skill</h4>
+									<table>
+										<tr>
+											<td>Offensive IQ</td>
+											<td class="mid">63</td>
+										</tr>
+										<tr>
+											<td>Defensive IQ</td>
+											<td class="low">54</td>
+										</tr>
+										<tr>
+											<td>Dribbling</td>
+											<td class="mid">63</td>
+										</tr>
+										<tr>
+											<td>Passing</td>
+											<td class="mid">57</td>
+										</tr>
+										<tr>
+											<td>Rebounding</td>
+											<td class="mid">58</td>
+										</tr>
+									</table>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h4>Stats</h4>
+							<div class="subhead">Basic</div>
+							<div class="stat-grid">
+								<div class="stat"><span>Season</span><b>2025</b></div>
+								<div class="stat"><span>GP</span><b>81</b></div>
+								<div class="stat"><span>GS</span><b>81</b></div>
+								<div class="stat"><span>MPG</span><b>26.5</b></div>
+								<div class="stat"><span>PTS</span><b>10.0</b></div>
+								<div class="stat"><span>TRB</span><b>3.9</b></div>
+								<div class="stat"><span>AST</span><b>4.5</b></div>
+								<div class="stat"><span>STL</span><b>0.7</b></div>
+								<div class="stat"><span>BLK</span><b>0.3</b></div>
+								<div class="stat"><span>TOV</span><b>1.4</b></div>
+							</div>
+							<div class="subhead">Advanced / Impact</div>
+							<div class="stat-grid">
+								<div class="stat"><span>TS%</span><b>50.7</b></div>
+								<div class="stat"><span>eFG%</span><b>47.3</b></div>
+								<div class="stat"><span>PER</span><b>13.5</b></div>
+								<div class="stat"><span>EWA</span><b>2.2</b></div>
+								<div class="stat"><span>USG%</span><b>17.7</b></div>
+								<div class="stat"><span>ORtg</span><b>108.4</b></div>
+								<div class="stat"><span>DRtg</span><b>107.7</b></div>
+								<div class="stat"><span>+/- per 100</span><b>0.3</b></div>
+								<div class="stat"><span>On-Off per 100</span><b>1.9</b></div>
+								<div class="stat"><span>OBPM</span><b>-0.1</b></div>
+								<div class="stat"><span>DBPM</span><b>0.8</b></div>
+								<div class="stat"><span>BPM</span><b>0.7</b></div>
+								<div class="stat"><span>VORP</span><b>1.5</b></div>
+							</div>
+						</div>
+					</div>
+					<details class="extra">
+						<summary>Awards</summary>
+						<p>None</p>
+					</details>
+					<details class="extra">
+						<summary>Model internals / debug</summary>
+						<div class="debug-grid">
+							<div><span>Value</span><b>51.7</b></div>
+							<div><span>ValueNoPot</span><b>56.2</b></div>
+							<div><span>getContractValue</span><b>55.7</b></div>
+							<div><span>Eligible Max</span><b>$46.40M</b></div>
+							<div>
+								<span>Normal contract basis</span><b>No-option comparison</b>
+							</div>
+						</div>
+					</details>
+					<label class="note-label" for="note-veterans_to_check-517"
+						>你的备注 / 判断</label
+					>
+					<textarea
+						id="note-veterans_to_check-517"
+						data-note-key="note-veterans_to_check-517"
+						placeholder="例如：我觉得 10M 合理 / 应该 near max / 明显偏低；理由是……"
+					></textarea>
+				</article>
+			</section>
+		</main>
+		<script>
+			(function () {
+				for (const el of document.querySelectorAll("textarea[data-note-key]")) {
+					const key = "bbgm-contract-review-v3:" + el.dataset.noteKey;
+					el.value = localStorage.getItem(key) || "";
+					el.addEventListener("input", () =>
+						localStorage.setItem(key, el.value),
+					);
+				}
+			})();
+			function exportNotes() {
+				const out = {};
+				for (const el of document.querySelectorAll("textarea[data-note-key]"))
+					out[el.dataset.noteKey] = el.value;
+				const blob = new Blob([JSON.stringify(out, null, 2)], {
+					type: "application/json",
+				});
+				const a = document.createElement("a");
+				a.href = URL.createObjectURL(blob);
+				a.download = "bbgm_contract_review_notes_v3.json";
+				a.click();
+				URL.revokeObjectURL(a.href);
+			}
+			function clearNotes() {
+				if (!confirm("Clear all notes on this page?")) return;
+				for (const el of document.querySelectorAll("textarea[data-note-key]")) {
+					localStorage.removeItem(
+						"bbgm-contract-review-v3:" + el.dataset.noteKey,
+					);
+					el.value = "";
+				}
+			}
+		</script>
+	</body>
+</html>

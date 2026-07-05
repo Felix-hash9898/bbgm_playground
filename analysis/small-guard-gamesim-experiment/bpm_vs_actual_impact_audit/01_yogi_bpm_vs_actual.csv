@@ -1,0 +1,2 @@
+pid,name,team,pos,age,height_in,height_cm,ratings_hgt,ovr,skills,gp,min,mpg,bpm,obpm,dbpm,pm,pm100,onOff100,PER,TS_pct,usage_pct,ast_per36,tov_per36,stl_per36,blk_per36,trb_per36,team_wins,team_losses,team_net_margin
+200,Yogi Ferrell,PHI,G,32,72,182.9,29,61,3;Ps,62,1313.2,21.2,3.4558,2.2937,1.1620,281,10.14,4.79,16.44,0.5591,18.09,6.168,1.480,1.069,0.247,3.59,,,7.06

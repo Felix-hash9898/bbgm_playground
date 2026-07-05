@@ -1,0 +1,6 @@
+group,count,avg_dbpm,min_dbpm,max_dbpm,avg_obpm,avg_bpm,avg_pm100,avg_onOff100,avg_mpg,avg_ovr,avg_valueNoPot,avg_diq,avg_hgt,share_dp,avg_stl_per36,avg_trb_per36,avg_blk_per36
+A1_yogi_type_positive_context,6,0.8932,0.5431,1.2980,1.9717,2.8650,5.06,3.72,18.76,56.5,53.32,48.0,31.0,0.0000,1.165,4.10,0.216
+A2_box_proxy_positive_dbpm_negative_context,12,0.7364,0.1439,1.7528,1.4047,2.1411,-3.48,-1.73,20.03,55.8,53.09,51.8,29.7,0.0000,1.334,4.25,0.201
+A3_low_sample_positive_dbpm,3,1.2863,0.7052,1.8188,3.0289,4.3152,13.80,17.48,2.19,37.7,36.49,38.0,29.3,0.0000,1.560,3.03,0.000
+B_credible_positive_dbpm_small_guard,8,1.3344,0.3500,2.4413,3.0327,4.3671,3.02,5.06,30.80,66.6,61.72,65.4,32.3,0.2500,1.798,5.41,0.229
+C_expected_negative_small_guard,35,-1.7237,-6.0216,-0.0971,-2.3503,-4.0740,-2.95,-2.43,11.98,48.5,45.93,43.7,30.2,0.0000,0.849,3.39,0.114
