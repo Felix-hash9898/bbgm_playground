@@ -1,0 +1,182 @@
+variant,section,lane,pool,currentTier,candidateTier,signalOrCombination,count,percentage,notes
+A,hard_floor,SOLID_STARTER,,,,,25,3.9%,passes current LOW_END_STARTER eligibility + GP/MPG/value hard floor
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,valueNoPot < 59,551,86.9%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,contractValue < 59,549,86.6%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,MPG < 28,517,81.5%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,production core count < 2,488,77.0%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,BPM < 0 without exception path,474,74.8%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,missing role core,464,73.2%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier MINIMUM_LEVEL blocked,460,72.6%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,missing extra support,393,62.0%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,GP < 55,249,39.3%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier YOUNG_UPSIDE_SUSPECT blocked,26,4.1%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier YOUNG_PROVEN_STARTER blocked,24,3.8%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier STAR_NEAR_MAX blocked,19,3.0%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier VETERAN_ROTATION_GUARD blocked,14,2.2%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier LOW_ROTATION_PLUS blocked,10,1.6%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier SPECIALIST_ROTATION blocked,9,1.4%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier VETERAN_MINIMUM_PLUS blocked,6,0.9%,
+A,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier SUPERSTAR_MAX blocked,3,0.5%,
+A,entrants_by_pool,SOLID_STARTER,all_active,,,,19,3.0%,
+A,entrants_by_pool,SOLID_STARTER,rostered_active,,,,17,3.7%,
+A,entrants_by_pool,SOLID_STARTER,top15_roster_proxy,,,,17,3.9%,
+A,entrants_by_pool,SOLID_STARTER,contract_relevant,,,,5,1.6%,
+A,focus_transition_count,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,,19,30.2%,19 of 63 current LOW_END_STARTER
+A,focus_transition_count,SOLID_STARTER,,MINIMUM_LEVEL,SOLID_STARTER,,0,0.0%,0 of 460 current MINIMUM_LEVEL
+A,focus_transition_count,SOLID_STARTER,,LOW_ROTATION_PLUS,SOLID_STARTER,,0,0.0%,0 of 10 current LOW_ROTATION_PLUS
+A,focus_transition_count,SOLID_STARTER,,YOUNG_UPSIDE_SUSPECT,SOLID_STARTER,,0,0.0%,0 of 26 current YOUNG_UPSIDE_SUSPECT
+A,focus_transition_count,SOLID_STARTER,,VETERAN_ROTATION_GUARD,SOLID_STARTER,,0,0.0%,0 of 14 current VETERAN_ROTATION_GUARD
+A,focus_transition_count,SOLID_STARTER,,YOUNG_PROVEN_STARTER,SOLID_STARTER,,0,0.0%,0 of 24 current YOUNG_PROVEN_STARTER
+A,entrant_signal_pass_count,SOLID_STARTER,,,,role: starterShare >= 0.6,19,100.0%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,role: GS >= 41,19,100.0%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,role: MPG >= 30,17,89.5%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,value core: valueNoPot >= 59 and contractValue >= 59,19,100.0%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,production: BPM >= 0.5,19,100.0%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,production: EWA >= 4,19,100.0%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,production: VORP >= 0.8,19,100.0%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,production: PER >= 15.5,19,100.0%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,extra: BPM >= 1,18,94.7%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,extra: EWA >= 5,16,84.2%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,extra: VORP >= 1,19,100.0%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,extra: PER >= 16,18,94.7%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,extra: defense/rebounding/connector support,19,100.0%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,extra: shooting/spacing support,3,15.8%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,extra: age <= 27 with value/pot support,4,21.1%,
+A,entrant_signal_pass_count,SOLID_STARTER,,,,BPM<0 exception path,0,0.0%,
+A,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.6; role: GS >= 41; role: MPG >= 30; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support,10,52.6%,
+A,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.6; role: GS >= 41; role: MPG >= 30; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support; extra: shooting/spacing support,2,10.5%,
+A,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.6; role: GS >= 41; role: MPG >= 30; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support; extra: age <= 27 with value/pot support,2,10.5%,
+A,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.6; role: GS >= 41; role: MPG >= 30; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support; extra: age <= 27 with value/pot support,2,10.5%,
+A,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.6; role: GS >= 41; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: VORP >= 1; extra: defense/rebounding/connector support; extra: shooting/spacing support,1,5.3%,
+A,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.6; role: GS >= 41; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support,1,5.3%,
+A,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.6; role: GS >= 41; role: MPG >= 30; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support,1,5.3%,
+A,bpm_bucket,SOLID_STARTER,,,,BPM >= 1,18,94.7%,
+A,bpm_bucket,SOLID_STARTER,,,,0 <= BPM < 1,1,5.3%,
+A,production_bucket,SOLID_STARTER,,,,elite extra production,19,100.0%,
+A,role_bucket,SOLID_STARTER,,,,very strong starter role,19,100.0%,
+A,labeled_solid_attribution_summary,SOLID_STARTER,,,,,6,,improved 4; worsened 2; fixed severe 2; new severe 0; too_low fixed 2; too_high added 2
+A,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.6; role: GS >= 41; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support,1,,boundary40 G-01; bucket solid_starter; human $12.00M-$20.00M; current point 15.85; candidate point 23.99; too_high
+A,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.6; role: GS >= 41; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: VORP >= 1; extra: defense/rebounding/connector support; extra: shooting/spacing support,1,,boundary40 G-03; bucket solid_starter; human $12.00M-$18.00M; current point 16.03; candidate point 24.17; too_high
+A,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.6; role: GS >= 41; role: MPG >= 30; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support,1,,boundary40 H-02; bucket good_high_starter; human $30.00M-$35.00M; current point 17.03; candidate point 24.99; too_low
+A,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.6; role: GS >= 41; role: MPG >= 30; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support,1,,validation20 V20-09; bucket low_end_starter_good_rotation; human $22.00M-$27.00M; current point 15.65; candidate point 23.87; inside
+A,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.6; role: GS >= 41; role: MPG >= 30; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: BPM >= 1; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support; extra: age <= 27 with value/pot support,1,,validation20 V20-10; bucket low_end_starter_good_rotation; human $24.00M-$29.00M; current point 16.86; candidate point 24.88; inside
+A,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.6; role: GS >= 41; role: MPG >= 30; value core: valueNoPot >= 59 and contractValue >= 59; production: BPM >= 0.5; production: EWA >= 4; production: VORP >= 0.8; production: PER >= 15.5; extra: EWA >= 5; extra: VORP >= 1; extra: PER >= 16; extra: defense/rebounding/connector support,1,,validation20 V20-11; bucket low_end_starter_good_rotation; human $24.00M-$28.00M; current point 15.4; candidate point 23.66; too_low
+B,hard_floor,SOLID_STARTER,,,,,19,3.0%,passes current LOW_END_STARTER eligibility + GP/MPG/value hard floor
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,valueNoPot < 60,563,88.8%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,contractValue < 60,562,88.6%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,MPG < 29,543,85.6%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,production core count < 2,505,79.7%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,BPM < 0 without exception path,474,74.8%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,missing role core,470,74.1%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier MINIMUM_LEVEL blocked,460,72.6%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,missing extra support,399,62.9%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,GP < 55,249,39.3%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier YOUNG_UPSIDE_SUSPECT blocked,26,4.1%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier YOUNG_PROVEN_STARTER blocked,24,3.8%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier STAR_NEAR_MAX blocked,19,3.0%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier VETERAN_ROTATION_GUARD blocked,14,2.2%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier LOW_ROTATION_PLUS blocked,10,1.6%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier SPECIALIST_ROTATION blocked,9,1.4%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier VETERAN_MINIMUM_PLUS blocked,6,0.9%,
+B,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier SUPERSTAR_MAX blocked,3,0.5%,
+B,entrants_by_pool,SOLID_STARTER,all_active,,,,17,2.7%,
+B,entrants_by_pool,SOLID_STARTER,rostered_active,,,,15,3.3%,
+B,entrants_by_pool,SOLID_STARTER,top15_roster_proxy,,,,15,3.5%,
+B,entrants_by_pool,SOLID_STARTER,contract_relevant,,,,5,1.6%,
+B,focus_transition_count,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,,17,27.0%,17 of 63 current LOW_END_STARTER
+B,focus_transition_count,SOLID_STARTER,,MINIMUM_LEVEL,SOLID_STARTER,,0,0.0%,0 of 460 current MINIMUM_LEVEL
+B,focus_transition_count,SOLID_STARTER,,LOW_ROTATION_PLUS,SOLID_STARTER,,0,0.0%,0 of 10 current LOW_ROTATION_PLUS
+B,focus_transition_count,SOLID_STARTER,,YOUNG_UPSIDE_SUSPECT,SOLID_STARTER,,0,0.0%,0 of 26 current YOUNG_UPSIDE_SUSPECT
+B,focus_transition_count,SOLID_STARTER,,VETERAN_ROTATION_GUARD,SOLID_STARTER,,0,0.0%,0 of 14 current VETERAN_ROTATION_GUARD
+B,focus_transition_count,SOLID_STARTER,,YOUNG_PROVEN_STARTER,SOLID_STARTER,,0,0.0%,0 of 24 current YOUNG_PROVEN_STARTER
+B,entrant_signal_pass_count,SOLID_STARTER,,,,role: starterShare >= 0.65,17,100.0%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,role: GS >= 50,17,100.0%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,role: MPG >= 31,13,76.5%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,value core: valueNoPot >= 60 and contractValue >= 60,17,100.0%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,production: BPM >= 1,16,94.1%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,production: EWA >= 5,14,82.4%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,production: VORP >= 1,17,100.0%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,production: PER >= 16,16,94.1%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,extra: BPM >= 1.5,14,82.4%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,extra: EWA >= 6,13,76.5%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,extra: VORP >= 1.5,16,94.1%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,extra: PER >= 17,13,76.5%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,extra: defense/rebounding/connector support,17,100.0%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,extra: shooting/spacing support,3,17.6%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,extra: age <= 27 with value/pot support,3,17.6%,
+B,entrant_signal_pass_count,SOLID_STARTER,,,,BPM<0 exception path,0,0.0%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; role: MPG >= 31; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 1.5; extra: EWA >= 6; extra: VORP >= 1.5; extra: PER >= 17; extra: defense/rebounding/connector support,6,35.3%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; role: MPG >= 31; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: EWA >= 6; extra: VORP >= 1.5; extra: PER >= 17; extra: defense/rebounding/connector support,2,11.8%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; role: MPG >= 31; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 1.5; extra: EWA >= 6; extra: VORP >= 1.5; extra: PER >= 17; extra: defense/rebounding/connector support; extra: shooting/spacing support,2,11.8%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: VORP >= 1; extra: BPM >= 1.5; extra: VORP >= 1.5; extra: defense/rebounding/connector support; extra: shooting/spacing support,1,5.9%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; value core: valueNoPot >= 60 and contractValue >= 60; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: EWA >= 6; extra: PER >= 17; extra: defense/rebounding/connector support,1,5.9%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; role: MPG >= 31; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 1.5; extra: EWA >= 6; extra: VORP >= 1.5; extra: defense/rebounding/connector support,1,5.9%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: VORP >= 1; production: PER >= 16; extra: BPM >= 1.5; extra: VORP >= 1.5; extra: defense/rebounding/connector support; extra: age <= 27 with value/pot support,1,5.9%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 1.5; extra: VORP >= 1.5; extra: PER >= 17; extra: defense/rebounding/connector support,1,5.9%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; role: MPG >= 31; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: VORP >= 1; production: PER >= 16; extra: BPM >= 1.5; extra: VORP >= 1.5; extra: defense/rebounding/connector support; extra: age <= 27 with value/pot support,1,5.9%,
+B,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.65; role: GS >= 50; role: MPG >= 31; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 1.5; extra: EWA >= 6; extra: VORP >= 1.5; extra: PER >= 17; extra: defense/rebounding/connector support; extra: age <= 27 with value/pot support,1,5.9%,
+B,bpm_bucket,SOLID_STARTER,,,,BPM >= 1,16,94.1%,
+B,bpm_bucket,SOLID_STARTER,,,,0 <= BPM < 1,1,5.9%,
+B,production_bucket,SOLID_STARTER,,,,elite extra production,17,100.0%,
+B,role_bucket,SOLID_STARTER,,,,very strong starter role,17,100.0%,
+B,labeled_solid_attribution_summary,SOLID_STARTER,,,,,4,,improved 3; worsened 1; fixed severe 2; new severe 0; too_low fixed 1; too_high added 1
+B,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.65; role: GS >= 50; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: VORP >= 1; extra: BPM >= 1.5; extra: VORP >= 1.5; extra: defense/rebounding/connector support; extra: shooting/spacing support,1,,boundary40 G-03; bucket solid_starter; human $12.00M-$18.00M; current point 16.03; candidate point 24.17; too_high
+B,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.65; role: GS >= 50; role: MPG >= 31; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 1.5; extra: EWA >= 6; extra: VORP >= 1.5; extra: PER >= 17; extra: defense/rebounding/connector support,1,,boundary40 H-02; bucket good_high_starter; human $30.00M-$35.00M; current point 17.03; candidate point 24.99; too_low
+B,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.65; role: GS >= 50; role: MPG >= 31; value core: valueNoPot >= 60 and contractValue >= 60; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: EWA >= 6; extra: VORP >= 1.5; extra: PER >= 17; extra: defense/rebounding/connector support,1,,validation20 V20-09; bucket low_end_starter_good_rotation; human $22.00M-$27.00M; current point 15.65; candidate point 23.87; inside
+B,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.65; role: GS >= 50; value core: valueNoPot >= 60 and contractValue >= 60; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: EWA >= 6; extra: PER >= 17; extra: defense/rebounding/connector support,1,,validation20 V20-11; bucket low_end_starter_good_rotation; human $24.00M-$28.00M; current point 15.4; candidate point 23.66; too_low
+C,hard_floor,SOLID_STARTER,,,,,10,1.6%,passes current LOW_END_STARTER eligibility + GP/MPG/value hard floor
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,valueNoPot < 61,576,90.9%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,contractValue < 61,575,90.7%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,MPG < 30,555,87.5%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,production core count < 3,540,85.2%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,BPM < 0 without exception path,474,74.8%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,missing role core,473,74.6%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier MINIMUM_LEVEL blocked,460,72.6%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,missing extra support,438,69.1%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,GP < 60,294,46.4%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier YOUNG_UPSIDE_SUSPECT blocked,26,4.1%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier YOUNG_PROVEN_STARTER blocked,24,3.8%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier STAR_NEAR_MAX blocked,19,3.0%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier VETERAN_ROTATION_GUARD blocked,14,2.2%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier LOW_ROTATION_PLUS blocked,10,1.6%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier SPECIALIST_ROTATION blocked,9,1.4%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier VETERAN_MINIMUM_PLUS blocked,6,0.9%,
+C,hard_veto_or_group_fail_reason,SOLID_STARTER,,,,current tier SUPERSTAR_MAX blocked,3,0.5%,
+C,entrants_by_pool,SOLID_STARTER,all_active,,,,10,1.6%,
+C,entrants_by_pool,SOLID_STARTER,rostered_active,,,,8,1.7%,
+C,entrants_by_pool,SOLID_STARTER,top15_roster_proxy,,,,8,1.9%,
+C,entrants_by_pool,SOLID_STARTER,contract_relevant,,,,4,1.2%,
+C,focus_transition_count,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,,10,15.9%,10 of 63 current LOW_END_STARTER
+C,focus_transition_count,SOLID_STARTER,,MINIMUM_LEVEL,SOLID_STARTER,,0,0.0%,0 of 460 current MINIMUM_LEVEL
+C,focus_transition_count,SOLID_STARTER,,LOW_ROTATION_PLUS,SOLID_STARTER,,0,0.0%,0 of 10 current LOW_ROTATION_PLUS
+C,focus_transition_count,SOLID_STARTER,,YOUNG_UPSIDE_SUSPECT,SOLID_STARTER,,0,0.0%,0 of 26 current YOUNG_UPSIDE_SUSPECT
+C,focus_transition_count,SOLID_STARTER,,VETERAN_ROTATION_GUARD,SOLID_STARTER,,0,0.0%,0 of 14 current VETERAN_ROTATION_GUARD
+C,focus_transition_count,SOLID_STARTER,,YOUNG_PROVEN_STARTER,SOLID_STARTER,,0,0.0%,0 of 24 current YOUNG_PROVEN_STARTER
+C,entrant_signal_pass_count,SOLID_STARTER,,,,role: starterShare >= 0.7,10,100.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,role: GS >= 55,10,100.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,role: MPG >= 32,7,70.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,value core: valueNoPot >= 61 and contractValue >= 61,10,100.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,production: BPM >= 1,10,100.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,production: EWA >= 5,9,90.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,production: VORP >= 1,10,100.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,production: PER >= 16,10,100.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,extra: BPM >= 2,8,80.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,extra: EWA >= 7,6,60.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,extra: VORP >= 2,10,100.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,extra: PER >= 18,5,50.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,extra: defense/rebounding/connector support,10,100.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,extra: shooting/spacing support,1,10.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,extra: age <= 27 with value/pot support,0,0.0%,
+C,entrant_signal_pass_count,SOLID_STARTER,,,,BPM<0 exception path,0,0.0%,
+C,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.7; role: GS >= 55; value core: valueNoPot >= 61 and contractValue >= 61; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 2; extra: EWA >= 7; extra: VORP >= 2; extra: PER >= 18; extra: defense/rebounding/connector support,3,30.0%,
+C,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.7; role: GS >= 55; role: MPG >= 32; value core: valueNoPot >= 61 and contractValue >= 61; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 2; extra: VORP >= 2; extra: defense/rebounding/connector support,2,20.0%,
+C,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.7; role: GS >= 55; role: MPG >= 32; value core: valueNoPot >= 61 and contractValue >= 61; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 2; extra: EWA >= 7; extra: VORP >= 2; extra: PER >= 18; extra: defense/rebounding/connector support,1,10.0%,
+C,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.7; role: GS >= 55; role: MPG >= 32; value core: valueNoPot >= 61 and contractValue >= 61; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: EWA >= 7; extra: VORP >= 2; extra: PER >= 18; extra: defense/rebounding/connector support,1,10.0%,
+C,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.7; role: GS >= 55; role: MPG >= 32; value core: valueNoPot >= 61 and contractValue >= 61; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 2; extra: EWA >= 7; extra: VORP >= 2; extra: defense/rebounding/connector support,1,10.0%,
+C,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.7; role: GS >= 55; role: MPG >= 32; value core: valueNoPot >= 61 and contractValue >= 61; production: BPM >= 1; production: VORP >= 1; production: PER >= 16; extra: BPM >= 2; extra: VORP >= 2; extra: defense/rebounding/connector support,1,10.0%,
+C,signal_combination,SOLID_STARTER,,,,role: starterShare >= 0.7; role: GS >= 55; role: MPG >= 32; value core: valueNoPot >= 61 and contractValue >= 61; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: VORP >= 2; extra: defense/rebounding/connector support; extra: shooting/spacing support,1,10.0%,
+C,bpm_bucket,SOLID_STARTER,,,,BPM >= 1,10,100.0%,
+C,production_bucket,SOLID_STARTER,,,,elite extra production,10,100.0%,
+C,role_bucket,SOLID_STARTER,,,,very strong starter role,10,100.0%,
+C,labeled_solid_attribution_summary,SOLID_STARTER,,,,,1,,improved 1; worsened 0; fixed severe 1; new severe 0; too_low fixed 0; too_high added 0
+C,labeled_solid_case,SOLID_STARTER,,LOW_END_STARTER,SOLID_STARTER,role: starterShare >= 0.7; role: GS >= 55; value core: valueNoPot >= 61 and contractValue >= 61; production: BPM >= 1; production: EWA >= 5; production: VORP >= 1; production: PER >= 16; extra: BPM >= 2; extra: EWA >= 7; extra: VORP >= 2; extra: PER >= 18; extra: defense/rebounding/connector support,1,,boundary40 H-02; bucket good_high_starter; human $30.00M-$35.00M; current point 17.03; candidate point 24.99; too_low

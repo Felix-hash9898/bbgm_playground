@@ -1,0 +1,402 @@
+{
+	"boundary40-12": {
+		"caseId": "A-01",
+		"globalCaseId": "B40-01",
+		"pid": 12,
+		"bucket": "minimum_fringe_negative",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-67": {
+		"caseId": "A-02",
+		"globalCaseId": "B40-02",
+		"pid": 67,
+		"bucket": "minimum_fringe_negative",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-127": {
+		"caseId": "A-03",
+		"globalCaseId": "B40-03",
+		"pid": 127,
+		"bucket": "minimum_fringe_negative",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-251": {
+		"caseId": "A-04",
+		"globalCaseId": "B40-04",
+		"pid": 251,
+		"bucket": "minimum_fringe_negative",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-649": {
+		"caseId": "B-01",
+		"globalCaseId": "B40-05",
+		"pid": 649,
+		"bucket": "minimum_plus_functional_vet",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-39": {
+		"caseId": "B-02",
+		"globalCaseId": "B40-06",
+		"pid": 39,
+		"bucket": "minimum_plus_functional_vet",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-241": {
+		"caseId": "B-03",
+		"globalCaseId": "B40-07",
+		"pid": 241,
+		"bucket": "minimum_plus_functional_vet",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-280": {
+		"caseId": "B-04",
+		"globalCaseId": "B40-08",
+		"pid": 280,
+		"bucket": "minimum_plus_functional_vet",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1245": {
+		"caseId": "C-01",
+		"globalCaseId": "B40-09",
+		"pid": 1245,
+		"bucket": "low_rotation",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1280": {
+		"caseId": "C-02",
+		"globalCaseId": "B40-10",
+		"pid": 1280,
+		"bucket": "low_rotation",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1467": {
+		"caseId": "C-03",
+		"globalCaseId": "B40-11",
+		"pid": 1467,
+		"bucket": "low_rotation",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1659": {
+		"caseId": "C-04",
+		"globalCaseId": "B40-12",
+		"pid": 1659,
+		"bucket": "low_rotation",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-927": {
+		"caseId": "D-01",
+		"globalCaseId": "B40-13",
+		"pid": 927,
+		"bucket": "good_rotation_specialist",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1593": {
+		"caseId": "D-02",
+		"globalCaseId": "B40-14",
+		"pid": 1593,
+		"bucket": "good_rotation_specialist",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1794": {
+		"caseId": "D-03",
+		"globalCaseId": "B40-15",
+		"pid": 1794,
+		"bucket": "good_rotation_specialist",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1525": {
+		"caseId": "D-04",
+		"globalCaseId": "B40-16",
+		"pid": 1525,
+		"bucket": "good_rotation_specialist",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-200": {
+		"caseId": "E-01",
+		"globalCaseId": "B40-17",
+		"pid": 200,
+		"bucket": "high_end_rotation_sixth_man",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1381": {
+		"caseId": "E-02",
+		"globalCaseId": "B40-18",
+		"pid": 1381,
+		"bucket": "high_end_rotation_sixth_man",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-46": {
+		"caseId": "E-03",
+		"globalCaseId": "B40-19",
+		"pid": 46,
+		"bucket": "high_end_rotation_sixth_man",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1717": {
+		"caseId": "E-04",
+		"globalCaseId": "B40-20",
+		"pid": 1717,
+		"bucket": "high_end_rotation_sixth_man",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1675": {
+		"caseId": "F-01",
+		"globalCaseId": "B40-21",
+		"pid": 1675,
+		"bucket": "low_end_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1383": {
+		"caseId": "F-02",
+		"globalCaseId": "B40-22",
+		"pid": 1383,
+		"bucket": "low_end_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1557": {
+		"caseId": "F-03",
+		"globalCaseId": "B40-23",
+		"pid": 1557,
+		"bucket": "low_end_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-100": {
+		"caseId": "F-04",
+		"globalCaseId": "B40-24",
+		"pid": 100,
+		"bucket": "low_end_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-51": {
+		"caseId": "G-01",
+		"globalCaseId": "B40-25",
+		"pid": 51,
+		"bucket": "solid_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1716": {
+		"caseId": "G-02",
+		"globalCaseId": "B40-26",
+		"pid": 1716,
+		"bucket": "solid_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-20": {
+		"caseId": "G-03",
+		"globalCaseId": "B40-27",
+		"pid": 20,
+		"bucket": "solid_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1527": {
+		"caseId": "G-04",
+		"globalCaseId": "B40-28",
+		"pid": 1527,
+		"bucket": "solid_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1403": {
+		"caseId": "H-01",
+		"globalCaseId": "B40-29",
+		"pid": 1403,
+		"bucket": "good_high_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-589": {
+		"caseId": "H-02",
+		"globalCaseId": "B40-30",
+		"pid": 589,
+		"bucket": "good_high_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-732": {
+		"caseId": "H-03",
+		"globalCaseId": "B40-31",
+		"pid": 732,
+		"bucket": "good_high_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1376": {
+		"caseId": "H-04",
+		"globalCaseId": "B40-32",
+		"pid": 1376,
+		"bucket": "good_high_starter",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1422": {
+		"caseId": "I-01",
+		"globalCaseId": "B40-33",
+		"pid": 1422,
+		"bucket": "star_near_max",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1247": {
+		"caseId": "I-02",
+		"globalCaseId": "B40-34",
+		"pid": 1247,
+		"bucket": "star_near_max",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1821": {
+		"caseId": "I-03",
+		"globalCaseId": "B40-35",
+		"pid": 1821,
+		"bucket": "star_near_max",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1840": {
+		"caseId": "I-04",
+		"globalCaseId": "B40-36",
+		"pid": 1840,
+		"bucket": "star_near_max",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-834": {
+		"caseId": "J-01",
+		"globalCaseId": "B40-37",
+		"pid": 834,
+		"bucket": "superstar_max_lock",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-739": {
+		"caseId": "J-02",
+		"globalCaseId": "B40-38",
+		"pid": 739,
+		"bucket": "superstar_max_lock",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-1604": {
+		"caseId": "J-03",
+		"globalCaseId": "B40-39",
+		"pid": 1604,
+		"bucket": "superstar_max_lock",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	},
+	"boundary40-904": {
+		"caseId": "J-04",
+		"globalCaseId": "B40-40",
+		"pid": 904,
+		"bucket": "superstar_max_lock",
+		"humanTargetTier": "",
+		"humanAmountRangeM": "",
+		"humanYears": "",
+		"humanNotes": ""
+	}
+}

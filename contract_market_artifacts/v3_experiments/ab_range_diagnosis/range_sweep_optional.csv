@@ -1,0 +1,17 @@
+high_end_rotation_range,solid_starter_range,meanGapM,medianGapM,severe,tooLow,tooHigh,nearBoundaryCount,teamTop15Mean,teamTop15Median,teamTop15Max,teamsGte145,teamsGte160,H_02_status,V20_11_status,G_03_status,E_01_status
+6%-10%,10%-14%,1.807,0.75,1,28,9,17,86.142,87.685,123.99,0,0,too_low gap 9.39M point 20.61M,too_low gap 4.46M point 19.54M,too_high gap 1.95M point 19.95M,too_high gap 0.47M point 12.47M
+6%-10%,11%-15%,1.742,0.745,1,28,9,18,86.643,88.183,123.99,0,0,too_low gap 7.84M point 22.16M,too_low gap 2.91M point 21.09M,too_high gap 3.5M point 21.5M,too_high gap 0.47M point 12.47M
+6%-10%,12%-16%,1.694,0.745,0,27,9,17,87.142,88.681,123.99,0,0,too_low gap 6.3M point 23.7M,too_low gap 1.36M point 22.64M,too_high gap 5.04M point 23.04M,too_high gap 0.47M point 12.47M
+6%-10%,12%-17%,1.67,0.73,0,27,9,18,87.51,89.069,123.99,0,0,too_low gap 5.01M point 24.99M,too_low gap 0.34M point 23.66M,too_high gap 6.17M point 24.17M,too_high gap 0.47M point 12.47M
+6.5%-10.5%,10%-14%,1.807,0.775,1,28,9,16,86.677,88.19,125.483,0,0,too_low gap 9.39M point 20.61M,too_low gap 4.46M point 19.54M,too_high gap 1.95M point 19.95M,too_high gap 1.24M point 13.24M
+6.5%-10.5%,11%-15%,1.742,0.75,1,28,9,17,87.178,88.684,125.483,0,0,too_low gap 7.84M point 22.16M,too_low gap 2.91M point 21.09M,too_high gap 3.5M point 21.5M,too_high gap 1.24M point 13.24M
+6.5%-10.5%,12%-16%,1.694,0.75,0,27,9,16,87.677,89.182,125.483,0,0,too_low gap 6.3M point 23.7M,too_low gap 1.36M point 22.64M,too_high gap 5.04M point 23.04M,too_high gap 1.24M point 13.24M
+6.5%-10.5%,12%-17%,1.67,0.745,0,27,9,17,88.045,89.57,125.483,0,0,too_low gap 5.01M point 24.99M,too_low gap 0.34M point 23.66M,too_high gap 6.17M point 24.17M,too_high gap 1.24M point 13.24M
+7%-11%,10%-14%,1.807,0.775,1,28,9,16,87.211,88.688,126.996,0,0,too_low gap 9.39M point 20.61M,too_low gap 4.46M point 19.54M,too_high gap 1.95M point 19.95M,too_high gap 2.02M point 14.02M
+7%-11%,11%-15%,1.742,0.75,1,28,9,17,87.712,89.185,126.996,0,0,too_low gap 7.84M point 22.16M,too_low gap 2.91M point 21.09M,too_high gap 3.5M point 21.5M,too_high gap 2.02M point 14.02M
+7%-11%,12%-16%,1.694,0.75,0,27,9,16,88.211,89.683,126.996,0,0,too_low gap 6.3M point 23.7M,too_low gap 1.36M point 22.64M,too_high gap 5.04M point 23.04M,too_high gap 2.02M point 14.02M
+7%-11%,12%-17%,1.67,0.745,0,27,9,17,88.579,90.071,126.996,0,0,too_low gap 5.01M point 24.99M,too_low gap 0.34M point 23.66M,too_high gap 6.17M point 24.17M,too_high gap 2.02M point 14.02M
+7%-12%,10%-14%,1.804,0.775,1,28,9,16,87.83,89.295,128.723,0,0,too_low gap 9.39M point 20.61M,too_low gap 4.46M point 19.54M,too_high gap 1.95M point 19.95M,too_high gap 2.82M point 14.82M
+7%-12%,11%-15%,1.74,0.75,1,28,9,17,88.331,89.797,128.723,0,0,too_low gap 7.84M point 22.16M,too_low gap 2.91M point 21.09M,too_high gap 3.5M point 21.5M,too_high gap 2.82M point 14.82M
+7%-12%,12%-16%,1.692,0.75,0,27,9,16,88.83,90.294,128.723,0,0,too_low gap 6.3M point 23.7M,too_low gap 1.36M point 22.64M,too_high gap 5.04M point 23.04M,too_high gap 2.82M point 14.82M
+7%-12%,12%-17%,1.667,0.745,0,27,9,17,89.198,90.682,128.723,0,0,too_low gap 5.01M point 24.99M,too_low gap 0.34M point 23.66M,too_high gap 6.17M point 24.17M,too_high gap 2.82M point 14.82M

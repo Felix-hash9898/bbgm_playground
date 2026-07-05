@@ -1,0 +1,4 @@
+confidence,n,low_confidence_n,current_mean_gap_m,v3_mean_gap_m,mean_gap_delta_m,current_median_gap_m,v3_median_gap_m,current_in_range,v3_in_range,current_fine,v3_fine,current_acceptable,v3_acceptable,current_review,v3_review,current_major,v3_major,current_too_low,v3_too_low,current_too_high,v3_too_high
+low,3,3,2.12,2.12,0,3.05,3.05,1,1,1,1,2,2,0,0,0,0,2,2,0,0
+medium,1,0,0,0.26,-0.26,0,0.26,1,0,1,1,0,0,0,0,0,0,0,0,0,1
+unspecified,23,0,1.81,1.29,0.52,0.13,0,11,12,20,19,0,1,1,2,2,1,8,3,4,8

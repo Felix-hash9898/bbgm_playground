@@ -1,0 +1,512 @@
+{
+	"blind_validation30-204": {
+		"caseId": "BV30-01",
+		"pid": 204,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1335": {
+		"caseId": "BV30-02",
+		"pid": 1335,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-14": {
+		"caseId": "BV30-03",
+		"pid": 14,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1818": {
+		"caseId": "BV30-04",
+		"pid": 1818,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-468": {
+		"caseId": "BV30-05",
+		"pid": 468,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1384": {
+		"caseId": "BV30-06",
+		"pid": 1384,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-462": {
+		"caseId": "BV30-07",
+		"pid": 462,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-102": {
+		"caseId": "BV30-08",
+		"pid": 102,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1434": {
+		"caseId": "BV30-09",
+		"pid": 1434,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1311": {
+		"caseId": "BV30-10",
+		"pid": 1311,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-865": {
+		"caseId": "BV30-11",
+		"pid": 865,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1406": {
+		"caseId": "BV30-12",
+		"pid": 1406,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1200": {
+		"caseId": "BV30-13",
+		"pid": 1200,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-8": {
+		"caseId": "BV30-14",
+		"pid": 8,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-447": {
+		"caseId": "BV30-15",
+		"pid": 447,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-210": {
+		"caseId": "BV30-16",
+		"pid": 210,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-116": {
+		"caseId": "BV30-17",
+		"pid": 116,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1802": {
+		"caseId": "BV30-18",
+		"pid": 1802,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-530": {
+		"caseId": "BV30-19",
+		"pid": 530,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1634": {
+		"caseId": "BV30-20",
+		"pid": 1634,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-906": {
+		"caseId": "BV30-21",
+		"pid": 906,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-567": {
+		"caseId": "BV30-22",
+		"pid": 567,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1699": {
+		"caseId": "BV30-23",
+		"pid": 1699,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1197": {
+		"caseId": "BV30-24",
+		"pid": 1197,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-741": {
+		"caseId": "BV30-25",
+		"pid": 741,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-219": {
+		"caseId": "BV30-26",
+		"pid": 219,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1250": {
+		"caseId": "BV30-27",
+		"pid": 1250,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-347": {
+		"caseId": "BV30-28",
+		"pid": 347,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-108": {
+		"caseId": "BV30-29",
+		"pid": 108,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	},
+	"blind_validation30-1780": {
+		"caseId": "BV30-30",
+		"pid": 1780,
+		"human_min_m": "",
+		"human_max_m": "",
+		"confidence": "",
+		"role_note": "",
+		"uncertainty_note": "",
+		"flags": {
+			"human_range_wide": false,
+			"special_archetype": false,
+			"stats_unreliable": false,
+			"team_context_uncertain": false,
+			"likely_overpay_possible": false,
+			"likely_discount_possible": false
+		}
+	}
+}

@@ -1,0 +1,49 @@
+dataset,caseId,globalCaseId,name,bucket,combinedTier,responsibleModule,humanRangeText,tierRangeText,combinedPointM,combinedGapM,missType,diagnosis
+boundary40,D-01,B40-13,Simisola Shittu,good_rotation_specialist,MINIMUM_LEVEL,none,$3.00M-$5.00M,$2.94M-$3.38M,3.12,0,inside,looks_ok
+boundary40,D-02,B40-14,Jordan Poole,good_rotation_specialist,LOW_ROTATION_PLUS,none,$6.00M-$10.00M,$3.09M-$5.41M,4.12,1.88,too_low,human_range_above_tier_range -> likely range too low or tier too low
+boundary40,D-03,B40-15,Jaylen Wells,good_rotation_specialist,YOUNG_UPSIDE_SUSPECT,none,$8.00M-$14.00M,$3.87M-$6.96M,5.19,2.81,too_low,human_range_above_tier_range -> likely range too low or tier too low
+boundary40,D-04,B40-16,Keegan Murray,good_rotation_specialist,SPECIALIST_ROTATION,none,$4.00M-$8.00M,$5.41M-$8.51M,6.48,0,inside,looks_ok
+boundary40,E-01,B40-17,Yogi Ferrell,high_end_rotation_sixth_man,HIGH_END_ROTATION,1A,$8.00M-$12.00M,$10.83M-$18.56M,14.82,2.82,too_high,human_range_overlaps_tier_range_but_point_misses -> placement issue
+boundary40,E-02,B40-18,Nikola Jović,high_end_rotation_sixth_man,HIGH_END_ROTATION,1A,$20.00M-$30.00M,$10.83M-$18.56M,15.45,4.55,too_low,human_range_above_tier_range -> likely range too low or tier too low
+boundary40,E-03,B40-19,Malik Beasley,high_end_rotation_sixth_man,MINIMUM_LEVEL,none,$6.00M-$10.00M,$3.37M-$3.88M,3.63,2.37,too_low,human_range_above_tier_range -> likely range too low or tier too low
+boundary40,E-04,B40-20,Julian Strawther,high_end_rotation_sixth_man,HIGH_END_ROTATION,1A,$12.00M-$18.00M,$10.83M-$18.56M,15.15,0,inside,looks_ok
+boundary40,F-01,B40-21,Shaedon Sharpe,low_end_starter,LOW_END_STARTER,none,$20.00M-$30.00M,$9.28M-$18.56M,14.85,5.15,too_low,human_range_above_tier_range -> likely range too low or tier too low
+boundary40,F-02,B40-22,Mfiondu Kabengele,low_end_starter,LOW_END_STARTER,none,$10.00M-$16.00M,$9.28M-$18.56M,15.32,0,inside,looks_ok
+boundary40,F-03,B40-23,Isaac Okoro,low_end_starter,LOW_END_STARTER,none,$15.00M-$20.00M,$9.28M-$18.56M,14.26,0.74,near_boundary_minor_miss,near_boundary_minor_miss
+boundary40,F-04,B40-24,Kentavious Caldwell-Pope,low_end_starter,LOW_END_STARTER,none,$6.00M-$12.00M,$9.28M-$18.56M,14.22,2.22,too_high,human_range_overlaps_tier_range_but_point_misses -> placement issue
+boundary40,G-01,B40-25,Jordan Bell,solid_starter,LOW_END_STARTER,none,$12.00M-$20.00M,$9.28M-$18.56M,15.8,0,inside,looks_ok
+boundary40,G-02,B40-26,Isaiah Stewart,solid_starter,LOW_END_STARTER,none,$20.00M-$25.00M,$9.28M-$18.56M,15.46,4.54,too_low,human_range_above_tier_range -> likely range too low or tier too low
+boundary40,G-03,B40-27,OG Anunoby,solid_starter,SOLID_STARTER,1B-B,$12.00M-$18.00M,$18.56M-$26.29M,24.17,6.17,too_high,human_range_below_tier_range -> likely range too high or tier too high
+boundary40,G-04,B40-28,Džanan Musa,solid_starter,HIGH_END_ROTATION,1A,$12.00M-$18.00M,$10.83M-$18.56M,15.51,0,inside,looks_ok
+boundary40,H-01,B40-29,Kevin Knox,good_high_starter,YOUNG_PROVEN_STARTER,none,$25.00M-$35.00M,$26.29M-$34.80M,32.97,0,inside,looks_ok
+boundary40,H-02,B40-30,Ben Simmons,good_high_starter,SOLID_STARTER,1B-B,$30.00M-$35.00M,$18.56M-$26.29M,24.99,5.01,too_low,human_range_above_tier_range -> likely range too low or tier too low
+boundary40,H-03,B40-31,LaMelo Ball,good_high_starter,YOUNG_PROVEN_STARTER,none,$35.00M-$40.00M,$26.29M-$34.80M,33.72,1.28,too_low,human_range_above_tier_range -> likely range too low or tier too low
+boundary40,H-04,B40-32,Kai Jones,good_high_starter,YOUNG_PROVEN_STARTER,none,$35.00M-$40.00M,$26.29M-$34.80M,33.22,1.78,too_low,human_range_above_tier_range -> likely range too low or tier too low
+boundary40,I-01,B40-33,Saben Lee,star_near_max,STAR_NEAR_MAX,none,$46.40M,$40.83M-$46.40M,45.65,0.75,near_boundary_minor_miss,near_boundary_minor_miss
+boundary40,I-02,B40-34,Josh Giddey,star_near_max,STAR_NEAR_MAX,none,$38.66M,$34.02M-$38.66M,38.08,0.58,near_boundary_minor_miss,near_boundary_minor_miss
+boundary40,I-03,B40-35,Patrick Williams,star_near_max,STAR_NEAR_MAX,none,$46.40M,$40.83M-$46.40M,45.6,0.8,near_boundary_minor_miss,near_boundary_minor_miss
+boundary40,I-04,B40-36,Trae Young,star_near_max,STAR_NEAR_MAX,none,$44.00M-$46.40M,$40.83M-$46.40M,45.55,0,inside,looks_ok
+boundary40,J-01,B40-37,Justin Champagnie,superstar_max_lock,STAR_NEAR_MAX,none,$46.40M,$40.83M-$46.40M,45.8,0.6,near_boundary_minor_miss,near_boundary_minor_miss
+boundary40,J-02,B40-38,Scottie Barnes,superstar_max_lock,STAR_NEAR_MAX,none,$46.40M,$40.83M-$46.40M,45.73,0.67,near_boundary_minor_miss,near_boundary_minor_miss
+boundary40,J-03,B40-39,Joshua Primo,superstar_max_lock,STAR_NEAR_MAX,none,$46.40M,$40.83M-$46.40M,45.82,0.58,near_boundary_minor_miss,near_boundary_minor_miss
+boundary40,J-04,B40-40,Luka Dončić,superstar_max_lock,STAR_NEAR_MAX,none,$46.40M,$40.83M-$46.40M,45.65,0.75,near_boundary_minor_miss,near_boundary_minor_miss
+validation20,V20-01,,Zion Williamson,max_near_max_high_star,SUPERSTAR_MAX,none,$46.40M,$46.40M,46.4,0,inside,looks_ok
+validation20,V20-02,,Jaden Springer,max_near_max_high_star,SUPERSTAR_MAX,none,$46.40M,$46.40M,46.4,0,inside,looks_ok
+validation20,V20-03,,Marvin Bagley III,max_near_max_high_star,STAR_NEAR_MAX,none,$46.40M,$40.83M-$46.40M,45.59,0.81,near_boundary_minor_miss,near_boundary_minor_miss
+validation20,V20-04,,Zhaire Smith,max_near_max_high_star,STAR_NEAR_MAX,none,$46.40M,$40.83M-$46.40M,45.68,0.72,near_boundary_minor_miss,near_boundary_minor_miss
+validation20,V20-05,,Jeremy Sochan,young_proven_young_starter,YOUNG_PROVEN_STARTER,none,$33.46M,$26.29M-$34.80M,32.98,0.48,near_boundary_minor_miss,near_boundary_minor_miss
+validation20,V20-06,,Isaiah Jackson,young_proven_young_starter,YOUNG_PROVEN_STARTER,none,$40.00M-$46.40M,$26.29M-$34.80M,33.48,6.52,too_low,human_range_above_tier_range -> likely range too low or tier too low
+validation20,V20-07,,Paolo Banchero,young_proven_young_starter,YOUNG_PROVEN_STARTER,none,$38.00M-$44.00M,$26.29M-$34.80M,33.53,4.47,too_low,human_range_above_tier_range -> likely range too low or tier too low
+validation20,V20-08,,Ja Morant,young_proven_young_starter,STAR_NEAR_MAX,none,$38.00M-$43.00M,$40.83M-$46.40M,45.43,2.43,too_high,human_range_overlaps_tier_range_but_point_misses -> placement issue
+validation20,V20-09,,Bradley Beal,low_end_starter_good_rotation,SOLID_STARTER,1B-B,$22.00M-$27.00M,$18.56M-$26.29M,23.87,0,inside,looks_ok
+validation20,V20-10,,Jason Preston,low_end_starter_good_rotation,LOW_END_STARTER,none,$24.00M-$29.00M,$9.28M-$18.56M,16.86,7.14,too_low,human_range_above_tier_range -> likely range too low or tier too low
+validation20,V20-11,,Anthony Davis,low_end_starter_good_rotation,SOLID_STARTER,1B-B,$24.00M-$28.00M,$18.56M-$26.29M,23.66,0.34,near_boundary_minor_miss,near_boundary_minor_miss
+validation20,V20-12,,Jared Butler,low_end_starter_good_rotation,YOUNG_PROVEN_STARTER,none,$23.00M-$28.00M,$26.29M-$34.80M,32.46,4.46,too_high,human_range_overlaps_tier_range_but_point_misses -> placement issue
+validation20,V20-13,,Landry Shamet,specialist_low_rotation,SPECIALIST_ROTATION,none,$10.00M-$14.00M,$5.41M-$8.51M,7.03,2.97,too_low,human_range_above_tier_range -> likely range too low or tier too low
+validation20,V20-14,,Hassan Whiteside,specialist_low_rotation,VETERAN_MINIMUM_PLUS,none,$3.00M-$5.00M,$3.71M-$5.41M,4.36,0,inside,looks_ok
+validation20,V20-15,,Damian Lillard,specialist_low_rotation,VETERAN_ROTATION_GUARD,none,$10.00M-$14.00M,$6.19M-$9.28M,7.7,2.3,too_low,human_range_above_tier_range -> likely range too low or tier too low
+validation20,V20-16,,Austin Reaves,specialist_low_rotation,SPECIALIST_ROTATION,none,$8.00M-$12.00M,$5.41M-$8.51M,6.86,1.14,near_boundary_minor_miss,near_boundary_minor_miss
+validation20,V20-17,,Alec Burks,veteran_minimum_fringe_negative,MINIMUM_LEVEL,none,$3.71M,$3.71M-$4.27M,3.74,0.03,near_boundary_minor_miss,near_boundary_minor_miss
+validation20,V20-18,,Terrence Jones,veteran_minimum_fringe_negative,MINIMUM_LEVEL,none,$3.71M,$3.71M-$4.27M,3.76,0.05,near_boundary_minor_miss,near_boundary_minor_miss
+validation20,V20-19,,Jusuf Nurkić,veteran_minimum_fringe_negative,MINIMUM_LEVEL,none,$3.71M,$3.71M-$4.27M,3.78,0.07,near_boundary_minor_miss,near_boundary_minor_miss
+validation20,V20-20,,Johnathan Motley,veteran_minimum_fringe_negative,MINIMUM_LEVEL,none,$3.36M,$3.36M-$3.86M,3.41,0.05,near_boundary_minor_miss,near_boundary_minor_miss

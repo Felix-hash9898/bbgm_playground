@@ -1,0 +1,3 @@
+model,metric,teamCount,mean,median,p10,p25,p75,p90,max,low_or_conservative,normal_ish,elevated,high_risk,likely_bad,extreme_bad,teamsGte145,teamsGte160,teamsGte180
+current,current_v2_point_sum_pct_cap,30,80.08,80.818,61.035,65.647,92.633,102.379,111.206,28,2,0,0,0,0,0,0,0
+combined,combined_point_sum_pct_cap,30,89.198,90.682,65.804,76.992,102.946,111.579,128.723,26,4,0,0,0,0,0,0,0

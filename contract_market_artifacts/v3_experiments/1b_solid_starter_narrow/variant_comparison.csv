@@ -1,0 +1,4 @@
+variant,variantLabel,verdict,reasons,solidStarterEntrants,lowEndToSolid,lowEndToSolidPct,lowEndToSolidText,minimumToSolid,lowRotationToSolid,youngUpsideToSolid,vetGuardToSolid,rosteredPer30Delta,top15Per30Delta,labeledSevere,labeledTooHigh,tooLowFixed,tooHighAdded,newSevere,candidateBetter,currentBetter,tie,meanGap,medianGap
+A,A_moderate_narrow,inconclusive,labeled too_high increased 7->9,19,19,30.159,19 (30.2%),0,0,0,0,3.117,3.117,4->2,7->9,2,2,0,5,5,38,2.062,0.75
+B,B_normal_strict,inconclusive,labeled too_high increased 7->8,17,17,26.984,17 (27.0%),0,0,0,0,2.75,2.75,4->2,7->8,1,1,0,4,4,40,2.128,0.75
+C,C_very_strict,inconclusive,"LOW_END_STARTER subset is 15.9%, outside 20%-40% target",10,10,15.873,10 (15.9%),0,0,0,0,1.467,1.467,4->3,7->7,0,0,0,2,3,43,2.304,0.775
