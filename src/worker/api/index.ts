@@ -4273,18 +4273,26 @@ const updatePlayersWatch = async ({
 	]);
 };
 
-const updatePlayingTime = async ({
-	pid,
-	ptModifier,
-}: {
+const updatePlayingTime = async (args: {
 	pid: number;
-	ptModifier: number;
+	ptModifier?: number;
+	targetMinutes?: number | null;
 }) => {
-	const p = await idb.cache.players.get(pid);
+	const p = await idb.cache.players.get(args.pid);
 	if (!p) {
 		throw new Error("Invalid pid");
 	}
-	p.ptModifier = ptModifier;
+	if (args.ptModifier !== undefined) {
+		p.ptModifier = args.ptModifier;
+	}
+	if (g.get("godMode") && "targetMinutes" in args) {
+		const tm = args.targetMinutes;
+		if (tm === null) {
+			delete p.targetMinutes;
+		} else if (typeof tm === "number" && Number.isFinite(tm) && tm >= 0) {
+			p.targetMinutes = Math.min(48, tm);
+		}
+	}
 	await idb.cache.players.put(p);
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 };

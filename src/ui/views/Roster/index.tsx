@@ -371,7 +371,9 @@ const Roster = ({
 					searchValue: p.born.loc,
 				},
 				...stats.map((stat) => helpers.roundStat(p.stats[stat], stat)),
-				...(editable ? [<PlayingTime p={p} userTid={userTid} />] : []),
+				...(editable
+					? [<PlayingTime p={p} userTid={userTid} godMode={godMode} />]
+					: []),
 				...(editable && isSport("basketball") && season === currentSeason
 					? [<UsageBias p={p} userTid={userTid} />]
 					: []),

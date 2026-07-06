@@ -2,7 +2,10 @@ import { g, helpers, random } from "../../util/index.ts";
 import { PHASE, STARTING_NUM_TIMEOUTS } from "../../../common/index.ts";
 import jumpBallWinnerStartsThisPeriodWithPossession from "./jumpBallWinnerStartsThisPeriodWithPossession.ts";
 import getInjuryRate, { getInjuryOverloadFactor } from "./getInjuryRate.ts";
-import getMinutesLimitFactor from "./getMinutesLimitFactor.ts";
+import getMinutesLimitFactor, {
+	getAutoMinutesSoftCap,
+} from "./getMinutesLimitFactor.ts";
+import getTargetMinutesModifier from "./getTargetMinutesModifier.ts";
 import type {
 	GameAttributesLeague,
 	PlayerInjury,
@@ -94,6 +97,7 @@ type PlayerGameSim = {
 		playingThrough: boolean;
 	};
 	ptModifier: number;
+	targetMinutes?: number;
 	usageBias: number;
 	gameForm: number; // Within-game random form factor (-5 to +5)
 	pendingPostGameInjury?: boolean;
@@ -1018,6 +1022,20 @@ class GameSim extends GameSimBase {
 
 						if (!this.allStarGame) {
 							ovrs[p.id]! *= p.ptModifier;
+
+							// Static targetMinutes modifier: nudges priority toward user's target
+							ovrs[p.id]! *= getTargetMinutesModifier({
+								targetMinutes: p.targetMinutes,
+								autoSoftCap: getAutoMinutesSoftCap({
+									availablePlayers,
+									endurance: p.compositeRating.endurance,
+									playoffs,
+									ptModifier: p.ptModifier,
+									regulationMinutes,
+									rosterIndex: i,
+								}),
+								regulationMinutes,
+							});
 						}
 
 						ovrs[p.id]! *= getMinutesLimitFactor({
@@ -1029,6 +1047,7 @@ class GameSim extends GameSimBase {
 							ptModifier: p.ptModifier,
 							regulationMinutes,
 							rosterIndex: i,
+							targetMinutes: p.targetMinutes,
 						});
 
 						// Also scale based on margin late in games, so stars play less in blowouts (this doesn't really work that well, but better than nothing)

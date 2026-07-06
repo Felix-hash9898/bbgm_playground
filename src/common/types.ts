@@ -1251,6 +1251,7 @@ export type PlayerWithoutKey<PlayerRatings = any> = {
 	pid?: number;
 	pos?: string; // Only in players from custom league files
 	ptModifier: number;
+	targetMinutes?: number;
 	atRimTendency?: number;
 	lowPostTendency?: number;
 	midRangeTendency?: number;

@@ -41,6 +41,7 @@ export const exportPlayers = async (
 				delete p.gamesUntilTradable;
 				delete p.numDaysFreeAgent;
 				delete p.ptModifier;
+				delete p.targetMinutes;
 				delete p.rosterOrder;
 				delete p.statsTids;
 				delete p.value;

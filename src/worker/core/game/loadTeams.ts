@@ -234,6 +234,7 @@ export const processTeam = async (
 			injured: p.injury.gamesRemaining > playThroughInjuries,
 			jerseyNumber,
 			ptModifier: p.ptModifier,
+			targetMinutes: p.targetMinutes,
 			usageBias: p.usageBias ?? 1,
 			ovrs: rating.ovrs,
 			gameForm: 0,
@@ -242,6 +243,7 @@ export const processTeam = async (
 		// Reset ptModifier for AI teams. This should not be necessary since it should always be 1, but let's be safe.
 		if (!g.get("userTids").includes(t.id) || g.get("spectator")) {
 			p2.ptModifier = 1;
+			p2.targetMinutes = undefined;
 			p2.usageBias = 1;
 		}
 		const seasonStats: Record<string, number> = {};

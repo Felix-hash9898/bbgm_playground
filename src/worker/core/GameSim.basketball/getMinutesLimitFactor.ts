@@ -26,16 +26,17 @@ type Params = {
 	ptModifier: number;
 	regulationMinutes: number;
 	rosterIndex: number;
+	targetMinutes?: number;
 };
 
-export const getMinutesSoftCap = ({
+export const getAutoMinutesSoftCap = ({
 	availablePlayers,
 	endurance,
 	playoffs,
 	ptModifier,
 	regulationMinutes,
 	rosterIndex,
-}: Omit<Params, "lateGame" | "minutes">) => {
+}: Omit<Params, "lateGame" | "minutes" | "targetMinutes">) => {
 	const baseShare = getBaseTargetShare(rosterIndex);
 	const depthMultiplier = clamp(10 / Math.max(availablePlayers, 6), 1, 1.35);
 	const ptMultiplier = clamp(1 + (ptModifier - 1) * 0.35, 0.6, 1.2);
@@ -54,6 +55,39 @@ export const getMinutesSoftCap = ({
 	);
 };
 
+export const getMinutesSoftCap = ({
+	availablePlayers,
+	endurance,
+	playoffs,
+	ptModifier,
+	regulationMinutes,
+	rosterIndex,
+	targetMinutes,
+}: Omit<Params, "lateGame" | "minutes">) => {
+	// targetMinutes acts as a soft cap target. It suppresses playing time when exceeded, but does not force DNP or prevent starting.
+	if (
+		targetMinutes !== undefined &&
+		targetMinutes !== null &&
+		Number.isFinite(targetMinutes)
+	) {
+		const targetMinutesScaled = targetMinutes * (regulationMinutes / 48);
+		return clamp(
+			targetMinutesScaled,
+			0,
+			regulationMinutes * (playoffs ? 0.92 : 0.86),
+		);
+	}
+
+	return getAutoMinutesSoftCap({
+		availablePlayers,
+		endurance,
+		playoffs,
+		ptModifier,
+		regulationMinutes,
+		rosterIndex,
+	});
+};
+
 const getMinutesLimitFactor = ({
 	availablePlayers,
 	endurance,
@@ -63,6 +97,7 @@ const getMinutesLimitFactor = ({
 	ptModifier,
 	regulationMinutes,
 	rosterIndex,
+	targetMinutes,
 }: Params) => {
 	const softCap = getMinutesSoftCap({
 		availablePlayers,
@@ -71,6 +106,7 @@ const getMinutesLimitFactor = ({
 		ptModifier,
 		regulationMinutes,
 		rosterIndex,
+		targetMinutes,
 	});
 
 	const excessMinutes = minutes - softCap;

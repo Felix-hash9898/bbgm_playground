@@ -83,6 +83,7 @@ const processTrade = async (
 
 			// p.gamesUntilTradable = 14; // Don't make traded players untradable
 			p.ptModifier = 1; // Reset
+			delete p.targetMinutes;
 			p.usageBias = 1; // Reset
 
 			if (duringSeason) {

@@ -181,6 +181,7 @@ const updateRoster = async (
 			"rosterOrder",
 			"injury",
 			"ptModifier",
+			"targetMinutes",
 			"usageBias",
 			"watch",
 			"untradable",
