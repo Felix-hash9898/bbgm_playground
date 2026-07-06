@@ -50,11 +50,34 @@ const create = async (conditions: Conditions) => {
 
 	const allStarNum = g.get("allStarNum");
 
+	const teamWinPcts: Record<number, number> = {};
+	if (isSport("basketball")) {
+		const teamSeasons = await idb.getCopies.teamSeasons(
+			{ season: g.get("season") },
+			"noCopyCache",
+		);
+		for (const ts of teamSeasons) {
+			const gp = ts.won + ts.lost;
+			if (gp > 0) {
+				teamWinPcts[ts.tid] = ts.won / gp;
+			}
+		}
+	}
+
+	const getTeamSuccessBonus = (tid: number) => {
+		const winPct = teamWinPcts[tid] ?? 0;
+		if (winPct <= 0.5) {
+			return 0;
+		}
+		return Math.min(3, (winPct - 0.5) * 12);
+	};
+
 	const score = (p: PlayerFiltered) =>
 		bySport({
 			baseball: p.stats.war,
 			football: p.stats.av,
-			basketball: 2.5 * p.stats.ewa + p.stats.ws,
+			basketball:
+				2.5 * p.stats.ewa + p.stats.ws + getTeamSuccessBonus(p.tid),
 			hockey: p.stats.ps,
 		});
 
