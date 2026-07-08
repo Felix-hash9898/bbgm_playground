@@ -191,7 +191,6 @@ const updateRoster = async (
 			"value",
 			"awards",
 			"form",
-			"gameForm",
 		]; // tid and draft are used for checking if a player can be released without paying his salary
 
 		const ratings = ["ovr", "pot", "dovr", "dpot", "skills", "pos", "ovrs"];

@@ -117,7 +117,12 @@ const PlayingTime = ({
 				className="form-select pt-modifier-select"
 				value={value}
 				onChange={(event) => handlePtChange(p, userTid, event)}
-				style={(ptStyles as any)[String(value)]}
+				style={{
+					...(ptStyles as any)[String(value)],
+					width: "44px",
+					minWidth: "44px",
+					flexShrink: 0,
+				}}
 				disabled={p.tid !== userTid}
 			>
 				{ptModifiers.map(({ text, ptModifier }) => {

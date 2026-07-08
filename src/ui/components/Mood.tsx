@@ -128,6 +128,7 @@ type Props = {
 		tid: number;
 	};
 	defaultType: "user" | "current";
+	compact?: boolean;
 };
 
 const MoodTextRow = ({ amount, text }: { amount: number; text: string }) => {
@@ -139,7 +140,7 @@ const MoodTextRow = ({ amount, text }: { amount: number; text: string }) => {
 	);
 };
 
-const Mood = ({ className, defaultType, maxWidth, p }: Props) => {
+const Mood = ({ className, defaultType, maxWidth, p, compact }: Props) => {
 	const { teamInfoCache, userTid } = useLocalPartial([
 		"teamInfoCache",
 		"userTid",
@@ -290,6 +291,33 @@ const Mood = ({ className, defaultType, maxWidth, p }: Props) => {
 	const { sum } = processComponents(initialMood.components);
 	const roundedProbWilling = roundProbWilling(initialMood.probWilling);
 	const renderTarget = ({ onClick }: { onClick?: () => void }) => {
+		if (compact) {
+			const traitsStr = initialMood.traits.length > 0 ? ` ${initialMood.traits.join(" ")}` : "";
+			return (
+				<button
+					className={clsx(
+						"btn btn-xs d-flex justify-content-center",
+						className,
+						initialType === "user"
+							? "btn-light-bordered-primary"
+							: "btn-light-bordered",
+						{
+							"w-100": maxWidth,
+						},
+					)}
+					onClick={onClick}
+					title={`${plusMinus(sum)}${traitsStr} (${roundedProbWilling}%)`}
+				>
+					<span
+						className={highlightColor(sum)}
+						data-no-row-highlight="true"
+					>
+						{showProbWilling ? `${roundedProbWilling}%` : plusMinus(sum)}
+					</span>
+				</button>
+			);
+		}
+
 		return (
 			<button
 				className={clsx(

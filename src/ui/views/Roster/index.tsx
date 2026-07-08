@@ -169,7 +169,7 @@ const Roster = ({
 			"Ovr",
 			"Pot",
 			...(isSport("basketball") && season === currentSeason
-				? ["Form", "GameForm"]
+				? ["Form"]
 				: []),
 			...(season === currentSeason ? ["Contract"] : []),
 			"stat:yearsWithTeam",
@@ -345,9 +345,6 @@ const Roster = ({
 							(p as any).form != null
 								? ((p as any).form as number).toFixed(1)
 								: "0.0",
-							(p as any).gameForm != null
-								? ((p as any).gameForm as number).toFixed(1)
-								: "0.0",
 						]
 					: []),
 				...(season === currentSeason ? [wrappedContract(p)] : []),
@@ -383,6 +380,7 @@ const Roster = ({
 								defaultType: "current",
 								maxWidth: true,
 								p,
+								compact: true,
 							}),
 						]
 					: []),
