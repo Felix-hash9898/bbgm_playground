@@ -20,6 +20,7 @@ import { range } from "../../common/utils.ts";
 import type { DropdownOption } from "../hooks/useDropdownOptions.tsx";
 import type { FreeAgentTransaction } from "../../worker/views/freeAgents.ts";
 import type { DataTableRow } from "../components/DataTable/index.tsx";
+import { wrappedRatingWithChange } from "../components/RatingWithChange.tsx";
 
 const contractExceptionLabels: Record<string, string> = {
 	bird: "Bird",
@@ -232,8 +233,12 @@ const FreeAgents = ({
 				}),
 				p.ratings.pos,
 				p.age,
-				!challengeNoRatings ? p.ratings.ovr : null,
-				!challengeNoRatings ? p.ratings.pot : null,
+				!challengeNoRatings
+					? wrappedRatingWithChange(p.ratings.ovr, p.ratings.dovr)
+					: null,
+				!challengeNoRatings
+					? wrappedRatingWithChange(p.ratings.pot, p.ratings.dpot)
+					: null,
 				...stats.map((stat) => helpers.roundStat(p.stats[stat], stat)),
 				p.freeAgentType === "available"
 					? dataTableWrappedMood({

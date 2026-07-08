@@ -35,7 +35,7 @@ export const addMood = async (players: Player[]) => {
 
 export const freeAgentStats = bySport({
 	baseball: ["gp", "keyStats", "war"],
-	basketball: ["min", "pts", "trb", "ast", "per"],
+	basketball: ["min", "pts", "trb", "ast", "per", "vorp"],
 	football: ["gp", "keyStats", "av"],
 	hockey: ["gp", "keyStats", "ops", "dps", "ps"],
 });
@@ -248,7 +248,7 @@ const updateFreeAgents = async (
 					"freeAgentType",
 					"freeAgentTransaction",
 				],
-				ratings: ["ovr", "pot", "skills", "pos"],
+				ratings: ["ovr", "pot", "dovr", "dpot", "skills", "pos"],
 				stats: freeAgentStats,
 				season: season === "current" ? g.get("season") : freeAgencySeason,
 				showNoStats: true,
