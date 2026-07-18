@@ -2,6 +2,7 @@ import clsx from "clsx";
 import type { MouseEvent } from "react";
 import PlayerNameLabels from "./PlayerNameLabels.tsx";
 import { helpers } from "../util/index.ts";
+import BOX_SCORE_STATS from "../../common/boxScoreStats.basketball.ts";
 
 const BoxScoreRow = ({
 	className,
@@ -33,7 +34,7 @@ const BoxScoreRow = ({
 			(p.injury.gamesRemaining > 0 && !p.injury.playingThrough));
 
 	const statCols = showDNP ? (
-		<td colSpan={18} className="text-center">
+		<td colSpan={BOX_SCORE_STATS.length} className="text-center">
 			DNP -{" "}
 			{p.injury.gamesRemaining === 0 || p.injury.playingThrough
 				? "Coach's decision"
@@ -60,8 +61,12 @@ const BoxScoreRow = ({
 			<td>{p.ba}</td>
 			<td>{p.pf}</td>
 			<td>{p.pts}</td>
-			<td>{helpers.plusMinus(p.pm, 0)}</td>
 			<td>{helpers.gameScore(p).toFixed(1)}</td>
+			<td>
+				{typeof p.bpmImpact === "number"
+					? helpers.plusMinus(p.bpmImpact, 2)
+					: ""}
+			</td>
 			<td className={formColor(p.form ?? 0, 1)}>{(p.form ?? 0).toFixed(1)}</td>
 			<td className={formColor(p.gameForm ?? 0, 1)}>
 				{(p.gameForm ?? 0).toFixed(1)}

@@ -59,6 +59,8 @@ type Stat =
 	| "fgaMidRange"
 	| "ft"
 	| "fta"
+	| "offPossOn"
+	| "defPossOn"
 	| "gp"
 	| "gs"
 	| "min"
@@ -132,6 +134,12 @@ type PossessionOutcome =
 type ClockFactor = ReturnType<GameSim["getClockFactor"]>;
 
 const teamNums: [TeamNum, TeamNum] = [0, 1];
+
+export const possessionContinues = (outcome: PossessionOutcome | undefined) =>
+	outcome === "orb" ||
+	outcome === "nonShootingFoul" ||
+	outcome === "timeout" ||
+	outcome === "outOfBoundsDefense";
 
 // Return the indexes of the elements in ovrs, sorted from smallest to largest.
 // So [50, 70, 10, 20, 60] => [2, 3, 0, 4, 1]
@@ -801,6 +809,18 @@ class GameSim extends GameSimBase {
 		// Possession change
 		this.o = this.o === 1 ? 0 : 1;
 		this.d = this.o === 1 ? 0 : 1;
+
+		// Offensive rebounds, non-shooting fouls, timeouts, and defensive out of
+		// bounds plays jump back into this same possession. Count only when the
+		// previous play did not explicitly preserve possession.
+		if (!possessionContinues(this.prevPossessionOutcome)) {
+			for (const p of this.playersOnCourt[this.o]) {
+				this.recordStat(this.o, p, "offPossOn");
+			}
+			for (const p of this.playersOnCourt[this.d]) {
+				this.recordStat(this.d, p, "defPossOn");
+			}
+		}
 		this.updateTeamCompositeRatings();
 
 		const dtInbound = this.dtInbound();
@@ -3069,7 +3089,13 @@ class GameSim extends GameSimBase {
 			}
 		}
 
-		if (s !== "courtTime" && s !== "benchTime" && s !== "energy") {
+		if (
+			s !== "courtTime" &&
+			s !== "benchTime" &&
+			s !== "energy" &&
+			s !== "offPossOn" &&
+			s !== "defPossOn"
+		) {
 			if (s !== "gs" && s !== "gp") {
 				this.team[t].stat[s] += amt; // Record quarter-by-quarter scoring too
 

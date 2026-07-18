@@ -18,6 +18,10 @@ import { headToHead, season } from "../index.ts";
 import getWinner from "../../../common/getWinner.ts";
 import formatScoreWithShootout from "../../../common/formatScoreWithShootout.ts";
 import addUILocalGameTeamBranding from "../../util/addUILocalGameTeamBranding.ts";
+import {
+	calculateAdvancedStatsFromRawGameData,
+	calculateBPMImpact,
+} from "../../util/advStats.basketball.ts";
 
 const allStarMVP = async (
 	game: Game,
@@ -316,6 +320,82 @@ export const gameSimToBoxScore = async (results: GameResults, att: number) => {
 			}
 
 			gameStats.teams[t].players.push(p);
+		}
+	}
+
+	if (isSport("basketball")) {
+		const teamsRaw = gameStats.teams.map((team, i) => {
+			const opponent = gameStats.teams[1 - i]!;
+			const stats = {
+				...team,
+				gp: 1,
+				trb: team.drb + team.orb,
+				oppPts: opponent.pts,
+				oppFg: opponent.fg,
+				oppFga: opponent.fga,
+				oppTp: opponent.tp,
+				oppTpa: opponent.tpa,
+				oppFt: opponent.ft,
+				oppFta: opponent.fta,
+				oppOrb: opponent.orb,
+				oppDrb: opponent.drb,
+				oppAst: opponent.ast,
+				oppTov: opponent.tov,
+				oppStl: opponent.stl,
+				oppBlk: opponent.blk,
+				oppPf: opponent.pf,
+				oppTrb: opponent.drb + opponent.orb,
+			};
+			return { tid: team.tid, stats };
+		});
+		const players = gameStats.teams.flatMap((team) =>
+			team.players.map((p) => ({
+				pid: p.pid,
+				tid: team.tid,
+				ratings: { pos: p.pos },
+				stats: {
+					...p,
+					trb: p.drb + p.orb,
+				},
+			})),
+		);
+		const possOnByPlayerId = new Map(
+			players.map((p) => [
+				p.pid,
+				((p.stats.offPossOn ?? 0) + (p.stats.defPossOn ?? 0)) / 2,
+			]),
+		);
+		const bpm = calculateAdvancedStatsFromRawGameData(
+			players,
+			teamsRaw,
+			possOnByPlayerId,
+		);
+		if (bpm) {
+			for (const [i, p] of players.entries()) {
+				const team = gameStats.teams.find((t) => t.tid === p.tid)!;
+				const boxScorePlayer = team.players.find((p2) => p2.pid === p.pid)!;
+				const singleGameBpm = bpm.obpm[i]! + bpm.dbpm[i]!;
+				const bpmImpact = calculateBPMImpact(
+					singleGameBpm,
+					p.stats.offPossOn ?? 0,
+					p.stats.defPossOn ?? 0,
+				);
+				if (Number.isFinite(singleGameBpm)) {
+					boxScorePlayer.singleGameBpm = singleGameBpm;
+				}
+				if (bpmImpact !== undefined) {
+					boxScorePlayer.bpmImpact = bpmImpact;
+				}
+			}
+		}
+
+		// These are single-game accounting fields. Do not let the normal player
+		// stat writer accidentally accumulate them into season totals.
+		for (const team of results.team) {
+			for (const player of team.player) {
+				delete player.stat.offPossOn;
+				delete player.stat.defPossOn;
+			}
 		}
 	}
 

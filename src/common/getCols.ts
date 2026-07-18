@@ -1054,6 +1054,12 @@ const sportSpecificCols = bySport<{
 			sortType: "number",
 			title: "GmSc",
 		},
+		"stat:bpmImpact": {
+			desc: "Estimated single-game impact: single-game BPM scaled by the player's actual on-court possessions.",
+			sortSequence: ["desc", "asc"],
+			sortType: "number",
+			title: "BPMI",
+		},
 		"stat:nrtg": {
 			desc: "Net Rating (point differential per 100 possessions)",
 			sortSequence: ["desc", "asc"],

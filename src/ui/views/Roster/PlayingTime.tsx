@@ -79,7 +79,9 @@ const PlayingTime = ({
 	);
 
 	useEffect(() => {
-		setTargetInput(p.targetMinutes !== undefined ? String(p.targetMinutes) : "");
+		setTargetInput(
+			p.targetMinutes !== undefined ? String(p.targetMinutes) : "",
+		);
 	}, [p.targetMinutes]);
 
 	const saveTargetMinutes = async (valStr: string) => {
@@ -112,7 +114,15 @@ const PlayingTime = ({
 	};
 
 	return (
-		<div style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+		<div
+			style={{
+				display: "inline-flex",
+				alignItems: "center",
+				gap: "4px",
+				lineHeight: "20px",
+				verticalAlign: "middle",
+			}}
+		>
 			<select
 				className="form-select pt-modifier-select"
 				value={value}
@@ -152,8 +162,12 @@ const PlayingTime = ({
 					}}
 					style={{
 						width: "58px",
+						height: "20px",
+						minHeight: "20px",
+						boxSizing: "border-box",
 						fontSize: "0.8rem",
-						padding: "0.15rem 0.25rem",
+						lineHeight: "18px",
+						padding: "0 0.25rem",
 						textAlign: "center",
 					}}
 					title="Target Minutes (soft cap, blank for Auto; use PT=0 for DNP)"

@@ -200,6 +200,7 @@ const calculateBPM = (
 	players: any[],
 	teamsByTid: Record<string, Team>,
 	league: any,
+	possOnByPlayerId?: Map<number, number>,
 ) => {
 	const teams = Object.values(teamsByTid);
 
@@ -287,7 +288,11 @@ const calculateBPM = (
 		const tsa = ps.fga + ps.fta * 0.44;
 		const pts_tsa = ps.pts / (tsa + 1e-6);
 		const adj_pts = (pts_tsa - team_pts_tsa + 1) * tsa;
-		const poss = 1e-6 + (ps.min * t.stats.pace) / 48;
+		const exactPossOn = possOnByPlayerId?.get(p.pid ?? p.id);
+		const poss =
+			exactPossOn !== undefined
+				? Math.max(exactPossOn, 1e-6)
+				: 1e-6 + (ps.min * t.stats.pace) / 48;
 		const thresh_pts = tsa * (pts_tsa - (team_pts_tsa - 0.33));
 		teamAverages[p.tid]!.teamThresh += thresh_pts;
 		playerPoss[i] = poss;
@@ -776,6 +781,7 @@ export const calculateAdvancedStatsFromRawGameData = (
 		tid: number;
 		stats: any;
 	}>,
+	possOnByPlayerId?: Map<number, number>,
 ) => {
 	const teams = teamsRaw.map((t) => ({
 		tid: t.tid,
@@ -830,8 +836,28 @@ export const calculateAdvancedStatsFromRawGameData = (
 		...calculatePER(players, teamsByTid, league),
 		...calculatePercentages(players, teamsByTid),
 		...calculateRatings(players, teamsByTid, league),
-		...calculateBPM(players, teamsByTid, league),
+		...calculateBPM(players, teamsByTid, league, possOnByPlayerId),
 	};
+};
+
+/**
+ * Scale a single-game BPM rate by the player's participation in team
+ * possessions. This is an estimated box-score impact, not causal plus/minus.
+ */
+export const calculateBPMImpact = (
+	singleGameBpm: number,
+	offPossOn: number,
+	defPossOn: number,
+) => {
+	const possOn = (offPossOn + defPossOn) / 2;
+	if (
+		!Number.isFinite(singleGameBpm) ||
+		!Number.isFinite(possOn) ||
+		possOn <= 0
+	) {
+		return undefined;
+	}
+	return (singleGameBpm * possOn) / 100;
 };
 
 /**

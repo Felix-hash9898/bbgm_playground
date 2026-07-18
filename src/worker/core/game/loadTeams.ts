@@ -385,6 +385,8 @@ export const processTeam = async (
 			courtTime: -3,
 			benchTime: 0,
 			energy: 1,
+			offPossOn: 0,
+			defPossOn: 0,
 		};
 
 		if (player.stats.byPos) {

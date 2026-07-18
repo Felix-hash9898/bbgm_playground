@@ -5,6 +5,8 @@ import { sortByStats, StatsHeader } from "./BoxScore.football.tsx";
 import { type MouseEvent, useState } from "react";
 import type { SortBy } from "./DataTable/index.tsx";
 import updateSortBys from "./DataTable/updateSortBys.ts";
+import getBPMImpactSortValue from "../../common/getBPMImpactSortValue.ts";
+import BOX_SCORE_STATS from "../../common/boxScoreStats.basketball.ts";
 
 const StatsTable = ({
 	Row,
@@ -49,26 +51,7 @@ const StatsTable = ({
 		});
 	};
 
-	const stats = [
-		"min",
-		"fg",
-		"tp",
-		"ft",
-		"orb",
-		"trb",
-		"ast",
-		"tov",
-		"stl",
-		"blk",
-		"ba",
-		"pf",
-		"pts",
-		"pm",
-		"gmsc",
-		"form",
-		"gameForm",
-		"formTot",
-	];
+	const stats = [...BOX_SCORE_STATS];
 	const cols = getCols(
 		stats.map((stat) => `stat:${stat}`),
 		{
@@ -116,6 +99,10 @@ const StatsTable = ({
 
 				if (stat === "gmsc") {
 					return helpers.gameScore(p);
+				}
+
+				if (stat === "bpmImpact") {
+					return getBPMImpactSortValue(p);
 				}
 
 				if (stat === "fg" || stat === "ft" || stat === "tp") {
@@ -207,6 +194,7 @@ const StatsTable = ({
 						<th>{helpers.roundStat((100 * t.fg) / t.fga, "fgp")}%</th>
 						<th>{helpers.roundStat((100 * t.tp) / t.tpa, "tpp")}%</th>
 						<th>{helpers.roundStat((100 * t.ft) / t.fta, "ftp")}%</th>
+						<th />
 						<th />
 						<th />
 						<th />
