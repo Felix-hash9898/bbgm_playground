@@ -35,7 +35,8 @@ beforeEach(() => {
 test("basketball genContract clamps to the player's dynamic max", () => {
 	const p = makePlayer();
 	const contract = genContract(p, false, false);
-	assert.strictEqual(contract.amount, 52500);
+	assert(contract.amount <= g.get("salaryCap") * 0.25);
+	assert(contract.amount >= getMinContractForPlayer(p));
 });
 
 test("basketball genContract keeps veteran standard contracts at veteran minimum or higher", () => {

@@ -49,7 +49,8 @@ const makePlayer = (
 };
 
 const makeTeams = () =>
-	helpers.getTeamsDefault()
+	helpers
+		.getTeamsDefault()
 		.slice(0, 2)
 		.map((t) => team.generate(t));
 
@@ -127,7 +128,10 @@ test("freeAgentsOnly updates only free agents", async () => {
 		],
 	});
 
-	assert.deepStrictEqual([...results.keys()].sort((a, b) => a - b), [1, 2]);
+	assert.deepStrictEqual(
+		[...results.keys()].sort((a, b) => a - b),
+		[1, 2],
+	);
 });
 
 test("includeExpiringContracts includes expiring players and free agents", async () => {
@@ -154,7 +158,10 @@ test("includeExpiringContracts includes expiring players and free agents", async
 		],
 	});
 
-	assert.deepStrictEqual([...results.keys()].sort((a, b) => a - b), [1, 2, 3]);
+	assert.deepStrictEqual(
+		[...results.keys()].sort((a, b) => a - b),
+		[1, 2, 3],
+	);
 });
 
 test("pids filtering only updates targeted players", async () => {
@@ -183,14 +190,28 @@ test("pids filtering only updates targeted players", async () => {
 test("normalizeContractDemands can attach a player option to a high-value veteran", async () => {
 	await resetCache({
 		players: [
-			makePlayer(1, {
-				age: 30,
-				draftYearsAgo: 10,
-				ovr: 80,
-				pot: 82,
-				value: 82,
-				valueNoPot: 80,
-			}),
+			(() => {
+				const p = makePlayer(1, {
+					age: 30,
+					draftYearsAgo: 10,
+					ovr: 80,
+					pot: 82,
+					value: 82,
+					valueNoPot: 80,
+				});
+				p.stats.push({
+					playoffs: false,
+					gp: 70,
+					gs: 60,
+					min: 2500,
+					per: 20,
+					ewa: 8,
+					vorp: 3,
+					obpm: 3,
+					dbpm: 1,
+				});
+				return p;
+			})(),
 		],
 		teams: makeTeams(),
 	});

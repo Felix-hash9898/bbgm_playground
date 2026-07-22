@@ -11,10 +11,40 @@ import {
 	getMinContractForPlayer,
 	withContractCapHitForPlayer,
 } from "../contracts/contractMinimum.ts";
-import {
-	getBasketballSalaryAgeFactor,
-	getContractValue,
-} from "../contracts/contractValue.ts";
+import { getContractValue } from "../contracts/contractValue.ts";
+import { getBasketballContractMarketDemand } from "../contracts/contractMarket/index.ts";
+
+const getLegacyContractAmount = (
+	p: Player<MinimalPlayerRatings> | PlayerWithoutKey<MinimalPlayerRatings>,
+	contractValue: number,
+) => {
+	const ratings = p.ratings.at(-1)!;
+	let factor = g.get("salaryCapType") === "hard" ? 1.6 : 2;
+	let factor2 = 1;
+
+	if (isSport("football")) {
+		if (ratings.pos === "QB") {
+			if (contractValue >= 75) {
+				factor2 *= 1.25;
+			} else if (contractValue >= 50) {
+				factor2 *= 0.75 + ((contractValue - 50) * 0.5) / 25;
+			}
+		} else if (ratings.pos === "K" || ratings.pos === "P") {
+			factor *= 0.25;
+		}
+	}
+
+	if (isSport("baseball") || isSport("hockey")) {
+		factor *= 1.4;
+	}
+
+	return (
+		((factor2 * contractValue) / 100 - 0.47) *
+			factor *
+			(g.get("maxContract") - g.get("minContract")) +
+		g.get("minContract")
+	);
+};
 
 /**
  * Generate a contract for a player.
@@ -29,44 +59,10 @@ const genContract = (
 	randomizeAmount: boolean = true,
 	noLimit: boolean = false,
 ): PlayerContract => {
-	const ratings = p.ratings.at(-1)!;
 	const contractValue = getContractValue(p);
-	let factor = g.get("salaryCapType") === "hard" ? 1.6 : 2;
-	let factor2 = 1;
-
-	if (isSport("basketball")) {
-		factor *= 1.7;
-	}
-
-	if (isSport("football")) {
-		if (ratings.pos === "QB") {
-			if (contractValue >= 75) {
-				factor2 *= 1.25;
-			} else if (contractValue >= 50) {
-				factor2 *= 0.75 + ((contractValue - 50) * 0.5) / 25;
-			}
-		} else if (ratings.pos === "K" || ratings.pos === "P") {
-			factor *= 0.25;
-		}
-	}
-
-	if (isSport("baseball")) {
-		factor *= 1.4;
-	}
-
-	if (isSport("hockey")) {
-		factor *= 1.4;
-	}
-
-	let amount =
-		((factor2 * contractValue) / 100 - 0.47) *
-			factor *
-			(g.get("maxContract") - g.get("minContract")) +
-		g.get("minContract");
-
-	if (isSport("basketball")) {
-		amount *= getBasketballSalaryAgeFactor(p);
-	}
+	let amount = isSport("basketball")
+		? getBasketballContractMarketDemand(p).pointAmount
+		: getLegacyContractAmount(p, contractValue);
 
 	if (randomizeAmount) {
 		amount *= helpers.bound(random.realGauss(1, 0.1), 0, 2); // Randomize

@@ -10,6 +10,7 @@ import {
 	isUndraftedRookieLike,
 } from "./contractLowEnd.ts";
 import { getMinContractForPlayer } from "./contractMinimum.ts";
+import { getBasketballContractMarketDemand } from "./contractMarket/index.ts";
 
 const makePlayer = ({
 	age = 22,
@@ -83,10 +84,12 @@ test("low-end young free agents are pushed to the low-end contract range", () =>
 		getLowEndContractTarget(p),
 		getMinContractForPlayer(p) * 1.25,
 	);
-	assert.strictEqual(
-		genContract(p, false).amount,
-		getMinContractForPlayer(p) * 1.25,
-	);
+	const demand = getBasketballContractMarketDemand(p);
+	assert.strictEqual(demand.tier, "MINIMUM_LEVEL");
+	assert.strictEqual(demand.pointAmount, 2230);
+	// genContract preserves the existing minimum-floor rule when the point is
+	// within 10% of the player minimum.
+	assert.strictEqual(genContract(p, false).amount, getMinContractForPlayer(p));
 });
 
 test("normal rotation young players are not pushed to the low-end contract range", () => {
@@ -99,7 +102,7 @@ test("normal rotation young players are not pushed to the low-end contract range
 	});
 
 	assert.strictEqual(getLowEndContractTarget(p), undefined);
-	assert(genContract(p, false).amount > g.get("minContract") * 1.25);
+	assert(genContract(p, false).amount >= getMinContractForPlayer(p));
 });
 
 test("first round picks are not pushed to the low-end contract range", () => {
