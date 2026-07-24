@@ -63,7 +63,7 @@ const BoxScoreRow = ({
 			<td>{p.pts}</td>
 			<td>{helpers.gameScore(p).toFixed(1)}</td>
 			<td>
-				{typeof p.bpmImpact === "number"
+				{!liveGameInProgress && typeof p.bpmImpact === "number"
 					? helpers.plusMinus(p.bpmImpact, 2)
 					: ""}
 			</td>

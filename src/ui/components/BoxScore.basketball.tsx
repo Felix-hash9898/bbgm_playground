@@ -102,7 +102,7 @@ const StatsTable = ({
 				}
 
 				if (stat === "bpmImpact") {
-					return getBPMImpactSortValue(p);
+					return liveGameInProgress ? -Infinity : getBPMImpactSortValue(p);
 				}
 
 				if (stat === "fg" || stat === "ft" || stat === "tp") {

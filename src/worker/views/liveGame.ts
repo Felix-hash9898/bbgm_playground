@@ -20,6 +20,7 @@ import {
 	STARTING_NUM_TIMEOUTS,
 } from "../../common/index.ts";
 import { formatClock } from "../../common/formatClock.ts";
+import clearLiveGameBPMI from "../../common/clearLiveGameBPMI.ts";
 
 export const boxScoreToLiveSim = async ({
 	allStars,
@@ -147,6 +148,12 @@ export const boxScoreToLiveSim = async ({
 				if (Object.hasOwn(p, stat)) {
 					p[stat] = 0;
 				}
+			}
+
+			if (isSport("basketball")) {
+				// BPMI is not safely reconstructable from the current live event
+				// stream, so never carry final-game values into Live Sim.
+				clearLiveGameBPMI(p);
 			}
 
 			if (isSport("basketball")) {
