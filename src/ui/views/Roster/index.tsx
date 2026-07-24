@@ -168,9 +168,7 @@ const Roster = ({
 			"Age",
 			"Ovr",
 			"Pot",
-			...(isSport("basketball") && season === currentSeason
-				? ["Form"]
-				: []),
+			...(isSport("basketball") && season === currentSeason ? ["Form"] : []),
 			...(season === currentSeason ? ["Contract"] : []),
 			"stat:yearsWithTeam",
 			"Country",
@@ -219,12 +217,13 @@ const Roster = ({
 			Usage: {
 				titleReact: (
 					<>
-						Usage{" "}
-						<HelpPopover title="Usage bias">
+						Shot Priority{" "}
+						<HelpPopover title="Shot Priority">
 							<p>
-								This biases who your offense runs through. It affects how often
-								a player is selected to finish possessions, without changing{" "}
-								{helpers.pronoun(gender, "his")} underlying ratings.
+								This adjusts how often a player is selected to finish
+								possessions relative to teammates, without changing{" "}
+								{helpers.pronoun(gender, "his")} underlying ratings or broader
+								playmaking role.
 							</p>
 							<p>
 								<span style={usageBiasStyles["0.85"]}>Low</span>

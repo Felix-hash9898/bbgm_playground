@@ -81,6 +81,44 @@ export const getNumConsecutiveGamesGFactor = (
 	);
 };
 
+export const getBasketballCompositeInjuryFactor = (
+	composite: string,
+	injuryFactor: number,
+) => (composite === "turnovers" ? 1 : injuryFactor);
+
+export const applyBasketballForm = (
+	compositeRatings: Record<string, number>,
+	formFactor: number,
+) => {
+	const FORM_FULL = [
+		"usage",
+		"passing",
+		"shootingMidRange",
+		"shootingThreePointer",
+		"shootingFT",
+		"shootingLowPost",
+		"drawingFouls",
+	];
+	const FORM_WEAK = [
+		"shootingAtRim",
+		"rebounding",
+		"stealing",
+		"defense",
+		"defenseInterior",
+		"defensePerimeter",
+	];
+	for (const k of FORM_FULL) {
+		if (compositeRatings[k] !== undefined) {
+			compositeRatings[k] *= 1 + formFactor * 0.08;
+		}
+	}
+	for (const k of FORM_WEAK) {
+		if (compositeRatings[k] !== undefined) {
+			compositeRatings[k] *= 1 + formFactor * 0.04;
+		}
+	}
+};
+
 let playerStats: Record<string, number | number[]>;
 let teamStats: Record<string, number>;
 
@@ -250,13 +288,16 @@ export const processTeam = async (
 
 		// These use the same formulas as the skill definitions in player.skills!
 		for (const [k, weightInfo] of Object.entries(COMPOSITE_WEIGHTS)) {
+			const compositeInjuryFactor = isSport("basketball")
+				? getBasketballCompositeInjuryFactor(k, injuryFactor)
+				: injuryFactor;
 			p2.compositeRating[k] =
 				player.compositeRating(
 					rating,
 					weightInfo.ratings,
 					weightInfo.weights,
 					false,
-				) * injuryFactor;
+				) * compositeInjuryFactor;
 
 			if (isSport("hockey") && k === "goalkeeping") {
 				const numConsecutiveGamesG = p.numConsecutiveGamesG ?? 0;
@@ -294,36 +335,7 @@ export const processTeam = async (
 			const combined = helpers.bound(crossGameForm + withinGameForm, -15, 15);
 			const formFactor = combined / 15; // -1 to +1
 
-			// Full effect (±8%): skill/confidence-driven composites
-			const FORM_FULL = [
-				"usage",
-				"passing",
-				"shootingMidRange",
-				"shootingThreePointer",
-				"shootingFT",
-				"shootingLowPost",
-				"drawingFouls",
-			];
-			// Weak effect (±4%): effort/IQ-mixed composites
-			const FORM_WEAK = [
-				"shootingAtRim",
-				"rebounding",
-				"stealing",
-				"defense",
-				"defenseInterior",
-				"defensePerimeter",
-				"turnovers",
-			];
-			for (const k of FORM_FULL) {
-				if (p2.compositeRating[k] !== undefined) {
-					p2.compositeRating[k] *= 1 + formFactor * 0.08;
-				}
-			}
-			for (const k of FORM_WEAK) {
-				if (p2.compositeRating[k] !== undefined) {
-					p2.compositeRating[k] *= 1 + formFactor * 0.04;
-				}
-			}
+			applyBasketballForm(p2.compositeRating, formFactor);
 		}
 		const seasonStatsKeys = bySport({
 			baseball: [

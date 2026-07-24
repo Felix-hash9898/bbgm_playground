@@ -22,6 +22,12 @@ import {
 import getWinner from "../../../common/getWinner.ts";
 import { formatClock } from "../../../common/formatClock.ts";
 import PlayByPlayLogger from "./PlayByPlayLogger.ts";
+import {
+	getShotPriorityContext,
+	getUsageSelectionWeights,
+	type ShotPriorityContext,
+	type ShotPriorityPlayerContext,
+} from "./shotPriority.ts";
 
 const SHOT_CLOCK = 24;
 // const NUM_TIMEOUTS_MAX_FINAL_PERIOD = 4;
@@ -896,34 +902,40 @@ class GameSim extends GameSimBase {
 		return energy;
 	}
 
-	// Usage bias is meant to redistribute touches. When a player is pushed above
-	// baseline, model a modest shot-quality cost and ball-handling burden.
-	getUsageBiasOverload(p: PlayerGameSim) {
-		return Math.max(0, Math.min((p.usageBias ?? 1) - 1, 0.25));
+	getShotPriorityContext() {
+		const playersOnCourt = this.playersOnCourt[this.o];
+		return getShotPriorityContext(
+			playersOnCourt.map((p) => ({
+				usage: p.compositeRating.usage ?? 0,
+				usageBias: p.usageBias ?? 1,
+				fatigueFactor: this.fatigue(p.stat.energy),
+			})),
+		);
 	}
 
-	// Lowered usage can help a bit, but keep the relief smaller than overload to
-	// avoid gaming the sim by dialing everyone down.
-	getUsageBiasRelief(p: PlayerGameSim) {
-		return Math.max(0, Math.min(1 - (p.usageBias ?? 1), 0.15));
+	getPlayerShotPriorityContext(
+		p: PlayerGameSim,
+		shotPriorityContext = this.getShotPriorityContext(),
+	): ShotPriorityPlayerContext {
+		const playersOnCourt = this.playersOnCourt[this.o];
+		const index = playersOnCourt.indexOf(p);
+		const context = shotPriorityContext.players[index];
+
+		return (
+			context ?? {
+				baselineShare: 0,
+				adjustedShare: 0,
+				shareRatio: 1,
+				relativeIncrease: 0,
+				relativeDecrease: 0,
+				overload: 0,
+				relief: 0,
+			}
+		);
 	}
 
 	getTeamUsageOverload() {
-		const playersOnCourt = this.playersOnCourt[this.o];
-		let weightedOverload = 0;
-		let totalWeight = 0;
-
-		for (const p of playersOnCourt) {
-			const usage = Math.max(0.05, p.compositeRating.usage ?? 0);
-			weightedOverload += usage * this.getUsageBiasOverload(p);
-			totalWeight += usage;
-		}
-
-		if (totalWeight <= 0) {
-			return 0;
-		}
-
-		return weightedOverload / totalWeight;
+		return this.getShotPriorityContext().teamUsageOverload;
 	}
 
 	getFoulTroubleLimit() {
@@ -1704,7 +1716,14 @@ class GameSim extends GameSimBase {
 			}
 		}
 
-		const shooter = this.pickPlayer("usage", this.o, 1.25);
+		const shotPriorityContext = this.getShotPriorityContext();
+		const shooter = this.pickPlayer(
+			"usage",
+			this.o,
+			1.25,
+			undefined,
+			shotPriorityContext.adjustedWeights,
+		);
 
 		// Non-shooting foul?
 		if (
@@ -1782,6 +1801,7 @@ class GameSim extends GameSimBase {
 			possessionStartsInFrontcourt,
 			tipInFromOutOfBounds,
 			lateGamePutBack,
+			shotPriorityContext,
 		);
 	}
 
@@ -1836,9 +1856,11 @@ class GameSim extends GameSimBase {
 
 	pickTurnoverPlayer() {
 		const playersOnCourt = this.playersOnCourt[this.o];
-		const weights = playersOnCourt.map((p) => {
+		const shotPriorityContext = this.getShotPriorityContext();
+		const weights = playersOnCourt.map((p, index) => {
 			const usage = p.compositeRating.usage ?? 0;
-			const usageLoad = usage * (p.usageBias ?? 1);
+			const usageLoad =
+				usage * (shotPriorityContext.players[index]?.shareRatio ?? 1);
 			const turnovers = p.compositeRating.turnovers ?? 0;
 			const dribbling = p.compositeRating.dribbling ?? 0;
 
@@ -1989,6 +2011,7 @@ class GameSim extends GameSimBase {
 		lateGamePutBack,
 		p,
 		passer,
+		shotPriorityContext,
 		tipInFromOutOfBounds,
 		putBack,
 	}: {
@@ -1996,6 +2019,7 @@ class GameSim extends GameSimBase {
 		lateGamePutBack: boolean;
 		p: PlayerGameSim;
 		passer: PlayerGameSim | undefined;
+		shotPriorityContext?: ShotPriorityContext;
 		tipInFromOutOfBounds: boolean;
 		putBack: boolean;
 	}) {
@@ -2092,11 +2116,12 @@ class GameSim extends GameSimBase {
 					this.synergyFactor *
 						(this.team[this.o].synergy.off - this.team[this.d].synergy.def)); // Synergy makes easy shots either more likely or less likely
 
-			const usageOverload = this.getUsageBiasOverload(p);
-			const usageRelief = this.getUsageBiasRelief(p);
+			const { overload: usageOverload, relief: usageRelief } =
+				this.getPlayerShotPriorityContext(p, shotPriorityContext);
 
-			// Higher usage bias should make clean interior touches a bit harder to
-			// come by, nudging the player toward more bailout 2s.
+			// A higher relative Shot Priority share should make clean interior
+			// touches a bit harder to come by, nudging the player toward more
+			// bailout 2s.
 			r1 *= 1 + 0.75 * usageOverload - 0.2 * usageRelief;
 			r2 *= 1 - 0.32 * usageOverload + 0.08 * usageRelief;
 			r3 *= 1 - 0.2 * usageOverload + 0.05 * usageRelief;
@@ -2185,6 +2210,7 @@ class GameSim extends GameSimBase {
 		possessionStartsInFrontcourt: boolean,
 		tipInFromOutOfBounds: boolean,
 		lateGamePutBack: boolean,
+		shotPriorityContext?: ShotPriorityContext,
 	) {
 		const putBack = lateGamePutBack; // Eventually use this in more situations
 
@@ -2274,6 +2300,7 @@ class GameSim extends GameSimBase {
 			lateGamePutBack,
 			p,
 			passer,
+			shotPriorityContext,
 			tipInFromOutOfBounds,
 			putBack,
 		});
@@ -2985,6 +3012,16 @@ class GameSim extends GameSimBase {
 	 * @return {Array.<number>} Array of composite ratings of the players on the court for the given rating and team.
 	 */
 	ratingArray(rating: CompositeRating, t: TeamNum, power: number = 1) {
+		if (rating === "usage" && power === 1.25) {
+			return getUsageSelectionWeights(
+				this.playersOnCourt[t].map((p) => ({
+					usage: p.compositeRating.usage ?? 0,
+					usageBias: p.usageBias ?? 1,
+					fatigueFactor: this.fatigue(p.stat.energy),
+				})),
+			).weights;
+		}
+
 		const foulLimit = rating === "fouling" ? this.getFoulTroubleLimit() : 0;
 		let total = 0;
 
@@ -3031,8 +3068,12 @@ class GameSim extends GameSimBase {
 		t: TeamNum,
 		power: number,
 		exempt?: PlayerGameSim,
+		ratiosOverride?: number[],
 	) {
-		const ratios = this.ratingArray(rating, t, power);
+		const ratios =
+			ratiosOverride !== undefined
+				? [...ratiosOverride]
+				: this.ratingArray(rating, t, power);
 		const playersOnCourt = this.playersOnCourt[t];
 
 		if (exempt !== undefined) {
