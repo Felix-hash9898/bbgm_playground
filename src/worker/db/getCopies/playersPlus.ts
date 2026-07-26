@@ -756,22 +756,27 @@ const getPlayerStats = (
 	const seasonInfos: SeasonInfo[] = [];
 	const seasonInfosByKey: Record<string, SeasonInfo> = {};
 	for (const row of rows) {
-		if (row.gp === 0) {
-			// Ignore rows with 0 GP, hope that's safe!
-			continue;
-		}
+		// A 0 GP row must still make this enter the merge path, otherwise a
+		// later 0 GP row can be selected instead of an earlier real stats row.
+		// It must not, however, contribute to a TOT row.
+		const ignoreNoGamesPlayedRow = row.gp === 0;
 
 		if (regularSeason || playoffs) {
 			const key = seasonInfoKey(row);
 			if (seasonInfosByKey[key]) {
-				seasonInfosByKey[key].rows.push(row);
+				if (!ignoreNoGamesPlayedRow) {
+					seasonInfosByKey[key].rows.push(row);
+				}
 				thereAreRowsToMerge = true;
 			} else {
 				const seasonInfo: SeasonInfo = {
 					season: row.season,
 					seasonType: row.playoffs ? "playoffs" : "regularSeason",
-					rows: [row],
+					rows: [],
 				};
+				if (!ignoreNoGamesPlayedRow) {
+					seasonInfo.rows.push(row);
+				}
 				seasonInfos.push(seasonInfo);
 				seasonInfosByKey[key] = seasonInfo;
 			}
@@ -788,13 +793,18 @@ const getPlayerStats = (
 
 			const keyCombined = seasonInfoCombinedKey(combinedRow);
 			if (seasonInfosByKey[keyCombined]) {
-				seasonInfosByKey[keyCombined].rows.push(combinedRow);
+				if (!ignoreNoGamesPlayedRow) {
+					seasonInfosByKey[keyCombined].rows.push(combinedRow);
+				}
 			} else {
 				const seasonInfo: SeasonInfo = {
 					season: combinedRow.season,
 					seasonType: "combined",
-					rows: [combinedRow],
+					rows: [],
 				};
+				if (!ignoreNoGamesPlayedRow) {
+					seasonInfo.rows.push(combinedRow);
+				}
 				seasonInfos.push(seasonInfo);
 				seasonInfosByKey[keyCombined] = seasonInfo;
 			}
@@ -1241,11 +1251,14 @@ const processPlayer = (
 		}
 	}
 
+	// Career stats should be present even for a player with no stats rows.
+	// Individual season UI can still distinguish that case with gp === 0.
 	const keepWithNoStats =
+		season === undefined ||
 		(showRookies &&
 			p.draft.year >= g.get("season") &&
-			(season === g.get("season") || season === undefined)) ||
-		(showNoStats && (season === undefined || season > p.draft.year));
+			season === g.get("season")) ||
+		(showNoStats && season > p.draft.year);
 
 	if (options.stats.length > 0 || keepWithNoStats) {
 		processStats(

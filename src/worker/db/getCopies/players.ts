@@ -23,10 +23,10 @@ export const getPlayersActiveSeason = (
 			transaction.objectStore("players").index("draft.year, retiredYear"),
 		);
 
-		// -1 is because players drafted last year won't play until this year
+		// Players drafted this year will not play until next year.
 		const range = IDBKeyRange.bound(
-			[-Infinity, season - 1],
-			[season, Infinity],
+			[-Infinity, season],
+			[season - 1, Infinity],
 		);
 		const request = index.openCursor(range);
 
@@ -53,6 +53,23 @@ export const getPlayersActiveSeason = (
 			}
 		};
 	});
+};
+
+export const getNextRequestedPidIndex = (
+	sortedPids: number[],
+	currentPid: number,
+	currentIndex: number,
+) => {
+	if (currentPid === sortedPids[currentIndex]) {
+		return currentIndex + 1;
+	}
+
+	const matchedIndex = sortedPids.indexOf(currentPid);
+	if (matchedIndex >= 0) {
+		return matchedIndex + 1;
+	}
+
+	return sortedPids.findIndex((pid) => pid > currentPid);
 };
 
 const getCopies = async (
@@ -108,49 +125,32 @@ const getCopies = async (
 			return [];
 		}
 
-		const sortedPids = [...pids].sort((a, b) => a - b);
-		const fromDB = await new Promise<Player<MinimalPlayerRatings>[]>(
-			(resolve, reject) => {
-				const transaction = idb.league.transaction("players");
+		const sortedPids = Array.from(new Set(pids)).sort((a, b) => a - b);
+		const fromDB: Player<MinimalPlayerRatings>[] = [];
+		const store = idb.league.transaction("players").store;
+		const range = IDBKeyRange.bound(sortedPids[0], sortedPids.at(-1));
+		let i = 0;
 
-				const players: Player<MinimalPlayerRatings>[] = [];
+		for await (const cursor of store.iterate(range)) {
+			const p = cursor.value;
+			const targetPid = sortedPids[i];
 
-				// Because backboard doesn't support passing an argument to cursor.continue
-				const objectStore = unwrap(transaction.objectStore("players"));
-				const range = IDBKeyRange.bound(sortedPids[0], sortedPids.at(-1));
-				let i = 0;
-				const request = objectStore.openCursor(range);
+			if (p.pid === targetPid) {
+				fromDB.push(p);
+			} else if (sortedPids.includes(p.pid)) {
+				// A requested lower pid may not exist, so the cursor can skip
+				// directly to a later requested player.
+				fromDB.push(p);
+			}
 
-				request.onerror = (e: any) => {
-					reject(e.target.error);
-				};
-
-				request.onsuccess = (e: any) => {
-					const cursor = e.target.result;
-
-					if (!cursor) {
-						resolve(players);
-						return;
-					}
-
-					const p = cursor.value;
-
-					// https://gist.github.com/inexorabletash/704e9688f99ac12dd336
-					if (sortedPids.includes(p.pid)) {
-						players.push(p);
-					}
-
-					i += 1;
-
-					if (i > sortedPids.length) {
-						resolve(players);
-						return;
-					}
-
-					cursor.continue(sortedPids[i]);
-				};
-			},
-		);
+			// The cursor may land on a later requested key or between requested
+			// keys when earlier players do not exist.
+			i = getNextRequestedPidIndex(sortedPids, p.pid, i);
+			if (i < 0 || i >= sortedPids.length) {
+				break;
+			}
+			cursor.continue(sortedPids[i]);
+		}
 
 		const merged = mergeByPk(
 			fromDB,

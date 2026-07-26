@@ -1397,6 +1397,7 @@ const exportPlayerAveragesCsv = async (season: number | "all") => {
 			ratings: ["pos", "ovr", "pot", ...ratings],
 			stats: ["abbrev", ...stats],
 			season: s,
+			mergeStats: "totOnly",
 		});
 
 		for (const p of players2) {

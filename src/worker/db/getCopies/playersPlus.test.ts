@@ -538,3 +538,36 @@ test("mergeStats totAndTeams results ", async () => {
 		},
 	]);
 });
+
+test("mergeStats totOnly ignores a later 0 GP row without returning it", async () => {
+	const p2 = helpers.deepCopy(p);
+	p2.stats[1].playoffs = false;
+	p2.stats[1].tid = 20;
+	p2.stats[1].gp = 0;
+	p2.stats[1].fg = 0;
+
+	const pf = await idb.getCopy.playersPlus(p2, {
+		stats: ["gp", "tid"],
+		season: p2.stats[1].season,
+		mergeStats: "totOnly",
+	});
+
+	assert.strictEqual(pf?.stats.gp, 5);
+	assert.strictEqual(pf?.stats.tid, 4);
+});
+
+test("careerStats is stable when a player has no stats rows", async () => {
+	const p2 = helpers.deepCopy(p);
+	p2.stats = [];
+
+	const pf = await idb.getCopy.playersPlus(p2, {
+		stats: ["gp", "playoffs", "bpm"],
+	});
+
+	assert.deepStrictEqual(pf?.stats, []);
+	assert.deepStrictEqual(pf?.careerStats, {
+		gp: 0,
+		playoffs: undefined,
+		bpm: 0,
+	});
+});

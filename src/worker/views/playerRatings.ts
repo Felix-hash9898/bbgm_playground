@@ -27,7 +27,7 @@ export const extraRatings = bySport({
 	hockey: ["ovrs", "pots"],
 });
 
-const getActivePlayoffTids = async () => {
+export const getActivePlayoffTids = async () => {
 	const tids = new Set<number>();
 	const phase = actualPhase();
 	if (!REMAINING_PLAYOFF_TEAMS_PHASES.has(phase)) {
