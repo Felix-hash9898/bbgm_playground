@@ -92,6 +92,7 @@ import type {
 	View,
 	NonEmptyArray,
 } from "../../common/types.ts";
+import { deleteScheduledTeamInfoFields } from "./scheduledEventTeamInfo.ts";
 import {
 	addSimpleAndTeamAwardsToAwardsByPlayer,
 	type AwardsByPlayer,
@@ -901,16 +902,10 @@ const deleteFromGameAttributesScheduledEvent = async (
 };
 
 const deleteFromTeamInfoScheduledEvent = async (
-	keys: (keyof ScheduledEventTeamInfo["info"])[],
 	event: ScheduledEventTeamInfo & { id: number },
+	mode: "confs" | "teamInfo",
 ) => {
-	let updated = false;
-	for (const key of keys) {
-		if (event.info[key] !== undefined) {
-			delete event.info[key];
-			updated = true;
-		}
-	}
+	const updated = deleteScheduledTeamInfoFields(event.info, mode);
 
 	const keys2 = Object.keys(event.info);
 	if (
@@ -956,24 +951,11 @@ const deleteScheduledEvents = async (type: string) => {
 			}
 		} else if (type === "teamInfo") {
 			if (event.type === "teamInfo") {
-				await deleteFromTeamInfoScheduledEvent(
-					[
-						"region",
-						"name",
-						"pop",
-						"abbrev",
-						"imgURL",
-						"imgURLSmall",
-						"colors",
-						"jersey",
-					],
-					event,
-				);
+				await deleteFromTeamInfoScheduledEvent(event, "teamInfo");
 			}
 		} else if (type === "confs") {
 			if (event.type === "teamInfo") {
-				// cid is legacy
-				await deleteFromTeamInfoScheduledEvent(["cid", "did"] as any, event);
+				await deleteFromTeamInfoScheduledEvent(event, "confs");
 			}
 
 			if (event.type === "gameAttributes") {

@@ -833,6 +833,7 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 							"nhl2021",
 							"mlb2022",
 							"custom",
+							"cola",
 						],
 					},
 					draftLotteryCustomChances: {

@@ -53,7 +53,7 @@ const getLatestTransaction = (
 	}
 };
 
-class AbbrevsCache {
+export class AbbrevsCache {
 	// First key is season, second is tid, value is undefined (not loaded, either because tid/season not found or because load not yet called) or string (loaded abbrev)
 	private data = new Map<number, Map<number, string | undefined>>();
 	private state: "init" | "loading" | "loaded" = "init";
@@ -80,15 +80,16 @@ class AbbrevsCache {
 		abbrevsByTid.set(tid, undefined);
 	}
 
+	private getFallbackAbbrev(tid: number) {
+		return g.get("teamInfoCache")[tid]?.abbrev ?? "???";
+	}
+
 	private saveAbbrev(
 		abbrevsByTid: Map<number, string | undefined>,
 		tid: number,
 		abbrev: string | undefined,
 	) {
-		abbrevsByTid.set(
-			tid,
-			abbrev ?? g.get("teamInfoCache")[tid]?.abbrev ?? "???",
-		);
+		abbrevsByTid.set(tid, abbrev ?? this.getFallbackAbbrev(tid));
 	}
 
 	async load() {
@@ -138,12 +139,10 @@ class AbbrevsCache {
 			return helpers.getAbbrev(tid);
 		}
 
-		const abbrev = this.data.get(season)?.get(tid);
-		if (abbrev === undefined) {
-			console.log(this.data);
-			throw new Error("Invalid season/tid");
-		}
-		return abbrev;
+		// A trade or stats update can add a new season/tid while load() awaits
+		// IndexedDB. Such additions are current-season data, so the current
+		// team-info abbreviation is the safe fallback.
+		return this.data.get(season)?.get(tid) ?? this.getFallbackAbbrev(tid);
 	}
 }
 

@@ -396,6 +396,7 @@ export type ScheduledEventTeamInfo = {
 	phase: Phase;
 	info: {
 		tid: number;
+		cid?: number;
 		region?: string;
 		srID?: string;
 		name?: string;
@@ -406,6 +407,7 @@ export type ScheduledEventTeamInfo = {
 		imgURLSmall?: string;
 		colors?: [string, string, string];
 		jersey?: string;
+		stadiumCapacity?: number;
 	};
 };
 

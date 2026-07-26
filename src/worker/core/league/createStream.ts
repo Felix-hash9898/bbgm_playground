@@ -67,6 +67,10 @@ import { TOO_MANY_TEAMS_TOO_SLOW } from "../season/getInitialNumGamesConfDivSett
 import { DEFAULT_LEVEL, amountToLevel } from "../../../common/budgetLevels.ts";
 import { upgradeGamesVersion65 } from "../../db/connectLeague.ts";
 import type { NewLeagueSettings } from "../../views/newLeague.ts";
+import {
+	assertUniqueTeamSeasons,
+	deleteGeneratedPrimaryKey,
+} from "./importIntegrity.ts";
 
 export type TeamInfo = TeamBasic & {
 	disabled?: boolean;
@@ -213,6 +217,8 @@ const preProcess = async (
 		version,
 	}: PreProcessParams,
 ) => {
+	deleteGeneratedPrimaryKey(key, x);
+
 	if (key === "draftPicks") {
 		if (typeof x.pick !== "number") {
 			x.pick = 0;
@@ -989,6 +995,8 @@ const processTeamInfos = async ({
 			});
 		}
 	}
+
+	assertUniqueTeamSeasons(teamSeasons);
 
 	if (scoutingLevel === undefined) {
 		throw new Error("scoutingLevel should be defined");
