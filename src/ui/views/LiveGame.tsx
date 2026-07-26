@@ -28,6 +28,7 @@ import { HeadlineScoreLive } from "../components/BoxScoreWrapper.tsx";
 import { useIsStuck } from "../hooks/useIsStuck.ts";
 import { useBlocker } from "../hooks/useBlocker.ts";
 import type { FastForward } from "../components/PlayPauseNext.tsx";
+import type { BasketballBoxScoreStat } from "../../common/boxScoreStats.basketball.ts";
 
 type PlayerRowProps = {
 	exhibition?: boolean;
@@ -36,6 +37,7 @@ type PlayerRowProps = {
 	liveGameInProgress?: boolean;
 	p: any;
 	season: number;
+	stats?: readonly BasketballBoxScoreStat[];
 };
 
 class PlayerRow extends Component<PlayerRowProps> {

@@ -14,6 +14,7 @@ import {
 	toUI,
 } from "../util/index.ts";
 import { runDraft } from "./actions.ts";
+import { getDaysOffBeforeGame } from "../core/season/getBasketballPlayoffDaysOff.ts";
 
 const getNumDaysThisRound = (playoffSeries: PlayoffSeries) => {
 	let numDaysThisRound = 0;
@@ -70,6 +71,25 @@ const getNumDaysPlayIn = async () => {
 	return numDays;
 };
 
+const getCurrentBasketballPlayoffGap = async () => {
+	if (!isSport("basketball")) {
+		return 0;
+	}
+
+	const schedule = await season.getSchedule(true);
+	const nextGameDay = schedule[0]?.day;
+	if (nextGameDay === undefined) {
+		return 0;
+	}
+
+	return getDaysOffBeforeGame(
+		nextGameDay,
+		await idb.cache.games.getAll(),
+		g.get("season"),
+		g.get("basketballPlayoffDaysProcessedThrough"),
+	);
+};
+
 const getNumDaysPlayoffs = async () => {
 	const playoffSeries = await idb.cache.playoffSeries.get(g.get("season"));
 	if (!playoffSeries) {
@@ -95,11 +115,22 @@ const getNumDaysPlayoffs = async () => {
 		numDaysAllStar += 1;
 	}
 
+	const numDaysBetweenRounds = isSport("basketball")
+		? Math.max(
+				0,
+				g.get("numGamesPlayoffSeries", "current").length -
+					playoffSeries.currentRound -
+					1,
+			)
+		: 0;
+
 	return (
 		numDaysAllStar +
 		numDaysPlayIn +
 		numDaysFutureRounds +
-		getNumDaysThisRound(playoffSeries)
+		getNumDaysThisRound(playoffSeries) +
+		numDaysBetweenRounds +
+		(await getCurrentBasketballPlayoffGap())
 	);
 };
 
@@ -212,7 +243,11 @@ const playMenu = {
 				throw new Error("playoffSeries not found");
 			}
 			local.playingUntilEndOfRound = true;
-			game.play(getNumDaysThisRound(playoffSeries), conditions);
+			game.play(
+				getNumDaysThisRound(playoffSeries) +
+					(await getCurrentBasketballPlayoffGap()),
+				conditions,
+			);
 		}
 	},
 	untilEndOfPlayIn: async (param: unknown, conditions: Conditions) => {

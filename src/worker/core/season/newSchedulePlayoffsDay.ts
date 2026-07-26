@@ -1,7 +1,11 @@
 import setSchedule from "./setSchedule.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, local, lock, orderTeams } from "../../util/index.ts";
-import type { PlayoffSeriesTeam } from "../../../common/types.ts";
+import type {
+	Game,
+	PlayoffSeries,
+	PlayoffSeriesTeam,
+} from "../../../common/types.ts";
 import { season } from "../index.ts";
 import { isSport } from "../../../common/index.ts";
 import { chunk, groupByUnique } from "../../../common/utils.ts";
@@ -31,6 +35,78 @@ const seriesIsNotOver = (
 	numGamesToWin: number,
 ): away is PlayoffSeriesTeam =>
 	!!(away && home.won < numGamesToWin && away.won < numGamesToWin);
+
+export const getNextRoundFirstGameDay = (
+	round: PlayoffSeries["series"][number],
+	games: Game[],
+	season: number,
+	numGamesPlayoffSeries: number,
+) => {
+	const gamesByGid = new Map(games.map((game) => [game.gid, game]));
+	const roundGames: Game[] = [];
+
+	for (const { away, gids, home } of round) {
+		if (!away) {
+			continue;
+		}
+
+		const numGamesPlayed = home.won + away.won;
+		if (numGamesPlayed === 0) {
+			continue;
+		}
+
+		let matchupGames =
+			gids
+				?.map((gid) => gamesByGid.get(gid))
+				.filter((game) => game !== undefined) ?? [];
+
+		// Old leagues may not have gids. Also fall back if a gid is missing, so
+		// calculating the round window never assumes that its game days were
+		// consecutive.
+		if (matchupGames.length !== numGamesPlayed) {
+			matchupGames = games
+				.filter((game) => {
+					if (game.season !== season || !game.playoffs) {
+						return false;
+					}
+
+					const tids = [game.teams[0].tid, game.teams[1].tid];
+					return tids.includes(home.tid) && tids.includes(away.tid);
+				})
+				.toSorted(
+					(a, b) =>
+						(a.day ?? -Infinity) - (b.day ?? -Infinity) || a.gid - b.gid,
+				)
+				.slice(-numGamesPlayed);
+		}
+
+		roundGames.push(...matchupGames);
+	}
+
+	const days = roundGames
+		.map((game) => game.day)
+		.filter((day) => day !== undefined);
+	if (days.length === 0) {
+		return;
+	}
+
+	const roundStartDay = Math.min(...days);
+	const lastPlayedDay = Math.max(...days);
+
+	// Reserve the full potential series window, and always leave at least one
+	// complete day off after the last game that was actually played.
+	return Math.max(roundStartDay + numGamesPlayoffSeries, lastPlayedDay + 2);
+};
+
+export const getNextRoundFirstGameDayForCurrentSport = (
+	round: PlayoffSeries["series"][number],
+	games: Game[],
+	season: number,
+	numGamesPlayoffSeries: number,
+) =>
+	isSport("basketball")
+		? getNextRoundFirstGameDay(round, games, season, numGamesPlayoffSeries)
+		: undefined;
 
 const getTeamsForOrderTeams = async () => {
 	return idb.getCopies.teamsPlus(
@@ -68,7 +144,7 @@ const getTeamsForOrderTeams = async () => {
  * @memberOf core.season
  * @return {Promise.boolean} Resolves to true if the playoffs are over. Otherwise, false.
  */
-const newSchedulePlayoffsDay = async (): Promise<boolean> => {
+const newSchedulePlayoffsDay = async (firstDay?: number): Promise<boolean> => {
 	const playoffSeries = await idb.cache.playoffSeries.get(g.get("season"));
 	if (!playoffSeries) {
 		throw new Error("No playoff series");
@@ -173,6 +249,8 @@ const newSchedulePlayoffsDay = async (): Promise<boolean> => {
 
 	// If series are still in progress, write games and short circuit
 	if (tids.length > 0) {
+		let playoffsAllStarGame = false;
+
 		// Check if we need a playoffs All-Star Game
 		if (
 			g.get("allStarGame") === -1 &&
@@ -184,10 +262,14 @@ const newSchedulePlayoffsDay = async (): Promise<boolean> => {
 			const allStar = await idb.getCopy.allStars({ season: g.get("season") });
 			if (!allStar?.score) {
 				tids.unshift([-1, -2]);
+				playoffsAllStarGame = true;
 			}
 		}
 
-		await setSchedule(tids);
+		await setSchedule(
+			tids,
+			playoffsAllStarGame && firstDay !== undefined ? firstDay - 1 : firstDay,
+		);
 		return false;
 	}
 
@@ -231,6 +313,13 @@ const newSchedulePlayoffsDay = async (): Promise<boolean> => {
 		await lock.set("stopGameSim", true);
 		local.playingUntilEndOfRound = false;
 	}
+
+	const nextRoundFirstGameDay = getNextRoundFirstGameDayForCurrentSport(
+		series[rnd]!,
+		await idb.cache.games.getAll(),
+		g.get("season"),
+		g.get("numGamesPlayoffSeries", "current")[rnd]!,
+	);
 
 	// Set matchups for next round
 
@@ -390,7 +479,7 @@ const newSchedulePlayoffsDay = async (): Promise<boolean> => {
 	}
 
 	// Next time, the schedule for the first day of the next round will be set
-	return newSchedulePlayoffsDay();
+	return newSchedulePlayoffsDay(nextRoundFirstGameDay);
 };
 
 export default newSchedulePlayoffsDay;

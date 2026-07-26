@@ -39,6 +39,7 @@ export const gameAttributesKeysGameState: GameAttributeKey[] = [
 	"autoRelocate",
 	"autoExpand",
 	"tradeProposalsSeed",
+	"basketballPlayoffDaysProcessedThrough",
 ];
 export const gameAttributesKeysTeams: GameAttributeKey[] = ["confs", "divs"];
 export const gameAttributesCache: GameAttributeKey[] = [
@@ -68,6 +69,7 @@ const gameAttributesKeysSportSpecific = {
 		"errorFactor",
 	] as GameAttributeKey[],
 	basketball: [
+		"basketballPlayoffDaysProcessedThrough",
 		"threePointers",
 		"threePointTendencyFactor",
 		"threePointAccuracyFactor",
@@ -153,6 +155,7 @@ for (const [sport, keys] of Object.entries(gameAttributesKeysSportSpecific)) {
 }
 
 const defaultGameAttributes: GameAttributesLeagueWithHistory = {
+	basketballPlayoffDaysProcessedThrough: undefined,
 	phase: 0,
 	nextPhase: undefined, // Used only for fantasy draft
 	playerBioInfo: undefined,

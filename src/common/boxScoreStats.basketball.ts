@@ -19,4 +19,6 @@ const BOX_SCORE_STATS = [
 	"formTot",
 ] as const;
 
+export type BasketballBoxScoreStat = (typeof BOX_SCORE_STATS)[number];
+
 export default BOX_SCORE_STATS;

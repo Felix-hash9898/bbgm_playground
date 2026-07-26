@@ -523,6 +523,12 @@ export type GameAttributesLeague = {
 	autoRelocateRealign: boolean;
 	autoRelocateRebrand: boolean;
 	brotherRate: number;
+	basketballPlayoffDaysProcessedThrough:
+		| {
+				day: number;
+				season: number;
+		  }
+		| undefined;
 	budget: boolean;
 	challengeNoDraftPicks: boolean;
 	challengeNoFreeAgents: boolean;

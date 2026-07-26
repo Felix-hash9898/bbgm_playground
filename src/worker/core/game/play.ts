@@ -40,6 +40,199 @@ import allowForceTie from "../../../common/allowForceTie.ts";
 import getWinner from "../../../common/getWinner.ts";
 import { setLiveSimRatingsStatsPopoverPlayers } from "./setLiveSimRatingsStatsPopoverPlayers.ts";
 import { getOneUpcomingGame } from "../../util/recomputeLocalUITeamOvrs.ts";
+import {
+	getDaysOffBeforeGame,
+	getDaysOffSimulationPlan,
+} from "../season/getBasketballPlayoffDaysOff.ts";
+
+export const updateUIAfterDaysOff = async (
+	conditions: Conditions,
+	dependencies: {
+		recomputeLocalUITeamOvrs: typeof recomputeLocalUITeamOvrs;
+		realtimeUpdate: (
+			updateEvents: UpdateEvents,
+			conditions: Conditions,
+		) => Promise<void>;
+	} = {
+		recomputeLocalUITeamOvrs,
+		realtimeUpdate: async (updateEvents, conditions) => {
+			await toUI("realtimeUpdate", [updateEvents], conditions);
+		},
+	},
+) => {
+	await dependencies.recomputeLocalUITeamOvrs();
+	await dependencies.realtimeUpdate(["gameSim"], conditions);
+};
+
+export const processDayOver = async (
+	conditions: Conditions,
+	pidsInjuredOneGameOrLess: Set<number>,
+	updateEvents: UpdateEvents,
+) => {
+	local.minFractionDiffs = undefined;
+
+	const healedTexts: string[] = [];
+
+	// Injury countdown - This must be after games are saved, of there is a race condition involving new injury assignment in writeStats. Free agents are handled in decreaseDemands.
+	const players = await idb.cache.players.indexGetAll("playersByTid", [
+		0,
+		Infinity,
+	]);
+
+	for (const p of players) {
+		let changed = false;
+
+		if (p.injury.gamesRemaining > 0) {
+			if (p.injury.skipDailyCountdown) {
+				delete p.injury.skipDailyCountdown;
+			} else {
+				p.injury.gamesRemaining -= 1;
+			}
+			changed = true;
+		}
+
+		if (isSport("baseball") && p.pFatigue !== undefined && p.pFatigue > 0) {
+			p.pFatigue = helpers.bound(p.pFatigue - P_FATIGUE_DAILY_REDUCTION, 0, 80);
+			changed = true;
+		}
+
+		// Is it already over?
+		if (p.injury.type !== "Healthy" && p.injury.gamesRemaining <= 0) {
+			const score = p.injury.score;
+			p.injury = {
+				type: "Healthy",
+				gamesRemaining: 0,
+			};
+			changed = true;
+			const healedText = `${
+				p.ratings.at(-1)!.pos
+			} <a href="${helpers.leagueUrl(["player", p.pid])}">${p.firstName} ${
+				p.lastName
+			}</a>`;
+
+			if (p.tid === g.get("userTid") && !pidsInjuredOneGameOrLess.has(p.pid)) {
+				healedTexts.push(healedText);
+			}
+
+			logEvent(
+				{
+					type: "healed",
+					text: `${healedText} has recovered from ${helpers.pronoun(
+						g.get("gender"),
+						"his",
+					)} injury.`,
+					showNotification: false,
+					pids: [p.pid],
+					tids: [p.tid],
+					score,
+				},
+				conditions,
+			);
+		}
+
+		// Also check for gamesUntilTradable
+		if (p.gamesUntilTradable === undefined) {
+			p.gamesUntilTradable = 0; // Initialize for old leagues
+
+			changed = true;
+		} else if (p.gamesUntilTradable > 0) {
+			p.gamesUntilTradable -= 1;
+			changed = true;
+		}
+
+		if (changed) {
+			await idb.cache.players.put(p);
+		}
+	}
+
+	if (healedTexts.length > 0) {
+		logEvent(
+			{
+				type: "healedList",
+				text: healedTexts.join("<br>"),
+				showNotification: true,
+				saveToDb: false,
+			},
+			conditions,
+		);
+	}
+
+	// Tragic deaths only happen during the regular season!
+	if (
+		g.get("phase") !== PHASE.PLAYOFFS &&
+		Math.random() < g.get("tragicDeathRate") &&
+		!g.get("repeatSeason") &&
+		!g.get("forceHistoricalRosters")
+	) {
+		await player.killOne(conditions);
+
+		if (g.get("stopOnInjury")) {
+			await lock.set("stopGameSim", true);
+		}
+
+		updateEvents.push("playerMovement");
+	}
+
+	// Do this stuff after injuries, so autoSign knows the injury status of players for the next game
+	const currentPhase = g.get("phase");
+	if (
+		currentPhase === PHASE.REGULAR_SEASON ||
+		currentPhase === PHASE.AFTER_TRADE_DEADLINE
+	) {
+		await freeAgents.decreaseDemands();
+		await freeAgents.autoSign();
+	}
+	if (currentPhase === PHASE.REGULAR_SEASON) {
+		await trade.betweenAiTeams();
+	}
+};
+
+export const processDaysOffBeforeGame = async (
+	nextGameDay: number | undefined,
+	conditions: Conditions,
+	maxDays: number = Infinity,
+) => {
+	if (
+		nextGameDay === undefined ||
+		!isSport("basketball") ||
+		g.get("phase") !== PHASE.PLAYOFFS
+	) {
+		return 0;
+	}
+
+	const games = await idb.cache.games.getAll();
+	const season = g.get("season");
+	const numDaysOff = getDaysOffBeforeGame(
+		nextGameDay,
+		games,
+		season,
+		g.get("basketballPlayoffDaysProcessedThrough"),
+	);
+	const numDaysOffToProcess = Math.min(numDaysOff, maxDays);
+	const firstDayToProcess = nextGameDay - numDaysOff;
+	for (let i = 0; i < numDaysOffToProcess; i++) {
+		await processDayOver(conditions, new Set(), []);
+
+		const daysProcessedThrough = {
+			day: firstDayToProcess + i,
+			season,
+		};
+		await idb.cache.gameAttributes.put({
+			key: "basketballPlayoffDaysProcessedThrough",
+			value: daysProcessedThrough,
+		});
+		g.setWithoutSavingToDB(
+			"basketballPlayoffDaysProcessedThrough",
+			daysProcessedThrough,
+		);
+
+		// Persist the player countdowns and the cursor in one transaction. If
+		// the next game later fails, a retry starts after this completed day.
+		await idb.cache.flush();
+	}
+
+	return numDaysOffToProcess;
+};
 
 /**
  * Play one or more days of games.
@@ -163,6 +356,7 @@ const play = async (
 					text: injuryTexts.join("<br>"),
 					showNotification: true,
 					persistent: stopPlay,
+					hideInLiveGame: true,
 					saveToDb: false,
 				},
 				conditions,
@@ -172,129 +366,7 @@ const play = async (
 		const updateEvents: UpdateEvents = ["gameSim"];
 
 		if (dayOver) {
-			local.minFractionDiffs = undefined;
-
-			const healedTexts: string[] = [];
-
-			// Injury countdown - This must be after games are saved, of there is a race condition involving new injury assignment in writeStats. Free agents are handled in decreaseDemands.
-			const players = await idb.cache.players.indexGetAll("playersByTid", [
-				0,
-				Infinity,
-			]);
-
-			for (const p of players) {
-				let changed = false;
-
-				if (p.injury.gamesRemaining > 0) {
-					if (p.injury.skipDailyCountdown) {
-						delete p.injury.skipDailyCountdown;
-					} else {
-						p.injury.gamesRemaining -= 1;
-					}
-					changed = true;
-				}
-
-				if (isSport("baseball") && p.pFatigue !== undefined && p.pFatigue > 0) {
-					p.pFatigue = helpers.bound(
-						p.pFatigue - P_FATIGUE_DAILY_REDUCTION,
-						0,
-						80,
-					);
-					changed = true;
-				}
-
-				// Is it already over?
-				if (p.injury.type !== "Healthy" && p.injury.gamesRemaining <= 0) {
-					const score = p.injury.score;
-					p.injury = {
-						type: "Healthy",
-						gamesRemaining: 0,
-					};
-					changed = true;
-					const healedText = `${
-						p.ratings.at(-1)!.pos
-					} <a href="${helpers.leagueUrl(["player", p.pid])}">${p.firstName} ${
-						p.lastName
-					}</a>`;
-
-					if (
-						p.tid === g.get("userTid") &&
-						!pidsInjuredOneGameOrLess.has(p.pid)
-					) {
-						healedTexts.push(healedText);
-					}
-
-					logEvent(
-						{
-							type: "healed",
-							text: `${healedText} has recovered from ${helpers.pronoun(
-								g.get("gender"),
-								"his",
-							)} injury.`,
-							showNotification: false,
-							pids: [p.pid],
-							tids: [p.tid],
-							score,
-						},
-						conditions,
-					);
-				}
-
-				// Also check for gamesUntilTradable
-				if (p.gamesUntilTradable === undefined) {
-					p.gamesUntilTradable = 0; // Initialize for old leagues
-
-					changed = true;
-				} else if (p.gamesUntilTradable > 0) {
-					p.gamesUntilTradable -= 1;
-					changed = true;
-				}
-
-				if (changed) {
-					await idb.cache.players.put(p);
-				}
-			}
-
-			if (healedTexts.length > 0) {
-				logEvent(
-					{
-						type: "healedList",
-						text: healedTexts.join("<br>"),
-						showNotification: true,
-						saveToDb: false,
-					},
-					conditions,
-				);
-			}
-
-			// Tragic deaths only happen during the regular season!
-			if (
-				g.get("phase") !== PHASE.PLAYOFFS &&
-				Math.random() < g.get("tragicDeathRate") &&
-				!g.get("repeatSeason") &&
-				!g.get("forceHistoricalRosters")
-			) {
-				await player.killOne(conditions);
-
-				if (g.get("stopOnInjury")) {
-					await lock.set("stopGameSim", true);
-				}
-
-				updateEvents.push("playerMovement");
-			}
-
-			// Do this stuff after injuries, so autoSign knows the injury status of players for the next game
-			const phase = g.get("phase");
-			if (
-				phase === PHASE.REGULAR_SEASON ||
-				phase === PHASE.AFTER_TRADE_DEADLINE
-			) {
-				await freeAgents.decreaseDemands();
-				await freeAgents.autoSign();
-			}
-			if (phase === PHASE.REGULAR_SEASON) {
-				await trade.betweenAiTeams();
-			}
+			await processDayOver(conditions, pidsInjuredOneGameOrLess, updateEvents);
 		}
 
 		// More stuff for LeagueTopBar - update ovrs based on injuries, and (if user just played a game) update the score of the user's last game and add their next game
@@ -596,6 +668,36 @@ const play = async (
 				// This works because there should always be games in the playoffs phase. The next phase will start before reaching this point when the playoffs are over.
 				await season.newSchedulePlayoffsDay();
 				schedule = await season.getSchedule(true);
+			}
+
+			const numDaysOff =
+				isSport("basketball") &&
+				g.get("phase") === PHASE.PLAYOFFS &&
+				schedule[0]?.day
+					? getDaysOffBeforeGame(
+							schedule[0].day,
+							await idb.cache.games.getAll(),
+							g.get("season"),
+							g.get("basketballPlayoffDaysProcessedThrough"),
+						)
+					: 0;
+			const daysOffSimulationPlan = getDaysOffSimulationPlan(
+				numDaysOff,
+				numDays,
+				gidOneGame !== undefined,
+			);
+			const numDaysOffProcessed = await processDaysOffBeforeGame(
+				schedule[0]?.day,
+				conditions,
+				daysOffSimulationPlan.numDaysOffToProcess,
+			);
+			numDays = daysOffSimulationPlan.numDaysRemaining;
+
+			if (!daysOffSimulationPlan.playGame) {
+				if (numDaysOffProcessed > 0) {
+					await updateUIAfterDaysOff(conditions);
+				}
+				return cbNoGames();
 			}
 
 			for (const matchup of schedule) {

@@ -15,6 +15,7 @@ const StatsTable = ({
 	liveGameInProgress,
 	numPlayersOnCourt,
 	season,
+	showBPMI,
 	t,
 }: {
 	Row: any;
@@ -23,6 +24,7 @@ const StatsTable = ({
 	liveGameInProgress: boolean;
 	numPlayersOnCourt: number;
 	season: number;
+	showBPMI: boolean;
 	t: any;
 }) => {
 	const [sortBys, setSortBys] = useState<SortBy[]>([]);
@@ -51,7 +53,9 @@ const StatsTable = ({
 		});
 	};
 
-	const stats = [...BOX_SCORE_STATS];
+	const stats = BOX_SCORE_STATS.filter(
+		(stat) => showBPMI || stat !== "bpmImpact",
+	);
 	const cols = getCols(
 		stats.map((stat) => `stat:${stat}`),
 		{
@@ -69,6 +73,30 @@ const StatsTable = ({
 			},
 		},
 	);
+	const footerValues: Partial<
+		Record<(typeof BOX_SCORE_STATS)[number], number | string>
+	> = {
+		min: Number.isInteger(t.min) ? t.min : t.min.toFixed(1),
+		fg: `${t.fg}-${t.fga}`,
+		tp: `${t.tp}-${t.tpa}`,
+		ft: `${t.ft}-${t.fta}`,
+		orb: t.orb,
+		trb: t.drb + t.orb,
+		ast: t.ast,
+		tov: t.tov,
+		stl: t.stl,
+		blk: t.blk,
+		ba: t.ba,
+		pf: t.pf,
+		pts: t.pts,
+	};
+	const percentageValues: Partial<
+		Record<(typeof BOX_SCORE_STATS)[number], string>
+	> = {
+		fg: `${helpers.roundStat((100 * t.fg) / t.fga, "fgp")}%`,
+		tp: `${helpers.roundStat((100 * t.tp) / t.tpa, "tpp")}%`,
+		ft: `${helpers.roundStat((100 * t.ft) / t.fta, "ftp")}%`,
+	};
 
 	// This is used for two purposes - keeping injured/DNP at the bottom while sorting, and also sorting in general for live sim (was too hard to account for this stuff in default sort from backend)
 	const playersActiveOrPlayed = [];
@@ -102,7 +130,7 @@ const StatsTable = ({
 				}
 
 				if (stat === "bpmImpact") {
-					return liveGameInProgress ? -Infinity : getBPMImpactSortValue(p);
+					return getBPMImpactSortValue(p);
 				}
 
 				if (stat === "fg" || stat === "ft" || stat === "tp") {
@@ -153,6 +181,7 @@ const StatsTable = ({
 							p={p}
 							forceUpdate={forceRowUpdate}
 							season={season}
+							stats={stats}
 						/>
 					))}
 				</tbody>
@@ -161,53 +190,17 @@ const StatsTable = ({
 						<th>Total</th>
 						<th />
 						{typeof t.players[0].abbrev === "string" ? <th /> : null}
-						<th>{Number.isInteger(t.min) ? t.min : t.min.toFixed(1)}</th>
-						<th>
-							{t.fg}-{t.fga}
-						</th>
-						<th>
-							{t.tp}-{t.tpa}
-						</th>
-						<th>
-							{t.ft}-{t.fta}
-						</th>
-						<th>{t.orb}</th>
-						<th>{t.drb + t.orb}</th>
-						<th>{t.ast}</th>
-						<th>{t.tov}</th>
-						<th>{t.stl}</th>
-						<th>{t.blk}</th>
-						<th>{t.ba}</th>
-						<th>{t.pf}</th>
-						<th>{t.pts}</th>
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
+						{stats.map((stat) => (
+							<th key={stat}>{footerValues[stat]}</th>
+						))}
 					</tr>
 					<tr>
 						<th>Percentages</th>
 						<th />
 						{typeof t.players[0].abbrev === "string" ? <th /> : null}
-						<th />
-						<th>{helpers.roundStat((100 * t.fg) / t.fga, "fgp")}%</th>
-						<th>{helpers.roundStat((100 * t.tp) / t.tpa, "tpp")}%</th>
-						<th>{helpers.roundStat((100 * t.ft) / t.fta, "ftp")}%</th>
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
-						<th />
+						{stats.map((stat) => (
+							<th key={stat}>{percentageValues[stat]}</th>
+						))}
 					</tr>
 				</tfoot>
 			</table>
@@ -229,6 +222,7 @@ const BoxScore = ({
 	// change in the future.
 	const liveGameSim = boxScore.won?.name === undefined;
 	const liveGameInProgress = liveGameSim && !boxScore.gameOver;
+	const showBPMI = !liveGameSim;
 
 	return (
 		<>
@@ -268,6 +262,7 @@ const BoxScore = ({
 							liveGameInProgress={liveGameInProgress}
 							numPlayersOnCourt={boxScore.numPlayersOnCourt ?? 5}
 							season={boxScore.season}
+							showBPMI={showBPMI}
 							t={t}
 						/>
 					</div>

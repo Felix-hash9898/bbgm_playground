@@ -7,12 +7,13 @@ const addDaysToSchedule = (
 		awayTid: number;
 	}[],
 	existingGames?: Game[],
+	firstDay?: number,
 ): ScheduleGameWithoutKey[] => {
 	const dayTids = new Set();
 	let prevDayAllStarGame = false;
 	let prevDayTradeDeadline = false;
 
-	let day = 1;
+	let day = firstDay ?? 1;
 
 	// If there are other games in already played this season, start after that day
 	if (existingGames) {
@@ -33,10 +34,12 @@ const addDaysToSchedule = (
 
 		const allStarGame = awayTid === -2 && homeTid === -1;
 		const tradeDeadline = awayTid === -3 && homeTid === -3;
+		const firstGameOnRequestedDay =
+			firstDay !== undefined && day === firstDay && dayTids.size === 0;
 		if (
 			dayTids.has(homeTid) ||
 			dayTids.has(awayTid) ||
-			allStarGame ||
+			(allStarGame && !firstGameOnRequestedDay) ||
 			prevDayAllStarGame ||
 			tradeDeadline ||
 			prevDayTradeDeadline

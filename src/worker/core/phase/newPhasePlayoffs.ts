@@ -7,6 +7,7 @@ import type {
 	PlayoffSeries,
 } from "../../../common/types.ts";
 import { PHASE } from "../../../common/constants.ts";
+import { isSport } from "../../../common/index.ts";
 
 const newPhasePlayoffs = async (
 	conditions: Conditions,
@@ -16,6 +17,13 @@ const newPhasePlayoffs = async (
 
 	// In case this was somehow set already
 	local.playingUntilEndOfRound = false;
+	if (isSport("basketball")) {
+		await idb.cache.gameAttributes.put({
+			key: "basketballPlayoffDaysProcessedThrough",
+			value: undefined,
+		});
+		g.setWithoutSavingToDB("basketballPlayoffDaysProcessedThrough", undefined);
+	}
 
 	// Set playoff matchups
 	const { byConf, playIns, series, tidPlayIn, tidPlayoffs } =

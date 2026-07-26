@@ -18,7 +18,7 @@ const makePlayoffsKey = (game: ScheduleGameWithoutKey) =>
         away teams, respectively, for every game in the season, respectively.
  * @return {Promise}
  */
-const setSchedule = async (tids: [number, number][]) => {
+const setSchedule = async (tids: [number, number][], firstDay?: number) => {
 	const playoffs = g.get("phase") === PHASE.PLAYOFFS;
 
 	const oldPlayoffGames: Record<string, ScheduleGame> = {};
@@ -42,6 +42,7 @@ const setSchedule = async (tids: [number, number][]) => {
 			awayTid,
 		})),
 		await idb.cache.games.getAll(),
+		firstDay,
 	);
 	for (const game of schedule) {
 		if (playoffs) {

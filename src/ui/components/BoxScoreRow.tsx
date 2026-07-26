@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import { bySport } from "../../common/index.ts";
+import type { BasketballBoxScoreStat } from "../../common/boxScoreStats.basketball.ts";
 import BoxScoreRowBasketball from "./BoxScoreRow.basketball.tsx";
 import BoxScoreRowFootball from "./BoxScoreRow.football.tsx";
 
@@ -11,7 +12,7 @@ const BoxScoreRow = (props: {
 	onClick?: (event: MouseEvent) => void;
 	p: any;
 	season: number;
-	stats?: string[];
+	stats?: readonly BasketballBoxScoreStat[];
 }) => {
 	return bySport({
 		baseball: BoxScoreRowFootball(props as any),

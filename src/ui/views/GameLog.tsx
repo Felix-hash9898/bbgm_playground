@@ -11,8 +11,17 @@ import type { View, Game } from "../../common/types.ts";
 import { bySport, isSport } from "../../common/index.ts";
 import getWinner from "../../common/getWinner.ts";
 import formatScoreWithShootout from "../../common/formatScoreWithShootout.ts";
+import type { BasketballBoxScoreStat } from "../../common/boxScoreStats.basketball.ts";
 
-const StatsRow = ({ p, ...props }: { i: number; p: any; season: number }) => {
+const StatsRow = ({
+	p,
+	...props
+}: {
+	i: number;
+	p: any;
+	season: number;
+	stats?: readonly BasketballBoxScoreStat[];
+}) => {
 	const { clicked, toggleClicked } = useClickable();
 
 	const classes = clsx({
