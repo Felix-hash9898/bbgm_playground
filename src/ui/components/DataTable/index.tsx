@@ -26,6 +26,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import updateSortBys from "./updateSortBys.ts";
 import useStickyXX from "./useStickyXX.ts";
 import { useDataTableState } from "./useDataTableState.ts";
+import { getColKeys } from "./loadStateFromCache.ts";
 import { processRows } from "./processRows.ts";
 import { useBulkSelectRows, type SelectedRows } from "./useBulkSelectRows.ts";
 import { BulkActions, type BulkAction } from "./BulkActions.tsx";
@@ -272,6 +273,7 @@ const DataTable = ({
 		state.settingsCache.clear("DataTableColOrder");
 		state.settingsCache.clear("DataTableFilters");
 		state.settingsCache.clear("DataTableSort");
+		state.settingsCache.clear("DataTableSortCols");
 		state.settingsCache.clear("DataTableStickyCols");
 
 		resetState({
@@ -346,11 +348,16 @@ const DataTable = ({
 		});
 	};
 
+	const colKeys = getColKeys(cols);
+	const colsChanged =
+		colKeys.length !== state.prevColKeys.length ||
+		colKeys.some((key, i) => key !== state.prevColKeys[i]);
+
 	// If name changes, it means this is a whole new table and it has a different state (example: Player Stats switching between regular and advanced stats).
-	// If colOrder does not match cols, need to run reconciliation code in loadStateFromCache (example: current vs past seasons in League Finances).
+	// If cols changed, sorting and column order may reference stale indexes and need to be reconciled.
 	if (
 		name !== state.prevName ||
-		cols.length > state.colOrder.length ||
+		colsChanged ||
 		state.hideAllControls !== hideAllControlsBool
 	) {
 		resetState({

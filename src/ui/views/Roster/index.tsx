@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { arrayMove } from "@dnd-kit/sortable";
 import {
 	bySport,
 	isSport,
@@ -40,6 +39,7 @@ import { dataTableWrappedMood } from "../../components/Mood.tsx";
 import { wrappedRatingWithChange } from "../../components/RatingWithChange.tsx";
 import type { BulkAction } from "../../components/DataTable/BulkActions.tsx";
 import { groupByUnique } from "../../../common/utils.ts";
+import { movePlayerPids, swapPlayerPids } from "./reorderPlayers.ts";
 
 const handleRelease = async (
 	p: View<"roster">["players"][number],
@@ -578,15 +578,20 @@ const Roster = ({
 									if (oldIndex === newIndex) {
 										return;
 									}
-									const pids = players.map((p) => p.pid);
-									const newSortedPids = arrayMove(pids, oldIndex, newIndex);
+									const newSortedPids = movePlayerPids(
+										playersSorted,
+										oldIndex,
+										newIndex,
+									);
 									setSortedPids(newSortedPids);
 									await toWorker("main", "reorderRosterDrag", newSortedPids);
 								},
 								onSwap: async (index1, index2) => {
-									const newSortedPids = players.map((p) => p.pid);
-									newSortedPids[index1] = players[index2].pid;
-									newSortedPids[index2] = players[index1].pid;
+									const newSortedPids = swapPlayerPids(
+										playersSorted,
+										index1,
+										index2,
+									);
 									setSortedPids(newSortedPids);
 									await toWorker("main", "reorderRosterDrag", newSortedPids);
 								},

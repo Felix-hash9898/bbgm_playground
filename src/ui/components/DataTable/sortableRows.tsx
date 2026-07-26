@@ -174,6 +174,9 @@ export const getId = (row: DataTableRow) => {
 	return String(row.key);
 };
 
+export const getRowIndex = (rows: DataTableRow[], id: string) =>
+	rows.findIndex((row) => getId(row) === id);
+
 export const SortableContextWrappers = ({
 	children,
 	disableRow,
@@ -193,21 +196,25 @@ export const SortableContextWrappers = ({
 	rows: DataTableRow[];
 	tableRef: RefObject<HTMLTableElement | null>;
 }) => {
-	const [draggedIndex, setDraggedIndex] = useState<number | undefined>(
-		undefined,
-	);
-	const [clickedIndex, setClickedIndex] = useState<number | undefined>(
-		undefined,
-	);
+	const [draggedId, setDraggedId] = useState<string | undefined>(undefined);
+	const [clickedId, setClickedId] = useState<string | undefined>(undefined);
 
 	// Hacky shit to try to determine click from drag. start is to track how long a click lasted.
 	const clicked = useRef<{
-		index: number | undefined;
+		id: string | undefined;
 		start: number; // Milliseconds
 	}>({
-		index: undefined,
+		id: undefined,
 		start: 0,
 	});
+
+	const ids = rows.map((row) => getId(row));
+	const draggedIndexRaw =
+		draggedId === undefined ? -1 : getRowIndex(rows, draggedId);
+	const clickedIndexRaw =
+		clickedId === undefined ? -1 : getRowIndex(rows, clickedId);
+	const draggedIndex = draggedIndexRaw >= 0 ? draggedIndexRaw : undefined;
+	const clickedIndex = clickedIndexRaw >= 0 ? clickedIndexRaw : undefined;
 
 	const context = useMemo(
 		() => ({
@@ -230,8 +237,6 @@ export const SortableContextWrappers = ({
 		],
 	);
 
-	const ids = rows.map((row) => getId(row));
-
 	// If I use the default sensor (pointer rather than mouse+touch) everything works (as long as you put touch-action-none on the handle)... except on iOS for some reason it sometimes only fires click events rather than pointer events. This seems to happen for roughly the bottom 2/3 of rows in the table. No idea why.
 	const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
 
@@ -239,18 +244,24 @@ export const SortableContextWrappers = ({
 		<DndContext
 			sensors={sensors}
 			onDragStart={(event) => {
-				const index = ids.indexOf(event.active.id as string);
-				setDraggedIndex(index);
+				const id = String(event.active.id);
+				setDraggedId(id);
 
-				clicked.current.index = index;
+				clicked.current.id = id;
 				clicked.current.start = Date.now();
 			}}
 			onDragEnd={(event) => {
-				setDraggedIndex(undefined);
-				const oldId = event.active.id as string;
-				const newId = event.over?.id as string | undefined;
+				setDraggedId(undefined);
+				const oldId = String(event.active.id);
+				const newId =
+					event.over?.id === undefined ? undefined : String(event.over.id);
 
-				const oldIndex = ids.indexOf(oldId);
+				const oldIndex = getRowIndex(rows, oldId);
+				if (oldIndex < 0) {
+					clicked.current.id = undefined;
+					setClickedId(undefined);
+					return;
+				}
 
 				// For fast clicks, newId will be undefined. For slower clicks, it might be
 				if (
@@ -258,41 +269,44 @@ export const SortableContextWrappers = ({
 					(newId === oldId && Date.now() - clicked.current.start < 500)
 				) {
 					// Make sure the click started on this item, otherwise it's not a click it's a drag
-					if (clicked.current.index === oldIndex) {
-						if (clickedIndex === undefined) {
+					if (clicked.current.id === oldId) {
+						if (clickedId === undefined || clickedIndex === undefined) {
 							// Click on unhighlighted item and no other item is highlighted - highlight
-							setClickedIndex(oldIndex);
-						} else if (clickedIndex === oldIndex) {
+							setClickedId(oldId);
+						} else if (clickedId === oldId) {
 							// Click on highlighted item - unhighlight
-							setClickedIndex(undefined);
+							setClickedId(undefined);
 						} else {
 							// Click on unhighlighted item and another item is highlighted - swap
 							onSwap(clickedIndex, oldIndex);
-							setClickedIndex(undefined);
+							setClickedId(undefined);
 						}
 					}
 
-					clicked.current.index = undefined;
+					clicked.current.id = undefined;
 				} else if (newId !== undefined) {
-					const newIndex = ids.indexOf(newId);
+					const newIndex = getRowIndex(rows, newId);
 
-					onChange({ oldIndex, newIndex });
+					if (oldIndex >= 0 && newIndex >= 0) {
+						onChange({ oldIndex, newIndex });
+					}
 
 					// Reset any clicked on after a drag
-					setClickedIndex(undefined);
+					setClickedId(undefined);
 				}
 			}}
 			onDragOver={(event) => {
-				const oldId = event.active.id as string;
-				const newId = event.over?.id as string | undefined;
+				const oldId = String(event.active.id);
+				const newId =
+					event.over?.id === undefined ? undefined : String(event.over.id);
 				if (newId !== undefined && oldId !== newId) {
 					// Dragged over something besides self, so this can't be a click
-					clicked.current.index = undefined;
+					clicked.current.id = undefined;
 				}
 			}}
 			onDragCancel={() => {
-				setDraggedIndex(undefined);
-				clicked.current.index = undefined;
+				setDraggedId(undefined);
+				clicked.current.id = undefined;
 			}}
 			collisionDetection={closestCenter}
 		>

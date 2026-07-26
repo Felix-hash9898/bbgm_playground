@@ -2,6 +2,11 @@ import { safeLocalStorage } from "../../util/index.ts";
 import type { Props, SortBy, StickyCols } from "./index.tsx";
 import SettingsCache from "./SettingsCache.ts";
 
+type PersistedSortCol = Pick<
+	Props["cols"][number],
+	"desc" | "sortSequence" | "sortType" | "title"
+>;
+
 export type State = {
 	colOrder: {
 		colIndex: number;
@@ -11,6 +16,7 @@ export type State = {
 	enableFilters: boolean;
 	filters: string[];
 	hideAllControls: boolean;
+	prevColKeys: string[];
 	prevName: string;
 	perPage: number;
 	searchText: string;
@@ -25,6 +31,87 @@ export type LoadStateFromCacheProps = Pick<
 	"cols" | "disableSettingsCache" | "defaultSort" | "defaultStickyCols" | "name"
 > &
 	Pick<State, "hideAllControls">;
+
+const getPersistedSortCols = (cols: Props["cols"]): PersistedSortCol[] =>
+	cols.map(({ desc, sortSequence, sortType, title }) => ({
+		desc,
+		sortSequence,
+		sortType,
+		title,
+	}));
+
+export const getColKeys = (cols: Props["cols"]) => {
+	const counts = new Map<string, number>();
+
+	return getPersistedSortCols(cols).map((col) => {
+		const key = JSON.stringify(col);
+		const count = counts.get(key) ?? 0;
+		counts.set(key, count + 1);
+		return `${key}:${count}`;
+	});
+};
+
+const getCachedColKeys = (value: unknown) => {
+	if (
+		!Array.isArray(value) ||
+		!value.every(
+			(col) =>
+				col !== null &&
+				typeof col === "object" &&
+				typeof (col as { title?: unknown }).title === "string",
+		)
+	) {
+		return;
+	}
+
+	return getColKeys(value as Props["cols"]);
+};
+
+const reconcileSortBys = ({
+	cols,
+	sortBys,
+	sortCols,
+}: {
+	cols: Props["cols"];
+	sortBys: unknown;
+	sortCols: unknown;
+}) => {
+	if (!Array.isArray(sortBys)) {
+		return;
+	}
+
+	const oldColKeys = getCachedColKeys(sortCols);
+	if (!oldColKeys) {
+		return;
+	}
+
+	const colKeys = getColKeys(cols);
+	const reconciledSortBys: SortBy[] = [];
+
+	for (const sortBy of sortBys) {
+		if (
+			!Array.isArray(sortBy) ||
+			!Number.isInteger(sortBy[0]) ||
+			sortBy[0] < 0 ||
+			(sortBy[1] !== "asc" && sortBy[1] !== "desc")
+		) {
+			continue;
+		}
+
+		const oldColKey = oldColKeys[sortBy[0]];
+		const colIndex = oldColKey ? colKeys.indexOf(oldColKey) : -1;
+		const col = cols[colIndex];
+
+		if (
+			colIndex >= 0 &&
+			!(col?.sortSequence && col.sortSequence.length === 0)
+		) {
+			reconciledSortBys.push([colIndex, sortBy[1]]);
+		}
+	}
+
+	return reconciledSortBys;
+};
 
 const loadStateFromCache = ({
 	cols,
@@ -44,22 +131,28 @@ const loadStateFromCache = ({
 	}
 
 	const sortBysFromStorage = settingsCache.get("DataTableSort");
+	const sortColsFromStorage = settingsCache.get("DataTableSortCols");
 	let sortBys: SortBy[] | undefined;
 
 	if (defaultSort !== "disableSort") {
 		if (sortBysFromStorage === undefined) {
 			sortBys = [defaultSort];
 		} else {
-			sortBys = sortBysFromStorage as SortBy[];
-		}
+			sortBys = reconcileSortBys({
+				cols,
+				sortBys: sortBysFromStorage,
+				sortCols: sortColsFromStorage,
+			});
 
-		// Don't let sortBy reference invalid col
-		sortBys = sortBys.filter((sortBy) => sortBy[0] < cols.length);
-
-		if (sortBys.length === 0) {
-			sortBys = [defaultSort];
+			if (sortBys && sortBys.length > 0) {
+				settingsCache.set("DataTableSort", sortBys);
+			} else {
+				settingsCache.clear("DataTableSort");
+				sortBys = [defaultSort];
+			}
 		}
 	}
+	settingsCache.set("DataTableSortCols", getPersistedSortCols(cols));
 
 	const defaultFilters: string[] = cols.map(() => "");
 	const filtersFromStorage = settingsCache.get("DataTableFilters");
@@ -115,6 +208,7 @@ const loadStateFromCache = ({
 		filters,
 		hideAllControls, // So we can know if this changes and reset state
 		perPage,
+		prevColKeys: getColKeys(cols),
 		prevName: name,
 		searchText: "",
 		showSelectColumnsModal: false,
