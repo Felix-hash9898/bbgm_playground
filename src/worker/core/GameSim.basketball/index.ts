@@ -1818,8 +1818,8 @@ class GameSim extends GameSimBase {
 				(this.team[this.o].compositeRating.dribbling +
 					this.team[this.o].compositeRating.passing));
 
-		// Keep the team-wide TO effect small. The main cost should be who absorbs
-		// the turnovers, not a huge jump in raw turnover rate.
+		// Keep the team-wide turnover effect small so concentrated usage
+		// does not cause a large increase in the raw turnover rate.
 		const usageOverloadFactor = 1 + 0.35 * this.getTeamUsageOverload();
 
 		return boundProb(baseProb * usageOverloadFactor);
@@ -1855,56 +1855,7 @@ class GameSim extends GameSimBase {
 	}
 
 	pickTurnoverPlayer() {
-		const playersOnCourt = this.playersOnCourt[this.o];
-		const shotPriorityContext = this.getShotPriorityContext();
-		const weights = playersOnCourt.map((p, index) => {
-			const usage = p.compositeRating.usage ?? 0;
-			const usageLoad =
-				usage * (shotPriorityContext.players[index]?.shareRatio ?? 1);
-			const turnovers = p.compositeRating.turnovers ?? 0;
-			const dribbling = p.compositeRating.dribbling ?? 0;
-
-			// Assign turnovers based on a mix of offensive burden and ball security.
-			// High-usage players should commit more turnovers, but good dribblers
-			// should shed some of that risk rather than pure passing burden causing
-			// them to "inherit" turnovers.
-			const burden = (0.2 + usageLoad) ** 1.5;
-			const ballSecurityRisk = (0.15 + turnovers) / (0.35 + dribbling);
-
-			return burden * ballSecurityRisk * this.fatigue(p.stat.energy);
-		});
-
-		let total = 0;
-		for (const weight of weights) {
-			total += weight;
-		}
-
-		if (total <= 0) {
-			return random.choice(playersOnCourt);
-		}
-
-		const floor = 0.05 * total;
-		for (let i = 0; i < weights.length; i++) {
-			if (weights[i]! < floor) {
-				weights[i] = floor;
-			}
-		}
-
-		let adjustedTotal = 0;
-		for (const weight of weights) {
-			adjustedTotal += weight;
-		}
-
-		let runningSum = 0;
-		const rand = Math.random() * adjustedTotal;
-		for (const [i, weight] of weights.entries()) {
-			runningSum += weight;
-			if (rand < runningSum) {
-				return playersOnCourt[i]!;
-			}
-		}
-
-		return playersOnCourt[0]!;
+		return this.pickPlayer("turnovers", this.o, 2);
 	}
 
 	pickDefensiveReboundPlayer() {
