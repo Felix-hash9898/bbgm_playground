@@ -33,7 +33,11 @@ const renderRow = (props: RenderRowProps) =>
 		createElement("td", undefined, `${props.row.key} acquired`),
 	);
 
-const TestTable = () => {
+const TestTable = ({
+	onChange = () => {},
+}: {
+	onChange?: (change: { oldIndex: number; newIndex: number }) => void;
+}) => {
 	const tableRef = useRef<HTMLTableElement>(null);
 
 	return createElement(
@@ -86,7 +90,7 @@ const TestTable = () => {
 				SortableContextWrappers,
 				{
 					highlightHandle: () => true,
-					onChange: () => {},
+					onChange,
 					onSwap: () => {},
 					renderRow,
 					rows,
@@ -198,4 +202,87 @@ describe("sortable row DragOverlay", () => {
 			}
 		},
 	);
+
+	test.each([
+		["Space", " "],
+		["Enter", "Enter"],
+	])("moves a focused row with the %s keyboard control", async (code, key) => {
+		const changes: { oldIndex: number; newIndex: number }[] = [];
+		container = document.createElement("div");
+		document.body.append(container);
+		root = createRoot(container);
+		flushSync(() => {
+			root!.render(
+				createElement(TestTable, {
+					onChange: (change) => changes.push(change),
+				}),
+			);
+		});
+		await nextFrame();
+
+		const handle = container.querySelector<HTMLButtonElement>(
+			'tbody tr[data-row-key="b"] button',
+		)!;
+		handle.focus();
+		handle.dispatchEvent(
+			new KeyboardEvent("keydown", { bubbles: true, code, key }),
+		);
+		await nextFrame();
+		handle.dispatchEvent(
+			new KeyboardEvent("keydown", {
+				bubbles: true,
+				code: "ArrowDown",
+				key: "ArrowDown",
+			}),
+		);
+		await nextFrame();
+		handle.dispatchEvent(
+			new KeyboardEvent("keydown", { bubbles: true, code, key }),
+		);
+		await nextFrame();
+
+		expect(changes).toEqual([{ oldIndex: 1, newIndex: 2 }]);
+	});
+
+	test("cancels keyboard sorting with Escape", async () => {
+		const changes: { oldIndex: number; newIndex: number }[] = [];
+		container = document.createElement("div");
+		document.body.append(container);
+		root = createRoot(container);
+		flushSync(() => {
+			root!.render(
+				createElement(TestTable, {
+					onChange: (change) => changes.push(change),
+				}),
+			);
+		});
+		await nextFrame();
+
+		const handle = container.querySelector<HTMLButtonElement>(
+			'tbody tr[data-row-key="b"] button',
+		)!;
+		handle.focus();
+		handle.dispatchEvent(
+			new KeyboardEvent("keydown", { bubbles: true, code: "Space", key: " " }),
+		);
+		await nextFrame();
+		handle.dispatchEvent(
+			new KeyboardEvent("keydown", {
+				bubbles: true,
+				code: "ArrowDown",
+				key: "ArrowDown",
+			}),
+		);
+		await nextFrame();
+		handle.dispatchEvent(
+			new KeyboardEvent("keydown", {
+				bubbles: true,
+				code: "Escape",
+				key: "Escape",
+			}),
+		);
+		await nextFrame();
+
+		expect(changes).toEqual([]);
+	});
 });

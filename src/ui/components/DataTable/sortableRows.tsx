@@ -2,6 +2,7 @@ import {
 	DndContext,
 	DragOverlay,
 	closestCenter,
+	KeyboardSensor,
 	MouseSensor,
 	TouchSensor,
 	useSensor,
@@ -187,7 +188,7 @@ export const SortableContextWrappers = ({
 	rows,
 	tableRef,
 }: {
-	children: ReactNode;
+	children?: ReactNode;
 	disableRow?: DisableRow;
 	highlightHandle?: HighlightHandle;
 	onChange: (a: { oldIndex: number; newIndex: number }) => void;
@@ -238,7 +239,17 @@ export const SortableContextWrappers = ({
 	);
 
 	// If I use the default sensor (pointer rather than mouse+touch) everything works (as long as you put touch-action-none on the handle)... except on iOS for some reason it sometimes only fires click events rather than pointer events. This seems to happen for roughly the bottom 2/3 of rows in the table. No idea why.
-	const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
+	const sensors = useSensors(
+		useSensor(MouseSensor),
+		useSensor(TouchSensor),
+		useSensor(KeyboardSensor, {
+			keyboardCodes: {
+				start: ["Space", "Enter", "NumpadEnter"],
+				cancel: ["Escape"],
+				end: ["Space", "Enter", "NumpadEnter"],
+			},
+		}),
+	);
 
 	return (
 		<DndContext
