@@ -3232,6 +3232,10 @@ const cols: {
 		searchType: "string",
 		sortType: "number",
 	},
+	"Last Salary": {
+		sortSequence: ["desc", "asc"],
+		sortType: "number",
+	},
 	"Last Season": {
 		desc: "Last Season with Team",
 		sortSequence: ["desc", "asc"],

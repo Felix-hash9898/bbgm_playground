@@ -15,6 +15,7 @@ import type { StatSumsExtra } from "../../../common/processPlayerStats.basketbal
 import { idb } from "../index.ts";
 import { actualPhase } from "../../util/actualPhase.ts";
 import { getSalarySeasonType } from "./getSalarySeasonType.ts";
+import { getLastSalary } from "./getLastSalary.ts";
 
 type PlayersPlusOptionsRequired = Required<
 	Omit<
@@ -257,6 +258,8 @@ const processAttrs = (
 			};
 		} else if (attr === "salary") {
 			output.salary = getSalary();
+		} else if (attr === "lastSalary") {
+			output.lastSalary = getLastSalary(p.salaries);
 		} else if (attr === "salaries") {
 			const currentSeason = g.get("season");
 			const phase = actualPhase();

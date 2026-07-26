@@ -1,5 +1,4 @@
 import { idb } from "../../db/index.ts";
-import { updatePlayMenu, updateStatus } from "../../util/index.ts";
 
 /**
  * Cancel all ongoing contract negotiations.
@@ -11,8 +10,6 @@ import { updatePlayMenu, updateStatus } from "../../util/index.ts";
  */
 const cancelAll = async () => {
 	await idb.cache.negotiations.clear();
-	await updateStatus("Idle");
-	await updatePlayMenu();
 };
 
 export default cancelAll;

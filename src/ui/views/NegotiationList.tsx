@@ -57,6 +57,7 @@ const NegotiationList = ({
 		...stats.map((stat) => `stat:${stat}`),
 		"Acquired",
 		"Mood",
+		"Last Salary",
 		"Asking For",
 		"Exp",
 		"Negotiate",
@@ -108,6 +109,12 @@ const NegotiationList = ({
 					maxWidth: true,
 					p,
 				}),
+				p.lastSalary === undefined
+					? null
+					: {
+							...wrappedCurrency(p.lastSalary, "M"),
+							classNames: "text-body-secondary",
+						},
 				wrappedCurrency(p.mood.user.contractAmount / 1000, "M"),
 				p.contract.exp,
 				{
