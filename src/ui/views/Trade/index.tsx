@@ -422,6 +422,7 @@ const Trade = (props: View<"trade">) => {
 							handleToggle={handleChangeAsset}
 							luxuryPayroll={luxuryPayroll}
 							luxuryTax={luxuryTax}
+							prevTeams={state.prevTeams}
 							ref={summaryText}
 							salaryCap={salaryCap}
 							salaryCapType={salaryCapType}

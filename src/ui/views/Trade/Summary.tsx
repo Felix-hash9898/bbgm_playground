@@ -1,5 +1,5 @@
 import { helpers } from "../../util/index.ts";
-import type { View } from "../../../common/types.ts";
+import type { TradeTeam, TradeTeams, View } from "../../../common/types.ts";
 import clsx from "clsx";
 import { PlayerNameLabels, SafeHtml } from "../../components/index.tsx";
 import { ContractAmount, ContractExp } from "../../components/contract.tsx";
@@ -112,6 +112,19 @@ export const MissingAssets = ({
 	);
 };
 
+const NewAssetIcon = () => {
+	return (
+		<div
+			aria-label="New asset in counter-offer"
+			className="rounded-circle bg-info align-self-center me-1 flex-shrink-0"
+			style={{
+				height: 8,
+				width: 8,
+			}}
+		/>
+	);
+};
+
 export const SummaryTeam = ({
 	challengeNoRatings,
 	handleRemove,
@@ -120,6 +133,7 @@ export const SummaryTeam = ({
 	luxuryPayroll,
 	luxuryTax,
 	missingAssets,
+	prevTeam,
 	salaryCap,
 	salaryCapType,
 	showInlinePlayerInfo,
@@ -134,6 +148,7 @@ export const SummaryTeam = ({
 	hideFinanceInfo?: boolean;
 	hideTeamOvr?: boolean;
 	missingAssets?: MissingAsset[];
+	prevTeam?: TradeTeam;
 	showInlinePlayerInfo?: boolean;
 	t: View<"trade">["summary"]["teams"][number];
 }) => {
@@ -148,6 +163,9 @@ export const SummaryTeam = ({
 					return (
 						<li key={p.pid}>
 							<div className="d-flex">
+								{prevTeam && !prevTeam.pids.includes(p.pid) ? (
+									<NewAssetIcon />
+								) : null}
 								<PlayerNameLabels
 									pos={p.ratings?.pos}
 									pid={p.pid}
@@ -159,7 +177,7 @@ export const SummaryTeam = ({
 								{handleRemove ? (
 									<button
 										type="button"
-										className="btn-close ms-1"
+										className="btn-close ms-auto"
 										title="Remove player from trade"
 										onClick={() => {
 											handleRemove("player", p.pid);
@@ -194,11 +212,14 @@ export const SummaryTeam = ({
 				{orderBy(summary.teams[t.other].picks, ["round", "pick", "season"]).map(
 					(pick) => (
 						<li key={pick.dpid} className="d-flex">
+							{prevTeam && !prevTeam.dpids.includes(pick.dpid) ? (
+								<NewAssetIcon />
+							) : null}
 							<SafeHtml dirty={pick.desc} />
 							{handleRemove ? (
 								<button
 									type="button"
-									className="btn-close ms-1"
+									className="btn-close ms-auto"
 									title="Remove pick from trade"
 									onClick={() => {
 										handleRemove("pick", pick.dpid);
@@ -264,6 +285,7 @@ const Summary = ({
 	handleToggle,
 	luxuryPayroll,
 	luxuryTax,
+	prevTeams,
 	ref,
 	salaryCap,
 	salaryCapType,
@@ -274,6 +296,7 @@ const Summary = ({
 > & {
 	challengeNoRatings: boolean;
 	handleToggle: HandleToggle;
+	prevTeams?: TradeTeams;
 	ref?: Ref<HTMLDivElement>;
 }) => {
 	return (
@@ -292,6 +315,7 @@ const Summary = ({
 							challengeNoRatings={challengeNoRatings}
 							luxuryPayroll={luxuryPayroll}
 							luxuryTax={luxuryTax}
+							prevTeam={prevTeams?.[i === 0 ? 1 : 0]}
 							salaryCap={salaryCap}
 							salaryCapType={salaryCapType}
 							handleRemove={(type, id) => {

@@ -867,6 +867,9 @@ const CommandPalette = ({
 			},
 			[count, setActiveIndex, show],
 		),
+		// The palette's own search input keeps navigation active. Only the
+		// explicit up/down actions are registered here.
+		false,
 	);
 
 	if (!show) {

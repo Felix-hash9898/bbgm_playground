@@ -13,6 +13,8 @@ import type {
 } from "../../../common/types.ts";
 import type { StatSumsExtra } from "../../../common/processPlayerStats.basketball.ts";
 import { idb } from "../index.ts";
+import { actualPhase } from "../../util/actualPhase.ts";
+import { getSalarySeasonType } from "./getSalarySeasonType.ts";
 
 type PlayersPlusOptionsRequired = Required<
 	Omit<
@@ -256,10 +258,13 @@ const processAttrs = (
 		} else if (attr === "salary") {
 			output.salary = getSalary();
 		} else if (attr === "salaries") {
-			output.salaries = helpers.deepCopy(p.salaries).map((salary) => {
-				salary.amount /= 1000;
-				return salary;
-			});
+			const currentSeason = g.get("season");
+			const phase = actualPhase();
+			output.salaries = p.salaries.map((salary) => ({
+				amount: salary.amount / 1000,
+				season: salary.season,
+				type: getSalarySeasonType(salary.season, currentSeason, phase),
+			}));
 		} else if (attr === "salariesTotal") {
 			output.salariesTotal = output.salaries.reduce(
 				(memo: number, salary: { amount: number }) => memo + salary.amount,

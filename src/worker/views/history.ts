@@ -1,7 +1,7 @@
 import { idb } from "../db/index.ts";
 import { g, local, updatePlayMenu } from "../util/index.ts";
 import type { UpdateEvents, ViewInput } from "../../common/types.ts";
-import { bySport, SIMPLE_AWARDS } from "../../common/index.ts";
+import { bySport, isSport, SIMPLE_AWARDS } from "../../common/index.ts";
 
 const viewedSeasonSummary = async () => {
 	local.unviewedSeasonSummary = false;
@@ -99,13 +99,35 @@ const updateHistory = async (
 			},
 			"noCopyCache",
 		);
-		const retiredPlayers = await idb.getCopies.playersPlus(retiredPlayersAll, {
+		let retiredPlayers = await idb.getCopies.playersPlus(retiredPlayersAll, {
 			attrs: ["pid", "name", "age", "hof"],
 			season,
 			ratings: ["pos"],
 			stats: ["tid", "abbrev"],
 			showNoStats: true,
 		});
+		if (isSport("basketball")) {
+			const retiredPlayersWithStats = await idb.getCopies.playersPlus(
+				retiredPlayersAll,
+				{
+					attrs: ["pid"],
+					ratings: [],
+					stats: ["ws"],
+				},
+			);
+			const wsByPid = new Map(
+				retiredPlayersWithStats.map((p) => [
+					p.pid,
+					p.stats.some((row: { ws?: number }) => row.ws !== undefined)
+						? p.careerStats.ws
+						: undefined,
+				]),
+			);
+			retiredPlayers = retiredPlayers.map((p) => ({
+				...p,
+				ws: wsByPid.get(p.pid),
+			}));
+		}
 		retiredPlayers.sort((a, b) => b.age - a.age);
 
 		// Get champs

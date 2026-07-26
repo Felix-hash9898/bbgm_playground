@@ -4,6 +4,7 @@ import { g } from "../util/index.ts";
 import type { UpdateEvents, ViewInput } from "../../common/types.ts";
 import { getTopPlayers, getUpcoming } from "./schedule.ts";
 import { PHASE } from "../../common/index.ts";
+import { isGameInConference } from "./conferenceScheduleFilter.ts";
 
 let prevInputsDay: number | undefined;
 const updateDailySchedule = async (
@@ -18,7 +19,8 @@ const updateDailySchedule = async (
 		(inputs.season === currentSeason && updateEvents.includes("gameSim")) ||
 		updateEvents.includes("newPhase") ||
 		inputs.season !== state.season ||
-		inputs.day !== state.day
+		inputs.day !== state.day ||
+		inputs.cid !== state.cid
 	) {
 		const process = async (inputsDayOverride?: number) => {
 			const games = await idb.getCopies.games(
@@ -87,15 +89,47 @@ const updateDailySchedule = async (
 				}
 			}
 
-			const completed = games.filter((game) => game.day === day);
+			const confs = g.get("confs", inputs.season);
+			const cid =
+				inputs.cid !== undefined &&
+				confs.some((conf) => conf.cid === inputs.cid)
+					? inputs.cid
+					: undefined;
+			let conferenceTids: Set<number> | undefined;
+			if (cid !== undefined) {
+				conferenceTids = new Set(
+					(await idb.cache.teams.getAll())
+						.filter((t) => t.cid === cid)
+						.map((t) => t.tid),
+				);
+			}
+
+			const completed = games.filter(
+				(game) =>
+					game.day === day &&
+					(!conferenceTids ||
+						isGameInConference(
+							{
+								awayTid: game.teams[1].tid,
+								homeTid: game.teams[0].tid,
+							},
+							conferenceTids,
+						)),
+			);
 
 			let upcoming: Awaited<ReturnType<typeof getUpcoming>> = [];
 			if (inputs.season === currentSeason) {
 				// If it's the current season, get any upcoming games
 				upcoming = await getUpcoming({
+					cid,
 					day,
 				});
 			}
+
+			const cids = [
+				{ key: "all", value: "All conferences" },
+				...confs.map((conf) => ({ key: conf.cid, value: conf.name })),
+			];
 
 			const days = Array.from(daysAndPlayoffs.entries())
 				.map(([day, playoffs]) => ({ day, playoffs }))
@@ -131,6 +165,8 @@ const updateDailySchedule = async (
 			}
 
 			return {
+				cid,
+				cids,
 				completed,
 				day,
 				days,
@@ -154,11 +190,13 @@ const updateDailySchedule = async (
 			info = await process(newDay);
 		}
 
-		const { completed, day, days, isToday, upcoming } = info;
+		const { cid, cids, completed, day, days, isToday, upcoming } = info;
 
 		const topPlayers = await getTopPlayers(undefined, 1, day);
 
 		return {
+			cid,
+			cids,
 			completed,
 			currentSeason,
 			day,

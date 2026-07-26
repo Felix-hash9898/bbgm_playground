@@ -4,7 +4,6 @@ import {
 	useRef,
 	useState,
 	type ChangeEvent,
-	type MouseEvent,
 } from "react";
 import { ProgressBarText } from "./index.tsx";
 import {
@@ -209,9 +208,7 @@ const LeagueFileUpload = ({
 		}
 	};
 
-	const handleFileURL = async (event: MouseEvent) => {
-		event.preventDefault();
-
+	const handleFileURL = async () => {
 		beforeFile();
 
 		dispatch({
@@ -308,10 +305,19 @@ const LeagueFileUpload = ({
 						onChange={(event) => {
 							setURL(event.target.value);
 						}}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") {
+								event.preventDefault();
+								handleFileURL();
+							}
+						}}
 					/>
 					<button
 						className="btn btn-secondary ml-2"
-						onClick={handleFileURL}
+						onClick={(event) => {
+							event.preventDefault();
+							handleFileURL();
+						}}
 						disabled={disabled || state.status === "checking"}
 					>
 						Load
@@ -320,6 +326,7 @@ const LeagueFileUpload = ({
 			) : (
 				<input
 					type="file"
+					accept=".json,.gz,application/json,application/gzip"
 					onClick={resetFileInput}
 					onChange={handleFileUpload}
 					disabled={disabled || state.status === "checking"}

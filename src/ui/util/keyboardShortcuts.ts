@@ -239,6 +239,7 @@ export const useKeyboardShortcuts = <T extends KeyboardShortcutCategories>(
 	category: T,
 	actions: ReadonlyArray<keyof KeyboardShortcuts[T]> | undefined,
 	callback: (action: keyof KeyboardShortcuts[T]) => void,
+	disableWhileEditing = true,
 ) => {
 	const keyboardShortcutsLocal = useLocal((state) => state.keyboardShortcuts);
 
@@ -251,9 +252,10 @@ export const useKeyboardShortcuts = <T extends KeyboardShortcutCategories>(
 			// Disable if we are typing in a text field
 			const element = event.target;
 			if (
-				element instanceof HTMLInputElement ||
-				element instanceof HTMLTextAreaElement ||
-				(element instanceof HTMLElement && element.isContentEditable)
+				disableWhileEditing &&
+				(element instanceof HTMLInputElement ||
+					element instanceof HTMLTextAreaElement ||
+					(element instanceof HTMLElement && element.isContentEditable))
 			) {
 				return;
 			}
@@ -291,7 +293,13 @@ export const useKeyboardShortcuts = <T extends KeyboardShortcutCategories>(
 		return () => {
 			document.removeEventListener("keydown", handleKeydown);
 		};
-	}, [callback, category, actions, keyboardShortcutsLocal]);
+	}, [
+		callback,
+		category,
+		actions,
+		disableWhileEditing,
+		keyboardShortcutsLocal,
+	]);
 };
 
 const formatKey = (key: string) => {
