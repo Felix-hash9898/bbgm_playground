@@ -2,6 +2,7 @@ import { PHASE } from "../../../common/constants.ts";
 import { idb } from "../../db/index.ts";
 import local from "../../util/local.ts";
 import loadDataBasketball from "./loadData.basketball.ts";
+import { isActiveRealRosterTeam } from "./retirementMarker.ts";
 import oldAbbrevTo2020BBGMAbbrev from "./oldAbbrevTo2020BBGMAbbrev.ts";
 
 export const getPlayerActiveSeasons = async () => {
@@ -51,7 +52,10 @@ export const getPlayerActiveSeasons = async () => {
 		}
 
 		for (const row of basketball.teams) {
-			if (row.phase === undefined || row.phase <= PHASE.PLAYOFFS) {
+			if (
+				(row.phase === undefined || row.phase <= PHASE.PLAYOFFS) &&
+				isActiveRealRosterTeam(row.abbrev)
+			) {
 				addRecord(row.slug, row.abbrev, row.season);
 			}
 		}

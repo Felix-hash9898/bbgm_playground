@@ -75,7 +75,7 @@ const PLAYER = {
 	// THESE ARE OBSOLETE!
 	UNDRAFTED_2: -4, // Next year's draft class
 	UNDRAFTED_3: -5, // Next next year's draft class
-};
+} as const;
 
 const PHASE_TEXT = {
 	"-2": "expansion draft",
