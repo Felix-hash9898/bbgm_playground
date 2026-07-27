@@ -107,21 +107,20 @@ const updateHistory = async (
 			showNoStats: true,
 		});
 		if (isSport("basketball")) {
-			const retiredPlayersWithStats = await idb.getCopies.playersPlus(
-				retiredPlayersAll,
-				{
-					attrs: ["pid"],
-					ratings: [],
-					stats: ["ws"],
-				},
-			);
 			const wsByPid = new Map(
-				retiredPlayersWithStats.map((p) => [
-					p.pid,
-					p.stats.some((row: { ws?: number }) => row.ws !== undefined)
-						? p.careerStats.ws
-						: undefined,
-				]),
+				retiredPlayersAll.map((p) => {
+					let hasKnownWS = false;
+					let ws = 0;
+					for (const row of p.stats) {
+						for (const key of ["dws", "ows"] as const) {
+							if (typeof row[key] === "number") {
+								hasKnownWS = true;
+								ws += row[key];
+							}
+						}
+					}
+					return [p.pid, hasKnownWS ? ws : undefined] as const;
+				}),
 			);
 			retiredPlayers = retiredPlayers.map((p) => ({
 				...p,
