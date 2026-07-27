@@ -83,16 +83,20 @@ export class AbbrevsCache {
 		abbrevsByTid.set(tid, undefined);
 	}
 
-	private getFallbackAbbrev(tid: number) {
-		return g.get("teamInfoCache")[tid]?.abbrev ?? "???";
+	private getFallbackAbbrev(season: number, tid: number) {
+		if (season === g.get("season")) {
+			return g.get("teamInfoCache")[tid]?.abbrev ?? "???";
+		}
+		return "???";
 	}
 
 	private saveAbbrev(
+		season: number,
 		abbrevsByTid: Map<number, string | undefined>,
 		tid: number,
 		abbrev: string | undefined,
 	) {
-		abbrevsByTid.set(tid, abbrev ?? this.getFallbackAbbrev(tid));
+		abbrevsByTid.set(tid, abbrev ?? this.getFallbackAbbrev(season, tid));
 	}
 
 	async load() {
@@ -111,7 +115,7 @@ export class AbbrevsCache {
 			if (bulkFetch) {
 				const rows = await idb.getCopies.teamSeasons({ season }, "noCopyCache");
 				for (const row of rows) {
-					this.saveAbbrev(abbrevsByTid, row.tid, row.abbrev);
+					this.saveAbbrev(seasonTemp, abbrevsByTid, row.tid, row.abbrev);
 				}
 			}
 
@@ -119,13 +123,13 @@ export class AbbrevsCache {
 			for (const [tid, existingAbbrev] of abbrevsByTid) {
 				if (bulkFetch && existingAbbrev === undefined) {
 					// If teamSeason existed, it would have been found above
-					this.saveAbbrev(abbrevsByTid, tid, undefined);
+					this.saveAbbrev(seasonTemp, abbrevsByTid, tid, undefined);
 				} else {
 					const row = await idb.getCopy.teamSeasons(
 						{ season, tid },
 						"noCopyCache",
 					);
-					this.saveAbbrev(abbrevsByTid, tid, row?.abbrev);
+					this.saveAbbrev(seasonTemp, abbrevsByTid, tid, row?.abbrev);
 				}
 			}
 		}
@@ -145,7 +149,9 @@ export class AbbrevsCache {
 		// A trade or stats update can add a new season/tid while load() awaits
 		// IndexedDB. Such additions are current-season data, so the current
 		// team-info abbreviation is the safe fallback.
-		return this.data.get(season)?.get(tid) ?? this.getFallbackAbbrev(tid);
+		return (
+			this.data.get(season)?.get(tid) ?? this.getFallbackAbbrev(season, tid)
+		);
 	}
 }
 
