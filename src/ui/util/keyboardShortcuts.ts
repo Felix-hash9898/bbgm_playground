@@ -240,10 +240,15 @@ export const useKeyboardShortcuts = <T extends KeyboardShortcutCategories>(
 	actions: ReadonlyArray<keyof KeyboardShortcuts[T]> | undefined,
 	callback: (action: keyof KeyboardShortcuts[T]) => void,
 	disableWhileEditing = true,
+	enabled = true,
 ) => {
 	const keyboardShortcutsLocal = useLocal((state) => state.keyboardShortcuts);
 
 	return useEffect(() => {
+		if (!enabled) {
+			return;
+		}
+
 		const handleKeydown = (event: KeyboardEvent) => {
 			if (event.isComposing) {
 				return;
@@ -298,6 +303,7 @@ export const useKeyboardShortcuts = <T extends KeyboardShortcutCategories>(
 		category,
 		actions,
 		disableWhileEditing,
+		enabled,
 		keyboardShortcutsLocal,
 	]);
 };

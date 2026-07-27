@@ -835,10 +835,6 @@ const CommandPalette = ({
 		KEYBOARD_SHORTCUT_KEYS_OTHER,
 		useCallback(
 			(action) => {
-				if (!show) {
-					return;
-				}
-
 				if (action === "up") {
 					setActiveIndex((index) => {
 						if (index === undefined) {
@@ -865,11 +861,12 @@ const CommandPalette = ({
 					});
 				}
 			},
-			[count, setActiveIndex, show],
+			[count, setActiveIndex],
 		),
 		// The palette's own search input keeps navigation active. Only the
 		// explicit up/down actions are registered here.
 		false,
+		show,
 	);
 
 	if (!show) {
@@ -987,7 +984,7 @@ const CommandPalette = ({
 };
 
 // Wrapper so useEffect stuff in CommandPalette does not run until it shows
-const CommandPaletteWrapper = () => {
+export const CommandPaletteWrapper = () => {
 	const { show, onHide } = useCommandPalette();
 
 	useEffect(() => {
