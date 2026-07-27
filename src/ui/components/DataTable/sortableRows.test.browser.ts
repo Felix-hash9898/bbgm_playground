@@ -206,6 +206,7 @@ describe("sortable row DragOverlay", () => {
 	test.each([
 		["Space", " "],
 		["Enter", "Enter"],
+		["NumpadEnter", "Enter"],
 	])("moves a focused row with the %s keyboard control", async (code, key) => {
 		const changes: { oldIndex: number; newIndex: number }[] = [];
 		container = document.createElement("div");
@@ -242,9 +243,46 @@ describe("sortable row DragOverlay", () => {
 		await nextFrame();
 
 		expect(changes).toEqual([{ oldIndex: 1, newIndex: 2 }]);
+		expect(document.activeElement).toBe(handle);
 	});
 
-	test("cancels keyboard sorting with Escape", async () => {
+	test.each([
+		["ArrowUp", 0],
+		["ArrowDown", 2],
+	] as const)("moves in either direction with %s", async (direction, newIndex) => {
+		const changes: { oldIndex: number; newIndex: number }[] = [];
+		container = document.createElement("div");
+		document.body.append(container);
+		root = createRoot(container);
+		flushSync(() => {
+			root!.render(
+				createElement(TestTable, {
+					onChange: (change) => changes.push(change),
+				}),
+			);
+		});
+		await nextFrame();
+
+		const handle = container.querySelector<HTMLButtonElement>(
+			'tbody tr[data-row-key="b"] button',
+		)!;
+		handle.focus();
+		for (const event of [
+			{ code: "Space", key: " " },
+			{ code: direction, key: direction },
+			{ code: "Space", key: " " },
+		]) {
+			handle.dispatchEvent(
+				new KeyboardEvent("keydown", { bubbles: true, ...event }),
+			);
+			await nextFrame();
+		}
+
+		expect(changes).toEqual([{ oldIndex: 1, newIndex }]);
+		expect(document.activeElement).toBe(handle);
+	});
+
+	test("cancels keyboard sorting with Escape and restores focus", async () => {
 		const changes: { oldIndex: number; newIndex: number }[] = [];
 		container = document.createElement("div");
 		document.body.append(container);
@@ -284,5 +322,6 @@ describe("sortable row DragOverlay", () => {
 		await nextFrame();
 
 		expect(changes).toEqual([]);
+		expect(document.activeElement).toBe(handle);
 	});
 });

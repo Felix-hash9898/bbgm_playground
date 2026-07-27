@@ -1,5 +1,5 @@
 import { assert, beforeAll, test } from "vitest";
-import { PLAYER } from "../../../common/index.ts";
+import { PHASE, PLAYER } from "../../../common/index.ts";
 import { resetCache, resetG } from "../../../test/helpers.ts";
 import { player } from "../../core/index.ts";
 import { idb } from "../index.ts";
@@ -67,6 +67,52 @@ test("return requested info if tid/season match", async () => {
 	assert(!Object.hasOwn(pf, "careerStats"));
 	assert(!Object.hasOwn(pf, "careerStatsPlayoffs"));
 });
+
+test.each([
+	[PHASE.PRESEASON, ["past", "current", "future"]],
+	[PHASE.REGULAR_SEASON, ["past", "current", "future"]],
+	[PHASE.RESIGN_PLAYERS, ["past", "past", "current"]],
+	[PHASE.FREE_AGENCY, ["past", "past", "current"]],
+] as const)(
+	"salaries use display-only season types in phase %s without mutating the contract",
+	async (phase, types) => {
+		const p2 = helpers.deepCopy(p);
+		p2.salaries = [
+			{ amount: 1_000, season: 2011 },
+			{ amount: 2_000, season: 2012 },
+			{ amount: 3_000, season: 2013 },
+		];
+		p2.contract = {
+			amount: 3_000,
+			capHit: 2_500,
+			exception: "midLevel",
+			exp: 2013,
+			option: "player",
+			type: "twoWay",
+		};
+		const before = helpers.deepCopy(p2);
+		g.setWithoutSavingToDB("phase", phase);
+
+		const result = await idb.getCopy.playersPlus(p2, {
+			attrs: ["contract", "salaries", "salariesTotal"],
+		});
+
+		assert.deepEqual(
+			result?.salaries.map((row) => row.type),
+			types,
+		);
+		assert.deepEqual(
+			result?.salaries.map((row) => row.amount),
+			[1, 2, 3],
+		);
+		assert.strictEqual(result?.salariesTotal, 6);
+		assert.deepEqual(result?.contract, {
+			...before.contract,
+			amount: 3,
+		});
+		assert.deepEqual(p2, before);
+	},
+);
 
 test("return requested info if tid/season match for an array of player objects", async () => {
 	const pf = await idb.getCopies.playersPlus([p, p], {
