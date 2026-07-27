@@ -5,7 +5,7 @@ import {
 	useState,
 	type ChangeEvent,
 } from "react";
-import { ProgressBarText } from "./index.tsx";
+import ProgressBarText from "./ProgressBarText.tsx";
 import {
 	LEAGUE_DATABASE_VERSION,
 	GAME_NAME,
@@ -117,6 +117,7 @@ const LeagueFileUpload = ({
 	const [url, setURL] = useState("");
 	const [state, dispatch] = useReducer(reducer, initialState);
 	const isMounted = useRef(true);
+	const urlLoadInFlight = useRef(false);
 	useEffect(() => {
 		return () => {
 			isMounted.current = false;
@@ -209,6 +210,16 @@ const LeagueFileUpload = ({
 	};
 
 	const handleFileURL = async () => {
+		if (
+			disabled ||
+			state.status === "checking" ||
+			url.trim() === "" ||
+			urlLoadInFlight.current
+		) {
+			return;
+		}
+		urlLoadInFlight.current = true;
+
 		beforeFile();
 
 		dispatch({
@@ -244,8 +255,8 @@ const LeagueFileUpload = ({
 				});
 				onDone(error);
 			}
-
-			return;
+		} finally {
+			urlLoadInFlight.current = false;
 		}
 	};
 
@@ -308,7 +319,7 @@ const LeagueFileUpload = ({
 						onKeyDown={(event) => {
 							if (event.key === "Enter") {
 								event.preventDefault();
-								handleFileURL();
+								void handleFileURL();
 							}
 						}}
 					/>
@@ -318,7 +329,9 @@ const LeagueFileUpload = ({
 							event.preventDefault();
 							handleFileURL();
 						}}
-						disabled={disabled || state.status === "checking"}
+						disabled={
+							disabled || state.status === "checking" || url.trim() === ""
+						}
 					>
 						Load
 					</button>
