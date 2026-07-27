@@ -612,6 +612,144 @@ test("mergeStats totOnly ignores a later 0 GP row without returning it", async (
 	assert.strictEqual(pf?.stats.tid, 4);
 });
 
+test.each(["before", "after"] as const)(
+	"mergeStats ignores a 0 GP row %s the real regular-season row",
+	async (position) => {
+		const p2 = helpers.deepCopy(p);
+		const real = {
+			...p2.stats[0],
+			bpm: 5,
+			gp: 5,
+			min: 100,
+			tid: 4,
+			vorp: 2,
+		};
+		const noGames = {
+			...real,
+			bpm: 99,
+			gp: 0,
+			min: 0,
+			tid: 20,
+			vorp: 99,
+		};
+		p2.stats =
+			position === "before" ? [noGames, real] : [real, noGames];
+
+		const pf = await idb.getCopy.playersPlus(p2, {
+			stats: ["gp", "tid", "bpm", "vorp"],
+			season: 2012,
+			mergeStats: "totOnly",
+		});
+		const baseline = await idb.getCopy.playersPlus(
+			{
+				...p2,
+				stats: [real],
+			},
+			{
+				stats: ["gp", "tid", "bpm", "vorp"],
+				season: 2012,
+				mergeStats: "totOnly",
+			},
+		);
+
+		assert.deepEqual(pf?.stats, baseline?.stats);
+		assert.strictEqual(pf?.stats.gp, 5);
+		assert.strictEqual(pf?.stats.tid, 4);
+		assert.strictEqual(pf?.stats.vorp, 2);
+	},
+);
+
+test("mergeStats handles 0 GP rows across playoffs, combined, and totAndTeams", async () => {
+	const p2 = helpers.deepCopy(p);
+	const regular = {
+		...p2.stats[0],
+		gp: 5,
+		playoffs: false,
+		tid: 4,
+	};
+	const playoffs = {
+		...p2.stats[1],
+		gp: 3,
+		playoffs: true,
+		tid: 4,
+	};
+	p2.stats = [
+		{ ...regular, gp: 0, tid: 20 },
+		regular,
+		playoffs,
+		{ ...playoffs, gp: 0, tid: 21 },
+	];
+
+	const playoffOnly = await idb.getCopy.playersPlus(p2, {
+		playoffs: true,
+		regularSeason: false,
+		stats: ["gp", "tid"],
+		season: 2012,
+		mergeStats: "totOnly",
+	});
+	assert.deepEqual(playoffOnly?.stats, {
+		gp: 3,
+		playoffs: true,
+		tid: 4,
+	});
+
+	const combined = await idb.getCopy.playersPlus(p2, {
+		combined: true,
+		regularSeason: false,
+		stats: ["gp", "tid"],
+		season: 2012,
+		mergeStats: "totOnly",
+	});
+	assert.deepEqual(combined?.stats, {
+		gp: 8,
+		playoffs: "combined",
+		tid: 4,
+	});
+
+	const totAndTeams = await idb.getCopy.playersPlus(p2, {
+		playoffs: true,
+		stats: ["gp", "season", "tid"],
+		mergeStats: "totAndTeams",
+	});
+	assert.deepEqual(
+		totAndTeams?.stats.map((row: any) => ({
+			gp: row.gp,
+			playoffs: row.playoffs,
+			tid: row.tid,
+		})),
+		[
+			{ gp: 5, playoffs: false, tid: 4 },
+			{ gp: 3, playoffs: true, tid: 4 },
+		],
+	);
+});
+
+test("all 0 GP rows remain distinguishable from a played season", async () => {
+	const p2 = helpers.deepCopy(p);
+	p2.stats = p2.stats
+		.filter((row: any) => row.season === 2012 && !row.playoffs)
+		.map((row: any, index: number) => ({
+			...row,
+			gp: 0,
+			tid: 4 + index,
+		}));
+
+	const hidden = await idb.getCopy.playersPlus(p2, {
+		stats: ["gp", "tid"],
+		season: 2012,
+		mergeStats: "totOnly",
+	});
+	assert.strictEqual(hidden?.stats.gp, 0);
+
+	const shown = await idb.getCopy.playersPlus(p2, {
+		showNoStats: true,
+		stats: ["gp", "tid"],
+		season: 2012,
+		mergeStats: "totOnly",
+	});
+	assert.strictEqual(shown?.stats.gp, 0);
+});
+
 test("careerStats is stable when a player has no stats rows", async () => {
 	const p2 = helpers.deepCopy(p);
 	p2.stats = [];
