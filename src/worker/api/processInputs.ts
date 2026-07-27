@@ -473,9 +473,11 @@ const leadersYears = (params: Params) => {
 const dailySchedule = (params: Params) => {
 	let cid;
 	if (params.cid !== undefined && params.cid !== "all") {
-		cid = Number.parseInt(params.cid);
-		if (Number.isNaN(cid)) {
-			cid = undefined;
+		if (/^\d+$/.test(params.cid)) {
+			const parsedCid = Number(params.cid);
+			if (Number.isSafeInteger(parsedCid)) {
+				cid = parsedCid;
+			}
 		}
 	}
 
