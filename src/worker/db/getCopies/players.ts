@@ -160,7 +160,7 @@ const getCopies = async (
 		);
 
 		const sorted = [];
-		for (const pid of pids) {
+		for (const pid of new Set(pids)) {
 			const p = merged.find((p2) => p2.pid === pid);
 			if (p) {
 				sorted.push(p);
