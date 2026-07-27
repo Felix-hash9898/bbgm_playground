@@ -166,6 +166,62 @@ test("return requested info if tid/season match, even when no stats requested", 
 	assert(!Object.hasOwn(pf, "careerStatsPlayoffs"));
 });
 
+test("does not traverse or return stats for career attrs-only and ratings-only queries", async () => {
+	const stats = new Proxy(p.stats, {
+		get(target, property, receiver) {
+			if (
+				property === Symbol.iterator ||
+				property === "map" ||
+				property === "filter"
+			) {
+				throw new Error("Stats should not be traversed");
+			}
+			return Reflect.get(target, property, receiver);
+		},
+	});
+	const playerWithGuardedStats = {
+		...p,
+		stats,
+	};
+
+	const attrsOnly = await idb.getCopy.playersPlus(playerWithGuardedStats, {
+		attrs: ["pid"],
+		season: undefined,
+		stats: [],
+	});
+	assert.strictEqual(attrsOnly?.pid, p.pid);
+	assert(!Object.hasOwn(attrsOnly!, "stats"));
+	assert(!Object.hasOwn(attrsOnly!, "careerStats"));
+
+	const ratingsOnly = await idb.getCopy.playersPlus(playerWithGuardedStats, {
+		ratings: ["season", "ovr"],
+		season: undefined,
+		stats: [],
+	});
+	assert.strictEqual(ratingsOnly?.ratings.length, p.ratings.length);
+	assert(!Object.hasOwn(ratingsOnly!, "stats"));
+	assert(!Object.hasOwn(ratingsOnly!, "careerStats"));
+});
+
+test("returns zero career stats when stats are requested for a player with no stats rows", async () => {
+	const playerWithNoStats = {
+		...p,
+		stats: [],
+	};
+	const pf = await idb.getCopy.playersPlus(playerWithNoStats, {
+		attrs: ["pid"],
+		season: undefined,
+		stats: ["gp", "pts"],
+	});
+
+	assert.deepEqual(pf?.stats, []);
+	assert.deepEqual(pf?.careerStats, {
+		gp: 0,
+		playoffs: undefined,
+		pts: 0,
+	});
+});
+
 test("return undefined if tid does not match any on record", async () => {
 	const pf = await idb.getCopy.playersPlus(p, {
 		attrs: ["tid", "awards"],

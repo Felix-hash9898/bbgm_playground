@@ -1258,16 +1258,17 @@ const processPlayer = (
 		}
 	}
 
-	// Career stats should be present even for a player with no stats rows.
-	// Individual season UI can still distinguish that case with gp === 0.
+	// Career stats should be present even for a player with no stats rows, but
+	// only when the caller actually requested stats. Attrs-only and
+	// ratings-only queries must not pay for or expose the stats pipeline.
 	const keepWithNoStats =
-		season === undefined ||
+		(season === undefined && options.stats.length > 0) ||
 		(showRookies &&
 			p.draft.year >= g.get("season") &&
 			season === g.get("season")) ||
 		(showNoStats && season > p.draft.year);
 
-	if (options.stats.length > 0 || keepWithNoStats) {
+	if (options.stats.length > 0) {
 		processStats(
 			output,
 			p,
