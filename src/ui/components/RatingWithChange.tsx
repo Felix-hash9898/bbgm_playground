@@ -27,7 +27,10 @@ const RatingWithChange = ({
 };
 
 export const wrappedRatingWithChange = (rating: number, change: number) => {
-	const formatted = `${rating} ${change !== 0 ? `(${change > 0 ? "+" : ""}{change})` : ""}`;
+	const formatted =
+		change === 0
+			? String(rating)
+			: `${rating} (${change > 0 ? "+" : ""}${change})`;
 
 	return {
 		value: <RatingWithChange change={change}>{rating}</RatingWithChange>,
