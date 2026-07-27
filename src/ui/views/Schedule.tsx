@@ -5,6 +5,7 @@ import type { View } from "../../common/types.ts";
 import { toWorker, useLocalPartial } from "../util/index.ts";
 import allowForceTie from "../../common/allowForceTie.ts";
 import { Dropdown } from "react-bootstrap";
+import shouldHighlightScheduleAction from "./scheduleActionHighlight.ts";
 
 const Schedule = ({
 	abbrev,
@@ -24,10 +25,10 @@ const Schedule = ({
 		dropdownFields: { teams: abbrev },
 	});
 
-	const { gameSimInProgress, godMode, userTid } = useLocalPartial([
+	const { gameSimInProgress, godMode, userTids } = useLocalPartial([
 		"gameSimInProgress",
 		"godMode",
-		"userTid",
+		"userTids",
 	]);
 
 	const [forcingAll, setForcingAll] = useState(false);
@@ -91,10 +92,11 @@ const Schedule = ({
 											canWatch
 												? {
 														disabled: gameSimInProgress,
-														highlight:
-															tid !== userTid &&
-															(game.teams[0].tid === userTid ||
-																game.teams[1].tid === userTid),
+														highlight: shouldHighlightScheduleAction(
+															tid,
+															[game.teams[0].tid, game.teams[1].tid],
+															userTids,
+														),
 														text: (
 															<>
 																Watch
@@ -107,10 +109,11 @@ const Schedule = ({
 													}
 												: {
 														disabled: gameSimInProgress,
-														highlight:
-															tid !== userTid &&
-															(game.teams[0].tid === userTid ||
-																game.teams[1].tid === userTid),
+														highlight: shouldHighlightScheduleAction(
+															tid,
+															[game.teams[0].tid, game.teams[1].tid],
+															userTids,
+														),
 														text: (
 															<>
 																Sim
