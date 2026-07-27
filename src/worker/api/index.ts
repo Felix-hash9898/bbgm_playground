@@ -918,7 +918,7 @@ const deleteFromTeamInfoScheduledEvent = async (
 	}
 };
 
-const deleteScheduledEvents = async (type: string) => {
+export const deleteScheduledEvents = async (type: string) => {
 	const scheduledEvents = await idb.getCopies.scheduledEvents(
 		undefined,
 		"noCopyCache",
