@@ -51,7 +51,7 @@ test("History renders safely with zero or one conference", () => {
 		createElement(AwardsAndChamp, {
 			awards: emptyAwards as any,
 			champ: undefined,
-			confs: [],
+			confs: [] as any,
 			season: 2026,
 			userTid: 0,
 		}),

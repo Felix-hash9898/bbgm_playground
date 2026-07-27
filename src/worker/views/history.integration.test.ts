@@ -43,7 +43,7 @@ beforeEach(async () => {
 	g.setWithoutSavingToDB("phase", PHASE.PRESEASON);
 	g.setWithoutSavingToDB("userTid", 0);
 	g.setWithoutSavingToDB("numGamesPlayoffSeries", [4, 4, 4, 4]);
-	g.setWithoutSavingToDB("confs", []);
+	g.setWithoutSavingToDB("confs", [] as any);
 	lid = 940_000 + Math.floor(Math.random() * 10_000);
 	idb.league = await connectLeague(lid);
 	await resetCache({
@@ -79,9 +79,12 @@ afterEach(async () => {
 
 test("History sums only known WS rows and leaves fully unknown careers undefined", async () => {
 	const result = await updateHistory({ season } as any, ["firstRun"], {});
+	if (!result || result.invalidSeason) {
+		throw new Error("Expected valid History result");
+	}
 
 	expect(
-		result?.retiredPlayers
+		result.retiredPlayers
 			.map((p) => ({ pid: p.pid, ws: p.ws }))
 			.sort((a, b) => a.pid - b.pid),
 	).toEqual([

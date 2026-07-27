@@ -98,11 +98,11 @@ test.each([
 		});
 
 		assert.deepEqual(
-			result?.salaries.map((row) => row.type),
+			result?.salaries.map((row: any) => row.type),
 			types,
 		);
 		assert.deepEqual(
-			result?.salaries.map((row) => row.amount),
+			result?.salaries.map((row: any) => row.amount),
 			[1, 2, 3],
 		);
 		assert.strictEqual(result?.salariesTotal, 6);

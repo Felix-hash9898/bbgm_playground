@@ -17,7 +17,7 @@ describe("AbbrevsCache", () => {
 		(cache as any).state = "loaded";
 
 		expect(cache.get(g.get("season"), 1)).toBe(
-			g.get("teamInfoCache")[1].abbrev,
+			g.get("teamInfoCache")[1]!.abbrev,
 		);
 		expect(cache.get(g.get("season") - 1, 1)).toBe("???");
 		expect(cache.get(2026, 9999)).toBe("???");
@@ -42,7 +42,7 @@ describe("AbbrevsCache", () => {
 		expect(cache.get(2000, 0)).toBe("OLD");
 		expect(cache.get(2000, 1)).toBe("???");
 		expect(cache.get(g.get("season"), 1)).toBe(
-			g.get("teamInfoCache")[1].abbrev,
+			g.get("teamInfoCache")[1]!.abbrev,
 		);
 
 		league.close();

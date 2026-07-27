@@ -1272,7 +1272,7 @@ const processPlayer = (
 		(showRookies &&
 			p.draft.year >= g.get("season") &&
 			season === g.get("season")) ||
-		(showNoStats && season > p.draft.year);
+		(showNoStats && season !== undefined && season > p.draft.year);
 
 	if (options.stats.length > 0) {
 		processStats(
