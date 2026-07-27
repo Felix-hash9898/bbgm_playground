@@ -5104,7 +5104,7 @@ const clearSavedTrades = async (hashes: string[]) => {
 };
 
 // Normally use season.setSchedule, but this skips various checks and saves exactly what the user has edited
-const setScheduleFromEditor = async ({
+export const setScheduleFromEditor = async ({
 	regenerated,
 	schedule,
 }: {

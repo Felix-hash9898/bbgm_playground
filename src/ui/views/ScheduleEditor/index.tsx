@@ -29,7 +29,7 @@ import { useBlocker } from "../../hooks/useBlocker.ts";
 import { IMPORT_FILE_STYLE } from "../Settings/RowsEditor.tsx";
 import {
 	getScheduleCSVText,
-	validateAndParseScheduleCSV,
+	getScheduleAfterCSVImport,
 } from "./scheduleCSV.ts";
 
 type Schedule = View<"scheduleEditor">["schedule"];
@@ -456,22 +456,27 @@ const ScheduleEditor = ({
 			reader.readAsText(file);
 			reader.onload = (loadEvent) => {
 				try {
-					const uploaded = validateAndParseScheduleCSV(
-						String(loadEvent.target?.result ?? ""),
+					const imported = getScheduleAfterCSVImport({
+						context: {
+							allStarGame,
+							allStarGameAlreadyHappened,
+							maxDayAlreadyPlayed,
+							phase,
+							tradeDeadline,
+						},
+						csvText: String(loadEvent.target?.result ?? ""),
+						schedule,
 						teams,
-						maxDayAlreadyPlayed,
-					);
-					const completed = schedule.filter(
-						(game) => game.type === "completed",
-					);
+					});
+					setRegenerated(imported.regenerated);
 					dispatch({
 						type: "resetSchedule",
-						schedule: [...completed, ...uploaded],
+						schedule: imported.schedule,
 						dirty: true,
 					});
 					logEvent({
 						type: "success",
-						text: `Successfully imported ${uploaded.length} schedule entries from CSV. Click Save to apply them.`,
+						text: `Successfully imported ${imported.uploadedCount} schedule entries from CSV. Click Save to apply them.`,
 						saveToDb: false,
 					});
 				} catch (error) {
@@ -490,7 +495,16 @@ const ScheduleEditor = ({
 				});
 			};
 		},
-		[dispatch, maxDayAlreadyPlayed, schedule, teams],
+		[
+			allStarGame,
+			allStarGameAlreadyHappened,
+			dispatch,
+			maxDayAlreadyPlayed,
+			phase,
+			schedule,
+			teams,
+			tradeDeadline,
+		],
 	);
 
 	if (phase !== PHASE.REGULAR_SEASON && phase !== PHASE.AFTER_TRADE_DEADLINE) {

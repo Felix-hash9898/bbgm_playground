@@ -1,4 +1,5 @@
 import { csvFormatRows, csvParse } from "d3-dsv";
+import { PHASE } from "../../../common/constants.ts";
 import type { View } from "../../../common/types.ts";
 import { groupByUnique, orderBy } from "../../../common/utils.ts";
 
@@ -7,6 +8,15 @@ type Team = View<"scheduleEditor">["teams"][number];
 
 export const ALL_STAR_GAME_LABEL = "All-Star Game";
 export const TRADE_DEADLINE_LABEL = "Trade Deadline";
+
+export type ScheduleCSVContext = Pick<
+	View<"scheduleEditor">,
+	| "allStarGame"
+	| "allStarGameAlreadyHappened"
+	| "maxDayAlreadyPlayed"
+	| "phase"
+	| "tradeDeadline"
+>;
 
 const findDuplicates = (values: string[]) => {
 	const seen = new Set<string>();
@@ -26,8 +36,15 @@ const findDuplicates = (values: string[]) => {
 export const validateAndParseScheduleCSV = (
 	csvText: string,
 	teams: Team[],
-	maxDayAlreadyPlayed: number,
+	context: ScheduleCSVContext,
 ): Schedule => {
+	const {
+		allStarGame,
+		allStarGameAlreadyHappened,
+		maxDayAlreadyPlayed,
+		phase,
+		tradeDeadline,
+	} = context;
 	const parsed = csvParse(csvText);
 	const dayColumn = parsed.columns[0];
 	if (dayColumn?.trim() !== "Day") {
@@ -66,18 +83,35 @@ export const validateAndParseScheduleCSV = (
 		{ type: "allStarGame" | "tradeDeadline" }
 	>[] = [];
 	const specialTypes = new Set<"allStarGame" | "tradeDeadline">();
+	const entryTypeByDay = new Map<
+		number,
+		"game" | "allStarGame" | "tradeDeadline"
+	>();
 
 	for (const row of parsed) {
 		const dayText = row[dayColumn]?.trim();
 		if (!dayText) {
+			const hasScheduleEntry = teamColumns.some(({ raw }) =>
+				Boolean(row[raw]?.trim()),
+			);
+			if (hasScheduleEntry) {
+				throw new Error("Invalid blank day. Must be a positive whole number.");
+			}
 			continue;
 		}
 		if (!/^\d+$/.test(dayText)) {
-			throw new Error(`Invalid day "${dayText}". Must be a whole number.`);
+			throw new Error(
+				`Invalid day "${dayText}". Must be a positive whole number.`,
+			);
 		}
 		const day = Number(dayText);
 		if (!Number.isSafeInteger(day)) {
 			throw new Error(`Invalid day "${dayText}". Must be a safe integer.`);
+		}
+		if (day < 1) {
+			throw new Error(
+				`Invalid day "${dayText}". Must be a positive whole number.`,
+			);
 		}
 		if (day <= maxDayAlreadyPlayed) {
 			throw new Error(
@@ -90,27 +124,58 @@ export const validateAndParseScheduleCSV = (
 			firstCell === ALL_STAR_GAME_LABEL ||
 			firstCell === TRADE_DEADLINE_LABEL
 		) {
-			if (
-				teamColumns
-					.slice(1)
-					.some(({ raw }) => Boolean(row[raw]?.trim()))
-			) {
+			if (teamColumns.slice(1).some(({ raw }) => Boolean(row[raw]?.trim()))) {
 				throw new Error(`${firstCell} must be the only entry on day ${day}`);
 			}
 			const type =
-				firstCell === ALL_STAR_GAME_LABEL
-					? "allStarGame"
-					: "tradeDeadline";
+				firstCell === ALL_STAR_GAME_LABEL ? "allStarGame" : "tradeDeadline";
+			const existingEntryType = entryTypeByDay.get(day);
+			if (existingEntryType !== undefined) {
+				throw new Error(
+					`${firstCell} must be the only schedule entry on day ${day}`,
+				);
+			}
 			if (specialTypes.has(type)) {
 				throw new Error(`Duplicate ${firstCell}`);
 			}
+			if (type === "allStarGame") {
+				if (allStarGameAlreadyHappened) {
+					throw new Error("The All-Star Game already happened this season.");
+				}
+				if (allStarGame === null) {
+					throw new Error("The All-Star Game is disabled.");
+				}
+				if (allStarGame === -1) {
+					throw new Error(
+						"The All-Star Game happens during the playoffs and cannot be added to the regular season schedule.",
+					);
+				}
+			} else {
+				if (phase >= PHASE.AFTER_TRADE_DEADLINE) {
+					throw new Error("The trade deadline already happened this season.");
+				}
+				if (tradeDeadline === 1) {
+					throw new Error("The trade deadline is disabled.");
+				}
+			}
 			specialTypes.add(type);
+			entryTypeByDay.set(day, type);
 			specials.push(
 				type === "allStarGame"
 					? { type, day, homeTid: -1, awayTid: -2 }
 					: { type, day, homeTid: -3, awayTid: -3 },
 			);
 			continue;
+		}
+
+		const existingEntryType = entryTypeByDay.get(day);
+		if (
+			existingEntryType === "allStarGame" ||
+			existingEntryType === "tradeDeadline"
+		) {
+			throw new Error(
+				`${existingEntryType === "allStarGame" ? ALL_STAR_GAME_LABEL : TRADE_DEADLINE_LABEL} must be the only schedule entry on day ${day}`,
+			);
 		}
 
 		let dayGames = gamesByDay.get(day);
@@ -151,6 +216,7 @@ export const validateAndParseScheduleCSV = (
 			teamsOnDay.add(home.tid);
 			teamsOnDay.add(away.tid);
 			dayGames.push({ away, home });
+			entryTypeByDay.set(day, "game");
 		}
 	}
 
@@ -169,6 +235,27 @@ export const validateAndParseScheduleCSV = (
 	}
 
 	return orderBy(newSchedule, ["day"]);
+};
+
+export const getScheduleAfterCSVImport = ({
+	context,
+	csvText,
+	schedule,
+	teams,
+}: {
+	context: ScheduleCSVContext;
+	csvText: string;
+	schedule: Schedule;
+	teams: Team[];
+}) => {
+	const uploaded = validateAndParseScheduleCSV(csvText, teams, context);
+	const completed = schedule.filter((game) => game.type === "completed");
+
+	return {
+		regenerated: false,
+		schedule: orderBy([...completed, ...uploaded], ["day"]),
+		uploadedCount: uploaded.length,
+	};
 };
 
 export const getScheduleCSVText = (schedule: Schedule, teams: Team[]) => {
