@@ -190,7 +190,7 @@ const defaultGameAttributes: GameAttributesLeagueWithHistory = {
 	numPlayoffByes: wrap(0),
 	aiTradesFactor: 1,
 	stopOnInjury: true,
-	stopOnInjuryGames: 5,
+	stopOnInjuryGames: 15,
 	// Default was 0.25 / 10 / 200 = 0.000125 (0.25 injuries/game). Adjusted to 0.00018.
 	injuryRate: 0.00018,
 	homeCourtAdvantage: 1,
@@ -465,6 +465,7 @@ export const hockeyOverrides: Partial<GameAttributesLeagueWithHistory> =
 				maxContract: 13000,
 				minRosterSize: 24,
 				maxRosterSize: 26,
+				stopOnInjuryGames: 5,
 				// Injury rate per player per possession, basically. But it's a little more complicated than that.
 				injuryRate: 1 / 10000,
 				draftType: "nhl2021",
@@ -507,6 +508,7 @@ export const baseballOverrides: Partial<GameAttributesLeagueWithHistory> =
 				maxContract: 30000,
 				minRosterSize: 35,
 				maxRosterSize: 40,
+				stopOnInjuryGames: 5,
 				// Arbitrary, spread over 40 plate appearances per game
 				injuryRate: 0.018 / 40,
 				// 200 days per season, 1 tragic death per 50 years

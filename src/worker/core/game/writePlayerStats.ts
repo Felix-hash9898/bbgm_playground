@@ -15,6 +15,7 @@ import stats from "../player/stats.ts";
 import statsRowIsCurrent from "../player/statsRowIsCurrent.ts";
 import { maxBy } from "../../../common/utils.ts";
 import getWinner from "../../../common/getWinner.ts";
+import reachesStopOnInjuryThreshold from "../../../common/reachesStopOnInjuryThreshold.ts";
 
 export const P_FATIGUE_DAILY_REDUCTION = 20;
 
@@ -103,7 +104,10 @@ const doInjury = async (
 
 		stopPlay =
 			g.get("stopOnInjury") &&
-			p2.injury.gamesRemaining >= g.get("stopOnInjuryGames") &&
+			reachesStopOnInjuryThreshold(
+				p2.injury.gamesRemaining,
+				g.get("stopOnInjuryGames"),
+			) &&
 			!local.autoPlayUntil;
 	}
 
