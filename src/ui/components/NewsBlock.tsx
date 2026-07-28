@@ -50,7 +50,7 @@ const NewsBlock = ({
 			teamName = (
 				<>
 					{teamInfo.imgURL || teamInfo.imgURLSmall ? (
-						<a href={rosterURL} className="p-1">
+						<a href={rosterURL} className="minimal-ui-team-logo-container p-1">
 							<img
 								src={teamInfo.imgURLSmall ?? teamInfo.imgURL}
 								alt=""
@@ -82,6 +82,7 @@ const NewsBlock = ({
 				<a key={tid} href={rosterURL} className="p-1">
 					{teamInfo.imgURL || teamInfo.imgURLSmall ? (
 						<img
+							className="minimal-ui-team-logo"
 							src={teamInfo.imgURLSmall ?? teamInfo.imgURL}
 							alt=""
 							style={logoStyle}
@@ -116,7 +117,7 @@ const NewsBlock = ({
 							width: 60,
 							marginTop: event.p.imgURL ? 0 : -10,
 						}}
-						className="flex-shrink-0"
+						className="minimal-ui-player-picture-container flex-shrink-0"
 					>
 						<PlayerPicture
 							face={event.p.face}

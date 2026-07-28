@@ -62,4 +62,5 @@ export { default as safeLocalStorage } from "./safeLocalStorage.ts";
 export { default as sanitize } from "./sanitize.ts";
 export { default as takeScreenshot } from "./takeScreenshot.ts";
 export { default as toWorker } from "./toWorker.ts";
+export { parseThemeSetting, type ThemeSetting } from "./theme.ts";
 export { default as unregisterServiceWorkers } from "./unregisterServiceWorkers.ts";

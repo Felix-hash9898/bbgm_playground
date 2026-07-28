@@ -7,11 +7,13 @@ import {
 } from "../../common/index.ts";
 
 export const MyFace = ({
+	className,
 	colors = DEFAULT_TEAM_COLORS,
 	face,
 	jersey = DEFAULT_JERSEY,
 	lazy,
 }: {
+	className?: string;
 	colors?: [string, string, string];
 	face: FaceConfig;
 	jersey?: string;
@@ -40,6 +42,7 @@ export const MyFace = ({
 
 	return (
 		<Face
+			className={className}
 			face={face}
 			ignoreDisplayErrors
 			lazy={lazy}

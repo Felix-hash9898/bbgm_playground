@@ -52,7 +52,7 @@ const TeamLogo = ({
 	};
 }) => {
 	return (
-		<div className="playoff-matchup-logo d-flex align-items-center justify-content-center flex-shrink-0">
+		<div className="minimal-ui-team-logo-container playoff-matchup-logo d-flex align-items-center justify-content-center flex-shrink-0">
 			{!team.pendingPlayIn && (team.imgURL || team.imgURLSmall) ? (
 				<img
 					className="mw-100 mh-100"

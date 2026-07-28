@@ -81,7 +81,7 @@ const TeamLogo = ({
 				<TeamNameLink
 					season={season}
 					t={t}
-					className="d-flex align-items-center justify-content-center"
+					className="minimal-ui-team-logo-container d-flex align-items-center justify-content-center"
 					style={{ height: 100, width: 120 }}
 				>
 					<img className="mw-100 mh-100" src={t.imgURL} alt="" />

@@ -12,19 +12,33 @@ const PlayerPicture = ({
 	imgURL,
 	jersey,
 	lazy,
+	showInMinimalUI,
 }: {
 	colors?: [string, string, string];
 	face?: FaceConfig;
 	imgURL?: string;
 	jersey?: string;
 	lazy?: boolean;
+	showInMinimalUI?: boolean;
 }) => {
+	const className = showInMinimalUI ? undefined : "minimal-ui-player-picture";
+
 	if (imgURL) {
-		return <img alt="Player" src={imgURL} style={imgStyle} />;
+		return (
+			<img alt="Player" className={className} src={imgURL} style={imgStyle} />
+		);
 	}
 
 	if (face) {
-		return <MyFace colors={colors} face={face} jersey={jersey} lazy={lazy} />;
+		return (
+			<MyFace
+				className={className}
+				colors={colors}
+				face={face}
+				jersey={jersey}
+				lazy={lazy}
+			/>
+		);
 	}
 
 	return null;

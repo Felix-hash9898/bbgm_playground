@@ -495,7 +495,7 @@ const TopStuff = ({
 				<div className="player-bio">
 					<div className="d-flex">
 						<div
-							className="player-picture"
+							className="minimal-ui-player-picture-container player-picture"
 							style={{
 								marginTop: player.imgURL ? 0 : -20,
 							}}

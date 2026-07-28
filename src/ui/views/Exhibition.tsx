@@ -373,7 +373,7 @@ const SelectTeam = ({
 			<div className="d-flex my-2">
 				<div
 					style={{ width: 128, height: 128 }}
-					className="d-flex align-items-center justify-content-center"
+					className="minimal-ui-team-logo-container d-flex align-items-center justify-content-center"
 				>
 					{t?.imgURL ? (
 						<img className="mw-100 mh-100" src={t.imgURL} alt="Team logo" />

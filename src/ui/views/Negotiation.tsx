@@ -364,7 +364,7 @@ const Negotiation = ({
 						width: 60,
 						marginTop: p.imgURL ? 0 : -10,
 					}}
-					className="flex-shrink-0 d-flex justify-content-center align-items-center"
+					className="minimal-ui-player-picture-container flex-shrink-0 d-flex justify-content-center align-items-center"
 				>
 					<PlayerPicture
 						face={p.face}
@@ -561,7 +561,7 @@ const Negotiation = ({
 					</a>
 				) : (
 					<button
-						className="btn btn-danger"
+						className="minimal-ui-end-negotiation btn btn-danger"
 						onClick={async () => {
 							await toWorker("main", "cancelContractNegotiation", p.pid);
 							redirectNegotiationOrRoster(true);

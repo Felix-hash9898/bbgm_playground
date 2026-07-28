@@ -3,6 +3,7 @@ import useTitleBar from "../../hooks/useTitleBar.tsx";
 import {
 	helpers,
 	logEvent,
+	parseThemeSetting,
 	safeLocalStorage,
 	toWorker,
 } from "../../util/index.ts";
@@ -20,15 +21,7 @@ import { useBlocker } from "../../hooks/useBlocker.ts";
 
 const GlobalSettings = (props: View<"globalSettings">) => {
 	const [state, setState] = useState(() => {
-		const themeLocalStorage = safeLocalStorage.getItem("theme");
-		let theme: "dark" | "light" | "default";
-		if (themeLocalStorage === "dark") {
-			theme = "dark";
-		} else if (themeLocalStorage === "light") {
-			theme = "light";
-		} else {
-			theme = "default";
-		}
+		const theme = parseThemeSetting(safeLocalStorage.getItem("theme"));
 
 		let units: "metric" | "us" | "default";
 		if (props.units === "metric") {
@@ -139,6 +132,7 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 							<option value="default">Auto</option>
 							<option value="light">Light</option>
 							<option value="dark">Dark</option>
+							<option value="minimal">Minimal</option>
 						</select>
 					</div>
 					<div className="col-sm-3 col-6 mb-3">

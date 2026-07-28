@@ -36,10 +36,17 @@
 			function getTheme() {
 				var dark = "dark-CSS_HASH_DARK";
 				var light = "light-CSS_HASH_LIGHT";
+				var minimal = "minimal-CSS_HASH_MINIMAL";
 				try {
 					var local = localStorage.getItem("theme");
 					if (local !== null) {
-						return local === "dark" ? "dark" : "light";
+						if (local === "dark") {
+							return "dark";
+						}
+						if (local === "minimal") {
+							return "minimal";
+						}
+						return "light";
 					}
 					return matchMedia("(prefers-color-scheme: dark)").matches
 						? "dark"
@@ -50,10 +57,14 @@
 			}
 			function getThemeFilename(theme) {
 				// Updates the scrollbar in Chrome - from the demo https://color-scheme-demo.glitch.me/ from https://web.dev/articles/color-scheme#demo
-				document.documentElement.style.colorScheme = theme;
+				document.documentElement.style.colorScheme =
+					theme === "dark" ? "dark" : "light";
 
 				if (theme === "dark") {
 					return "/gen/dark-CSS_HASH_DARK.css";
+				}
+				if (theme === "minimal") {
+					return "/gen/minimal-CSS_HASH_MINIMAL.css";
 				}
 				return "/gen/light-CSS_HASH_LIGHT.css";
 			}

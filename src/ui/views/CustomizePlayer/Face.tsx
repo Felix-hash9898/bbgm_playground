@@ -48,7 +48,11 @@ export const Face = ({
 	return (
 		<div className="d-flex gap-3">
 			<div style={{ height: 225, width: 150 }}>
-				{parsedFace ? <PlayerPicture face={parsedFace} /> : "Invalid JSON"}
+				{parsedFace ? (
+					<PlayerPicture face={parsedFace} showInMinimalUI />
+				) : (
+					"Invalid JSON"
+				)}
 			</div>
 			<div className="flex-grow-1">
 				<div

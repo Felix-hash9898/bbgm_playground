@@ -218,22 +218,33 @@ const ScatterPlot = <Row extends unknown>({
 
 							// foreignObject is needed because an SVG <image> tag dosen't seem to support maintaining the aspect ratio of a .svg image, it only works with raster images
 							point = (
-								<foreignObject
-									key={getKey(d.row)}
-									x={cx - size / 2}
-									y={cy - size / 2}
-									width={size}
-									height={size}
-								>
-									<div className="d-flex align-items-center justify-content-center w-100 h-100">
-										<img
-											src={imageUrl}
-											className="mw-100 mh-100"
-											alt={getTooltipTitle(d.row)}
-											{...hoverParams}
-										/>
-									</div>
-								</foreignObject>
+								<g key={getKey(d.row)}>
+									<Circle
+										className="minimal-theme-team-graph-point"
+										cx={cx}
+										cy={cy}
+										fill={"var(--bs-blue)"}
+										fillOpacity={0.8}
+										r={6}
+										{...hoverParams}
+									/>
+									<foreignObject
+										className="minimal-ui-team-logo"
+										x={cx - size / 2}
+										y={cy - size / 2}
+										width={size}
+										height={size}
+									>
+										<div className="d-flex align-items-center justify-content-center w-100 h-100">
+											<img
+												src={imageUrl}
+												className="mw-100 mh-100"
+												alt={getTooltipTitle(d.row)}
+												{...hoverParams}
+											/>
+										</div>
+									</foreignObject>
+								</g>
 							);
 						} else {
 							point = (

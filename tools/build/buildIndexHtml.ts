@@ -32,7 +32,7 @@ export const buildIndexHtml = async ({
 						replaceValue: "",
 					},
 					{
-						searchValue: /-CSS_HASH_(LIGHT|DARK)/g,
+						searchValue: /-CSS_HASH_(LIGHT|DARK|MINIMAL)/g,
 						replaceValue: "",
 					},
 				]

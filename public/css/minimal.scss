@@ -1,0 +1,83 @@
+// Low-saturation theme colors with distinct semantic hues. These are defined
+// before importing light.scss so Bootstrap and all app styles are generated
+// from this palette rather than overridden at runtime.
+$blue: #405f7b;
+$indigo: #5d6089;
+$purple: #715f88;
+$pink: #95566f;
+$red: #a1444c;
+$orange: #a76332;
+$yellow: #a87b16;
+$green: #3f7a50;
+$teal: #34796e;
+$cyan: #3e7484;
+
+$primary: $blue;
+$secondary: #69737d;
+
+@import "light";
+
+.minimal-ui-player-picture,
+.minimal-ui-team-logo,
+.minimal-ui-team-logo-container {
+	visibility: hidden !important;
+}
+
+.minimal-theme-team-graph-point {
+	display: inline !important;
+}
+
+.minimal-ui-country-flag,
+.minimal-ui-navbar-logo {
+	display: none !important;
+}
+
+.notification {
+	background-color: #414a53;
+	color: #f4f6f7;
+
+	&:hover {
+		background-color: #353e46;
+	}
+
+	a,
+	a:hover {
+		color: #d0dce5;
+	}
+}
+
+.notification-danger {
+	background-color: #6b4148;
+
+	&:hover {
+		background-color: #5c383e;
+	}
+}
+
+.notification-primary {
+	background-color: #40566a;
+
+	&:hover {
+		background-color: #35495b;
+	}
+}
+
+.notification .notification-close {
+	color: #d9dee2;
+
+	&:hover,
+	&:focus {
+		color: #fff;
+	}
+}
+
+.minimal-ui-end-negotiation {
+	--bs-btn-bg: #596570;
+	--bs-btn-border-color: #596570;
+	--bs-btn-hover-bg: #4c5761;
+	--bs-btn-hover-border-color: #4c5761;
+	--bs-btn-active-bg: #424c55;
+	--bs-btn-active-border-color: #424c55;
+	--bs-btn-disabled-bg: #69737d;
+	--bs-btn-disabled-border-color: #69737d;
+}

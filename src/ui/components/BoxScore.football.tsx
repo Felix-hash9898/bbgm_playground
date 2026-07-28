@@ -461,7 +461,7 @@ const FieldBackground = ({
 		<div className="d-flex align-items-stretch position-absolute w-100 h-100">
 			<img
 				src={midfieldLogo}
-				className="position-absolute"
+				className="minimal-ui-team-logo position-absolute"
 				style={{
 					left: "50%",
 					top: "50%",

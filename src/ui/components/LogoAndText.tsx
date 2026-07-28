@@ -18,7 +18,7 @@ const LogoAndText = memo(({ gold, inLeague, updating }: Props) => {
 		>
 			<img
 				alt=""
-				className="spin"
+				className="minimal-ui-navbar-logo spin"
 				width="18"
 				height="18"
 				src={gold ? "/ico/logo-gold.png" : "/ico/logo.png"}

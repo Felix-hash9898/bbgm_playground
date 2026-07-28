@@ -356,6 +356,7 @@ const ComparePlayers = ({
 											}}
 										>
 											<div
+												className="minimal-ui-player-picture-container"
 												style={{
 													maxHeight: 180,
 													width: 120,

@@ -542,7 +542,7 @@ export const ContestantProfiles = ({
 								marginTop: p.imgURL ? 0 : -10,
 								marginBottom: p.imgURL ? 0 : 10,
 							}}
-							className="flex-shrink-0"
+							className="minimal-ui-player-picture-container flex-shrink-0"
 						>
 							<PlayerPicture
 								face={p.face}

@@ -13,7 +13,7 @@ export const buildCss = async (
 	watch: boolean = false,
 	signal?: AbortSignal,
 ) => {
-	const filenames = ["light", "dark"];
+	const filenames = ["light", "dark", "minimal"];
 	const rawCss = await Promise.all(
 		filenames.map(async (filename) => {
 			// sass-embedded is faster async, while sass is faster sync (but still slower than sass-embedded)

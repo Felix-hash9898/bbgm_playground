@@ -254,7 +254,10 @@ const TopStuff = ({
 				}}
 			>
 				<div className="d-flex">
-					<div className="team-picture" style={logoStyle} />
+					<div
+						className="minimal-ui-team-logo-container team-picture"
+						style={logoStyle}
+					/>
 					<div>
 						<div>
 							<div style={fontSizeLarger}>{recordAndPlayoffs}</div>

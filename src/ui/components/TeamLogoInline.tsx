@@ -24,7 +24,7 @@ const TeamLogoInline = ({
 
 	return (
 		<div
-			className={`d-flex align-items-center justify-content-center${
+			className={`minimal-ui-team-logo d-flex align-items-center justify-content-center${
 				className ? ` ${className}` : ""
 			}`}
 			style={{ height: size, width: size, ...style }}

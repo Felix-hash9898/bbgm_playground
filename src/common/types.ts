@@ -5,6 +5,8 @@ import type * as views from "../worker/views/index.ts";
 
 export type NonEmptyArray<T> = [T, ...T[]];
 
+export type Theme = "dark" | "light" | "minimal";
+
 export type Env = {
 	enableLogging: boolean;
 	heartbeatID: string;
@@ -19,8 +21,8 @@ declare global {
 		bugsnagKey: string;
 		enableLogging: boolean;
 		freestar: any;
-		getTheme: () => "dark" | "light";
-		getThemeFilename: (theme: "dark" | "light") => string;
+		getTheme: () => Theme;
+		getThemeFilename: (theme: Theme) => string;
 		heartbeatID: string;
 		mobile: boolean;
 		releaseStage: "unknown" | "development" | "beta" | "production";
