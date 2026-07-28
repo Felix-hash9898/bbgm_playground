@@ -71,7 +71,6 @@ import {
 	assertUniqueTeamSeasons,
 	deleteGeneratedPrimaryKey,
 } from "./importIntegrity.ts";
-import { setRandomDebutRatingsSeason } from "./setRandomDebutRatingsSeason.ts";
 
 export type TeamInfo = TeamBasic & {
 	disabled?: boolean;
@@ -1525,7 +1524,6 @@ const afterDBStream = async ({
 				scoutingLevel,
 				version: LEAGUE_DATABASE_VERSION,
 			});
-			setRandomDebutRatingsSeason(p2, gameAttributes.season);
 			activePlayers.push(p2);
 		}
 	}

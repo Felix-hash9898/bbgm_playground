@@ -1,9 +1,6 @@
-import { assert, beforeAll, describe, expect, test } from "vitest";
+import { assert, beforeAll, describe, test } from "vitest";
 import { g, helpers } from "../util/index.ts";
-import processInputs, {
-	validateAbbrev,
-	validateSeason,
-} from "./processInputs.ts";
+import { validateAbbrev, validateSeason } from "./processInputs.ts";
 
 beforeAll(() => {
 	g.setWithoutSavingToDB("userTid", 4);
@@ -48,24 +45,5 @@ describe("validateSeason", () => {
 	test("return current season on invalid input", () => {
 		assert.strictEqual(validateSeason("fuck"), 2009);
 		assert.strictEqual(validateSeason(undefined), 2009);
-	});
-});
-
-describe("dailySchedule conference URL", () => {
-	test.each([
-		["0", 0],
-		["3", 3],
-		["all", undefined],
-		["3x", undefined],
-		["3.5", undefined],
-		["-1", undefined],
-		["", undefined],
-	])("parses %j as %j", (cid, expected) => {
-		expect(
-			processInputs.dailySchedule({
-				cid,
-				season: "2026",
-			} as any).cid,
-		).toBe(expected);
 	});
 });

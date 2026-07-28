@@ -19,15 +19,12 @@ import { P_FATIGUE_DAILY_REDUCTION } from "../core/game/writePlayerStats.ts";
 import playThroughInjuriesFactor from "../../common/playThroughInjuriesFactor.ts";
 import { COMPOSITE_WEIGHTS } from "../../common/constants.hockey.ts";
 import { getStartingAndBackupGoalies } from "../core/GameSim.hockey/getStartingAndBackupGoalies.ts";
-import { isGameInConference } from "./conferenceScheduleFilter.ts";
 
 export const getUpcoming = async ({
-	cid,
 	day,
 	onlyOneGame,
 	tid,
 }: {
-	cid?: number;
 	day?: number;
 	onlyOneGame?: boolean;
 	tid?: number;
@@ -42,15 +39,6 @@ export const getUpcoming = async ({
 	// Use this to calculate injury healing from today until the day of a game
 	const todayDay = firstGame.day;
 
-	let conferenceTids: Set<number> | undefined;
-	if (cid !== undefined) {
-		conferenceTids = new Set(
-			(await idb.cache.teams.getAll())
-				.filter((t) => t.cid === cid)
-				.map((t) => t.tid),
-		);
-	}
-
 	let keptOneGame = false;
 	const filteredSchedule = schedule.filter((game) => {
 		const keep =
@@ -60,8 +48,7 @@ export const getUpcoming = async ({
 				(game.homeTid === -1 && game.awayTid === -2) ||
 				(game.homeTid === -3 && game.awayTid === -3)) &&
 			(day === undefined || game.day === day) &&
-			(!onlyOneGame || !keptOneGame) &&
-			(!conferenceTids || isGameInConference(game, conferenceTids));
+			(!onlyOneGame || !keptOneGame);
 
 		if (keep) {
 			keptOneGame = true;

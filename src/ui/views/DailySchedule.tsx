@@ -7,8 +7,6 @@ import { NoGamesMessage } from "./GameLog.tsx";
 import allowForceTie from "../../common/allowForceTie.ts";
 
 const DailySchedule = ({
-	cid,
-	cids,
 	completed,
 	currentSeason,
 	day,
@@ -26,9 +24,8 @@ const DailySchedule = ({
 	useTitleBar({
 		title: DAILY_SCHEDULE,
 		dropdownView: "daily_schedule",
-		dropdownFields: { seasons: season, days: day, cids: cid ?? "all" },
+		dropdownFields: { seasons: season, days: day },
 		dropdownCustomOptions: {
-			cids,
 			days,
 		},
 	});

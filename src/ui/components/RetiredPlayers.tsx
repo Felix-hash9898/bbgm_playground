@@ -20,7 +20,6 @@ const RetiredPlayers = ({
 			abbrev: string;
 			tid: number;
 		};
-		ws?: number;
 	}[];
 	season: number;
 	userTid: number;
@@ -60,12 +59,6 @@ const RetiredPlayers = ({
 							</>
 						) : null}
 						age: {p.age}
-						{isSport("basketball") ? (
-							<>
-								; WS:{" "}
-								{p.ws === undefined ? "—" : helpers.roundStat(p.ws, "ws", true)}
-							</>
-						) : null}
 						{p.hof ? (
 							<>
 								;{" "}

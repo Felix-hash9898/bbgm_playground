@@ -471,19 +471,8 @@ const leadersYears = (params: Params) => {
 };
 
 const dailySchedule = (params: Params) => {
-	let cid;
-	if (params.cid !== undefined && params.cid !== "all") {
-		if (/^\d+$/.test(params.cid)) {
-			const parsedCid = Number(params.cid);
-			if (Number.isSafeInteger(parsedCid)) {
-				cid = parsedCid;
-			}
-		}
-	}
-
 	if (params.season === "today") {
 		return {
-			cid,
 			day: undefined,
 			season: g.get("season"),
 			today: true,
@@ -499,7 +488,6 @@ const dailySchedule = (params: Params) => {
 	}
 
 	return {
-		cid,
 		day,
 		season,
 	};

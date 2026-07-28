@@ -2,7 +2,6 @@ import { createElement, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, test, vi } from "vitest";
-import RetiredPlayers from "../../components/RetiredPlayers.tsx";
 import AwardsAndChamp from "./AwardsAndChamp.tsx";
 
 vi.mock("@bugsnag/browser", () => {
@@ -87,44 +86,4 @@ test("History renders safely with zero or one conference", () => {
 	);
 	expect(one.textContent).toContain("Eastern Conference");
 	expect(one.textContent).toContain("Atlanta Gold");
-});
-
-test("Retired Players distinguishes unknown, zero, and known career WS", () => {
-	const view = render(
-		createElement(RetiredPlayers, {
-			retiredPlayers: [
-				{
-					age: 40,
-					hof: false,
-					name: "Unknown",
-					pid: 1,
-					ratings: { pos: "G" },
-					stats: { abbrev: "ATL", tid: 0 },
-				},
-				{
-					age: 39,
-					hof: false,
-					name: "Zero",
-					pid: 2,
-					ratings: { pos: "F" },
-					stats: { abbrev: "BOS", tid: 1 },
-					ws: 0,
-				},
-				{
-					age: 38,
-					hof: false,
-					name: "Known",
-					pid: 3,
-					ratings: { pos: "C" },
-					stats: { abbrev: "CHI", tid: 2 },
-					ws: 12.34,
-				},
-			],
-			season: 2026,
-			userTid: 0,
-		}),
-	);
-	expect(view.textContent).toContain("Unknown (ATL, age: 40; WS: —)");
-	expect(view.textContent).toContain("Zero (BOS, age: 39; WS: 0.0)");
-	expect(view.textContent).toContain("Known (CHI, age: 38; WS: 12.3)");
 });
