@@ -187,7 +187,7 @@ export const SortableContextWrappers = ({
 	rows,
 	tableRef,
 }: {
-	children?: ReactNode;
+	children: ReactNode;
 	disableRow?: DisableRow;
 	highlightHandle?: HighlightHandle;
 	onChange: (a: { oldIndex: number; newIndex: number }) => void;
