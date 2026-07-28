@@ -1,6 +1,7 @@
 import { type ChangeEvent, useState } from "react";
 import type { Settings } from "../../../worker/views/settings.ts";
 import gameSimPresets from "./gameSimPresets.ts";
+import getGameSimPresetUpdate from "./getGameSimPresetUpdate.ts";
 import { settings } from "./settings.tsx";
 import {
 	encodeDecodeFunctions,
@@ -12,9 +13,11 @@ import {
 import type { FieldType, Key } from "./types.ts";
 
 const useSettingsFormState = ({
+	gameSimPresetSeason,
 	initialSettings,
 	onUpdateExtra,
 }: {
+	gameSimPresetSeason?: number;
 	initialSettings: Settings;
 	onUpdateExtra?: () => void;
 }) => {
@@ -93,22 +96,16 @@ const useSettingsFormState = ({
 		};
 
 	const setGameSimPreset = (newPreset: string) => {
-		// @ts-expect-error
-		const presets = gameSimPresets[newPreset];
-		if (!presets) {
+		const update = getGameSimPresetUpdate(newPreset, gameSimPresetSeason);
+		if (!update) {
 			return;
-		}
-
-		const presetsString: any = {};
-		for (const [key, value] of Object.entries(presets)) {
-			presetsString[key] = String(value);
 		}
 
 		setState((prevState) => ({
 			...prevState,
-			...presetsString,
+			...update.settings,
 		}));
-		setGameSimPresetRaw(newPreset);
+		setGameSimPresetRaw(update.gameSimPreset);
 	};
 
 	return {

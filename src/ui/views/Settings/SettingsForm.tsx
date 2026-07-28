@@ -258,6 +258,7 @@ const SettingsForm = ({
 	realPlayers,
 	saveText = "Save Settings",
 	initialSettings,
+	gameSimPresetSeason,
 	settingsShown,
 	hideShortcuts,
 	defaultNewLeagueSettings,
@@ -274,6 +275,7 @@ const SettingsForm = ({
 	realPlayers?: boolean;
 	saveText?: string;
 	initialSettings: Settings;
+	gameSimPresetSeason?: number;
 	hideShortcuts?: boolean;
 	defaultNewLeagueSettings?: boolean;
 	alwaysShowGodModeSettings?: boolean;
@@ -306,6 +308,7 @@ const SettingsForm = ({
 		gameSimPreset,
 		setGameSimPreset,
 	} = useSettingsFormState({
+		gameSimPresetSeason,
 		initialSettings,
 		onUpdateExtra,
 	});
