@@ -1,6 +1,9 @@
 import { bySport } from "../../../common/index.ts";
 import RatingWithChange from "../../components/RatingWithChange.tsx";
+import { gradientStyleFactory } from "../../util/index.ts";
 import type { ReactNode } from "react";
+
+const gradientStyle = gradientStyleFactory(25, 45, 55, 75);
 
 const RatingsOverview = ({
 	ratings,
@@ -503,7 +506,10 @@ const RatingsOverview = ({
 											return (
 												<tr key={j}>
 													<td className="p-0">{label}:</td>
-													<td className="p-0 ps-1">
+													<td
+														className="p-0 ps-1"
+														style={gradientStyle(displayCur)}
+													>
 														<RatingWithChange change={displayChange}>
 															{displayCur}
 														</RatingWithChange>
