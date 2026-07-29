@@ -60,6 +60,15 @@ const NBA_321_CHANCES = [2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1];
 const NBA_321_PROTECTED_TEAM_COUNT = 3;
 const NBA_321_PROTECTED_FLOOR_PICK = 12;
 
+export const getNba2027SecondRoundOrder = <T>(
+	firstRound: T[],
+	roundTeams: T[],
+	numLotteryTeams: number,
+) => [
+	...firstRound.slice(0, numLotteryTeams).reverse(),
+	...roundTeams.slice(numLotteryTeams),
+];
+
 // chances does not have to be the perfect length. If chances is too long for numLotteryTeams, it will be truncated. If it's too short, the last entry will be repeated until it's long enough.
 export const getLotteryInfo = (
 	draftType: DraftType,
@@ -327,10 +336,12 @@ const genOrder = async (
 		draftPicksIndexed[tid][dp.round] = dp;
 	}
 
-	const { teamsByRound, ties } = await getTeamsByRound(draftPicksIndexed);
-	const firstRoundTeams = teamsByRound[0] ?? [];
-
 	const draftType = draftTypeOverride ?? g.get("draftType");
+	const { nba2027NumLotteryTeams, teamsByRound, ties } = await getTeamsByRound(
+		draftType,
+		draftPicksIndexed,
+	);
+	const firstRoundTeams = teamsByRound[0] ?? [];
 	if (!mock) {
 		if (draftType === "nba2027") {
 			await initializeNba2027();
@@ -745,6 +756,16 @@ const genOrder = async (
 					roundTeams.splice(start, length, ...newOrder);
 				}
 			}
+		}
+		if (draftType === "nba2027") {
+			const firstRound = teamsByRound[0]!;
+			const lotteryCount = nba2027NumLotteryTeams ?? numLotteryTeams;
+			const nba2027RoundTeams = getNba2027SecondRoundOrder(
+				firstRound,
+				roundTeams,
+				lotteryCount,
+			);
+			roundTeams.splice(0, roundTeams.length, ...nba2027RoundTeams);
 		}
 
 		let pick = 1;

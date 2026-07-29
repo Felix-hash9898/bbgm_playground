@@ -4,8 +4,10 @@ import { mockIDBLeague, resetG } from "../../../test/helpers.ts";
 import { getDraftLotteryProbs } from "../../../common/draftLottery.ts";
 import { draft } from "../index.ts";
 import { idb } from "../../db/index.ts";
-import { getLotteryInfo } from "./genOrder.ts";
+import { getLotteryInfo, getNba2027SecondRoundOrder } from "./genOrder.ts";
 import { updateNba2027AfterLottery } from "./nba2027.ts";
+import setGameAttributes from "../league/setGameAttributes.ts";
+import { getNba2027PlayInTeams } from "./getTeamsByRound.ts";
 
 beforeAll(async () => {
 	resetG();
@@ -146,6 +148,30 @@ test("nba2027 chance vectors are dynamic and add play-in loser picks", () => {
 	assert.deepStrictEqual(playIn.chances.slice(-2), [1, 1]);
 });
 
+test("nba2027 play-in ordering uses projected teams and completed 7/8 results", () => {
+	const matchup = (home: number, away: number, awayWon = 0) => ({
+		home: { tid: home, won: awayWon ? 0 : 0 },
+		away: { tid: away, won: awayWon },
+	});
+	const playIns = [
+		[matchup(0, 1, 1), matchup(2, 3)],
+		[matchup(4, 5), matchup(6, 7)],
+	] as any;
+	const result = getNba2027PlayInTeams(playIns);
+	assert(result);
+	assert.deepStrictEqual(result.tidPlayIn910, [3, 7, 2, 6]);
+	assert.deepStrictEqual(result.tidPlayIn78Loser, [0, 5]);
+	assert.deepStrictEqual(result.tidPlayIn78Winner, [1, 4]);
+	assert.strictEqual(getNba2027PlayInTeams([playIns[0]]), undefined);
+});
+
+test("nba2027 second round reverses only the lottery section", () => {
+	assert.deepStrictEqual(
+		getNba2027SecondRoundOrder([0, 1, 2, 3], [10, 11, 12, 13, 14], 4),
+		[3, 2, 1, 0, 14],
+	);
+});
+
 test("nba2027 repeated top-five appearances remain restricted for two seasons", async () => {
 	await updateNba2027AfterLottery([0, 1, 2, 3, 4]);
 	await updateNba2027AfterLottery([0, 1, 2, 3, 4]);
@@ -154,4 +180,19 @@ test("nba2027 repeated top-five appearances remain restricted for two seasons", 
 		teams.find((team) => team.tid === 0)?.draftLottery?.restricted5,
 		2,
 	);
+});
+
+test("settings switch initializes and clears nba2027 restrictions immediately", async () => {
+	await setGameAttributes({ draftType: "nba321" });
+	await setGameAttributes({ draftType: "nba2027" });
+	const switchedOn = await idb.cache.teams.getAll();
+	assert(
+		switchedOn.every(
+			(team) =>
+				team.draftLottery === undefined || team.draftLottery.type === "nba2027",
+		),
+	);
+	await setGameAttributes({ draftType: "nba321" });
+	const switchedOff = await idb.cache.teams.getAll();
+	assert(switchedOff.every((team) => team.draftLottery === undefined));
 });

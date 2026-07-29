@@ -202,11 +202,14 @@ export const simLottery = (
 			i + guaranteed.size >= 12;
 		let sum = 0;
 		for (const t of teams) {
-			if ((!forceTop12 || guaranteed!.has(t.index)) && !rigged.has(t.index))
+			if ((!forceTop12 || guaranteed!.has(t.index)) && !rigged.has(t.index)) {
 				sum += t.chances;
+			}
 		}
 		if (sum <= 0) {
-			for (const team of teams) pickIndexes.add(team.index, false);
+			for (const team of teams) {
+				pickIndexes.add(team.index, false);
+			}
 			break;
 		}
 		const rand = random() * sum;
@@ -225,7 +228,9 @@ export const simLottery = (
 		}
 	}
 
-	for (const team of teams) pickIndexes.add(team.index, false);
+	for (const team of teams) {
+		pickIndexes.add(team.index, false);
+	}
 
 	if (!pickIndexes.done() && riggedIndexes && restrictions) {
 		return simLottery(
@@ -327,6 +332,25 @@ const monteCarloLotteryProbs = (
 			}
 		}
 	}
+	const restricted = nba2027Restrictions
+		? new Set([
+				...nba2027Restrictions.restricted1,
+				...nba2027Restrictions.restricted5,
+			])
+		: undefined;
+	const firstPickTotal = result.reduce(
+		(sum, row, index) =>
+			sum + (restricted?.has(index) ? 0 : Math.max(0, row.chances)),
+		0,
+	);
+	if (firstPickTotal > 0) {
+		for (const [index, row] of result.entries()) {
+			probs[index] ??= [];
+			probs[index]![0] = restricted?.has(index)
+				? 0
+				: Math.max(0, row.chances) / firstPickTotal;
+		}
+	}
 
 	return probs;
 };
@@ -343,8 +367,9 @@ const exactRestrictedProbs = (
 	const restricted1 = new Set(restrictions.restricted1);
 	const restricted5 = new Set(restrictions.restricted5);
 	const record = (order: number[], probability: number) => {
-		for (const [position, index] of order.entries())
+		for (const [position, index] of order.entries()) {
 			probs[index]![position] += probability;
+		}
 	};
 	const finish = (
 		remaining: number[],
@@ -375,16 +400,20 @@ const exactRestrictedProbs = (
 		}
 		for (const index of remaining) {
 			const chance = result[index]!.chances;
-			if (chance <= 0) continue;
+			if (chance <= 0) {
+				continue;
+			}
 			const nextRemaining = remaining.filter((i) => i !== index);
-			let nextOrder = [...order];
+			const nextOrder = [...order];
 			let nextPending1 = [...pending1];
 			let nextPending5 = [...pending5];
-			if (nextOrder.length < 5 && restricted5.has(index))
+			if (nextOrder.length < 5 && restricted5.has(index)) {
 				nextPending5.push(index);
-			else if (nextOrder.length < 1 && restricted1.has(index))
+			} else if (nextOrder.length < 1 && restricted1.has(index)) {
 				nextPending1.push(index);
-			else nextOrder.push(index);
+			} else {
+				nextOrder.push(index);
+			}
 			if (nextOrder.length === 1 && nextPending1.length > 0) {
 				nextOrder.push(...nextPending1);
 				nextPending1 = [];
@@ -430,13 +459,16 @@ const exactPositiveInsufficientProbs = (
 			0,
 		);
 		if (draws >= numToPick || total <= 0) {
-			for (const [position, index] of [...order, ...remaining].entries())
+			for (const [position, index] of [...order, ...remaining].entries()) {
 				probs[index]![position] += probability;
+			}
 			return;
 		}
 		for (const index of remaining) {
 			const chance = result[index]!.chances;
-			if (chance <= 0) continue;
+			if (chance <= 0) {
+				continue;
+			}
 			visit(
 				remaining.filter((i) => i !== index),
 				[...order, index],
