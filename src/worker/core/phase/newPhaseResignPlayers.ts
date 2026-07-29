@@ -17,6 +17,7 @@ import { g, helpers, local, logEvent } from "../../util/index.ts";
 import type { Conditions, PhaseReturn } from "../../../common/types.ts";
 import { orderBy } from "../../../common/utils.ts";
 import { processContractOptions } from "../contracts/contractOptionDecisions.ts";
+import { getTradeReputationByTid } from "../player/getTradeReputation.ts";
 
 export const FREE_AGENCY_DAYS = 30;
 
@@ -24,6 +25,7 @@ const newPhaseResignPlayers = async (
 	conditions: Conditions,
 ): Promise<PhaseReturn> => {
 	await processContractOptions();
+	const tradeReputationByTid = await getTradeReputationByTid();
 
 	// In case some weird situation results in games still in the schedule, clear them
 	await idb.cache.schedule.clear();
@@ -58,7 +60,7 @@ const newPhaseResignPlayers = async (
 			: [];
 
 	for (const p of [...existingFreeAgents, ...undraftedPlayers]) {
-		await player.addToFreeAgents(p);
+		await player.addToFreeAgents(p, tradeReputationByTid);
 		await idb.cache.players.put(p);
 	}
 
@@ -179,7 +181,7 @@ const newPhaseResignPlayers = async (
 		) {
 			const tid = p.tid;
 
-			await player.addToFreeAgents(p);
+			await player.addToFreeAgents(p, tradeReputationByTid);
 
 			await idb.cache.players.put(p);
 			const error = await contractNegotiation.create(p.pid, true, tid);
@@ -281,7 +283,7 @@ const newPhaseResignPlayers = async (
 			}
 
 			if (!reSignPlayer) {
-				await player.addToFreeAgents(p);
+				await player.addToFreeAgents(p, tradeReputationByTid);
 			}
 
 			// Delete rookieResign for AI players, since we're done re-signing them. Leave it for user players.

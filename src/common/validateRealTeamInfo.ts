@@ -36,6 +36,7 @@ export const validateRealPlayerPhotos = (
 const validateTeamInfo = (
 	path: string,
 	value: unknown,
+	allowSeasons = true,
 ): value is IndividualRealTeamInfo => {
 	if (value === null || typeof value !== "object" || Array.isArray(value)) {
 		throw new Error(
@@ -49,6 +50,11 @@ const validateTeamInfo = (
 					`Invalid data format in real team info - unknown property "${path}.${key}"`,
 				);
 			}
+			if (!allowSeasons) {
+				throw new Error(
+					`Invalid data format in real team info - nested seasons are not allowed at "${path}"`,
+				);
+			}
 			if (item === null || typeof item !== "object" || Array.isArray(item)) {
 				throw new Error(
 					`Invalid data format in real team info - "${path}.seasons" is not an object`,
@@ -60,7 +66,7 @@ const validateTeamInfo = (
 						`Invalid data format in real team info - season "${path}.seasons.${season}" is not an integer`,
 					);
 				}
-				validateTeamInfo(`${path}.seasons.${season}`, seasonInfo);
+				validateTeamInfo(`${path}.seasons.${season}`, seasonInfo, false);
 			}
 		} else if (
 			["abbrev", "region", "name", "imgURL", "imgURLSmall", "jersey"].includes(

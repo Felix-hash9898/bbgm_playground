@@ -192,6 +192,10 @@ export type DraftLotteryResult = {
 		| "dummy";
 	rigged?: GameAttributesLeague["riggedLottery"];
 	result: DraftLotteryResultArray;
+	nba2027?: {
+		restricted1: number[];
+		restricted5: number[];
+	};
 };
 
 export type DraftPickSeason = number | "fantasy" | "expansion";

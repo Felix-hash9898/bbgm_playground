@@ -1,6 +1,7 @@
 import { PHASE, PLAYER } from "../../../common/index.ts";
 import { league, phase, player, freeAgents } from "../index.ts";
 import { idb } from "../../db/index.ts";
+import { getTradeReputationByTid } from "../player/getTradeReputation.ts";
 import {
 	g,
 	local,
@@ -44,6 +45,7 @@ const afterPicks = async (draftOver: boolean, conditions: Conditions = {}) => {
 		}
 		try {
 			await lock.set("newPhase", true);
+			const tradeReputationByTid = await getTradeReputationByTid();
 
 			// Fantasy draft special case!
 			if (currentPhase === PHASE.FANTASY_DRAFT) {
@@ -54,7 +56,7 @@ const afterPicks = async (draftOver: boolean, conditions: Conditions = {}) => {
 				);
 
 				for (const p of playersUndrafted) {
-					await player.addToFreeAgents(p);
+					await player.addToFreeAgents(p, tradeReputationByTid);
 					await idb.cache.players.put(p);
 				}
 				await freeAgents.normalizeContractDemands({

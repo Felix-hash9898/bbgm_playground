@@ -4,6 +4,8 @@ import { mockIDBLeague, resetG } from "../../../test/helpers.ts";
 import { getDraftLotteryProbs } from "../../../common/draftLottery.ts";
 import { draft } from "../index.ts";
 import { idb } from "../../db/index.ts";
+import { getLotteryInfo } from "./genOrder.ts";
+import { updateNba2027AfterLottery } from "./nba2027.ts";
 
 beforeAll(async () => {
 	resetG();
@@ -131,4 +133,25 @@ test("nba2027 uses the new rule while legacy nba321 remains selectable", async (
 	const legacy = await draft.genOrder(true, undefined, "nba321");
 	assert(legacy.draftLotteryResult);
 	assert.strictEqual(legacy.draftLotteryResult.draftType, "nba321");
+});
+
+test("nba2027 chance vectors are dynamic and add play-in loser picks", () => {
+	for (const teams of [6, 10, 14, 16, 17]) {
+		const info = getLotteryInfo("nba2027", teams);
+		assert.strictEqual(info.numToPick, Math.max(teams, 6));
+		assert.strictEqual(info.chances.length, Math.max(teams, 6));
+	}
+	const playIn = getLotteryInfo("nba2027", 14, 4);
+	assert.strictEqual(playIn.numToPick, 16);
+	assert.deepStrictEqual(playIn.chances.slice(-2), [1, 1]);
+});
+
+test("nba2027 repeated top-five appearances remain restricted for two seasons", async () => {
+	await updateNba2027AfterLottery([0, 1, 2, 3, 4]);
+	await updateNba2027AfterLottery([0, 1, 2, 3, 4]);
+	const teams = await idb.cache.teams.getAll();
+	assert.strictEqual(
+		teams.find((team) => team.tid === 0)?.draftLottery?.restricted5,
+		2,
+	);
 });

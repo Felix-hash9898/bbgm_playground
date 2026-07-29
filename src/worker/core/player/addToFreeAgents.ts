@@ -17,13 +17,16 @@ import { getTradeReputationByTid } from "./getTradeReputation.ts";
  */
 const addToFreeAgents = async (
 	p: Player<MinimalPlayerRatings> | PlayerWithoutKey<MinimalPlayerRatings>,
+	tradeReputationByTid?: Record<number, number>,
 ) => {
 	p.tid = PLAYER.FREE_AGENT;
 	p.numDaysFreeAgent = 0;
 	p.ptModifier = 1;
 	delete p.targetMinutes;
 	p.usageBias = 1;
-	p.tradeReputationByTid = await getTradeReputationByTid();
+	p.tradeReputationByTid = {
+		...(tradeReputationByTid ?? (await getTradeReputationByTid())),
+	};
 };
 
 export default addToFreeAgents;

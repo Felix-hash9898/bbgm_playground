@@ -9,6 +9,7 @@ const target = JSON.parse(
 		maxBuffer: 100 * 1024 * 1024,
 	}),
 );
+const baseline = structuredClone(target);
 const official = JSON.parse(fs.readFileSync(officialPath, "utf8"));
 const currentSeason = 2026;
 const stable = [
@@ -45,6 +46,10 @@ const manifest = {
 	},
 };
 const key = (row) => `${row.slug}:${row.season ?? row.start}`;
+const changedFields = (old, next, approved) =>
+	approved.filter(
+		(field) => JSON.stringify(old?.[field]) !== JSON.stringify(next?.[field]),
+	);
 const mergeRows = (field, predicate, changed) => {
 	const newRows = official[field].filter(predicate);
 	const oldByKey = new Map(target[field].map((row) => [key(row), row]));
@@ -69,15 +74,56 @@ const mergeRows = (field, predicate, changed) => {
 };
 const teamChanged = { added: [], changed: [] };
 mergeRows("teams", (row) => row.season >= currentSeason, teamChanged);
-manifest.teamChanges = teamChanged.changed;
+manifest.teamChanges = teamChanged.changed.map(({ slug, season }) => {
+	const old = baseline.teams.find(
+		(row) => row.slug === slug && row.season === season,
+	);
+	const next = official.teams.find(
+		(row) => row.slug === slug && row.season === season,
+	);
+	return {
+		slug,
+		season,
+		fields: changedFields(old, next, [
+			"slug",
+			"season",
+			"abbrev",
+			"jerseyNumber",
+		]),
+	};
+});
 
 const ratingChanged = { added: [], changed: [] };
 mergeRows("ratings", (row) => row.season >= currentSeason, ratingChanged);
-manifest.ratingsChanges = ratingChanged.changed;
+manifest.ratingsChanges = ratingChanged.changed.map(({ slug, season }) => {
+	const old = baseline.ratings.find(
+		(row) => row.slug === slug && row.season === season,
+	);
+	const next = official.ratings.find(
+		(row) => row.slug === slug && row.season === season,
+	);
+	return {
+		slug,
+		season,
+		fields: changedFields(old, next, ["slug", "season", "abbrev"]),
+	};
+});
 
 const salaryChanged = { added: [], changed: [] };
 mergeRows("salaries", (row) => row.start >= currentSeason, salaryChanged);
-manifest.contractChanges = salaryChanged.changed;
+manifest.contractChanges = salaryChanged.changed.map(({ slug, season }) => {
+	const old = baseline.salaries.find(
+		(row) => row.slug === slug && row.start === season,
+	);
+	const next = official.salaries.find(
+		(row) => row.slug === slug && row.start === season,
+	);
+	return {
+		slug,
+		start: season,
+		fields: changedFields(old, next, ["slug", "start", "exp", "amounts"]),
+	};
+});
 
 const currentSlugs = new Set([
 	...target.teams
@@ -99,7 +145,10 @@ for (const slug of currentSlugs) {
 	if (!old) {
 		manifest.addedPlayers.push(slug);
 	} else if (JSON.stringify(old) !== JSON.stringify(next)) {
-		manifest.slugOrSrIDChanges.push(slug);
+		manifest.slugOrSrIDChanges.push({
+			slug,
+			fields: changedFields(old, next, Object.keys(next)),
+		});
 	}
 	target.bios[slug] = next;
 }
@@ -169,6 +218,6 @@ for (const key of stable) {
 fs.writeFileSync(targetPath, `${JSON.stringify(target, null, 2)}\n`);
 fs.writeFileSync(
 	".ai-bridge/d49-d52-manifest.md",
-	`# D49/D52 manifest\n\n- Source: local Official HEAD data file\n- Current season boundary: ${currentSeason}\n- Added players: ${manifest.addedPlayers.length}\n- Removed/not active players: ${manifest.removedPlayers.length}\n- Team changes: ${manifest.teamChanges.length}\n- Contract changes: ${manifest.contractChanges.length}\n- Ratings changes: ${manifest.ratingsChanges.length}\n- Slug/identity changes: ${manifest.slugOrSrIDChanges.length}\n- Image reference changes: ${manifest.imageChanges.length}\n- Injury diff: ${manifest.excludedDiffs.injuries}\n- Historical stats diff: ${manifest.excludedDiffs.historicalStats}\n- Expansion scheduled events diff: ${manifest.excludedDiffs.expansionScheduledEvents}\n\nNon-target fields were preserved from Batch1. No images were copied or generated.\n`,
+	`# D49/D52 manifest\n\n- Source: local Official HEAD data file\n- Current season boundary: ${currentSeason}\n- Approved target fields: teams (slug, season, abbrev, jerseyNumber), ratings (slug, season, abbrev and rating fields), salaries (slug, start, exp, amounts), bios (identity fields only).\n- Added players (${manifest.addedPlayers.length}): ${manifest.addedPlayers.join(", ")}\n- Removed/not active players (${manifest.removedPlayers.length}): ${manifest.removedPlayers.join(", ")}\n- Team row field diffs (${manifest.teamChanges.length}):\n${manifest.teamChanges.map((row) => `  - ${row.slug} season ${row.season}: ${row.fields.join(", ") || "row added/removed"}`).join("\\n")}\n- Contract row field diffs (${manifest.contractChanges.length}):\n${manifest.contractChanges.map((row) => `  - ${row.slug} start ${row.start}: ${row.fields.join(", ") || "row added/removed"}`).join("\\n")}\n- Ratings row field diffs (${manifest.ratingsChanges.length}):\n${manifest.ratingsChanges.map((row) => `  - ${row.slug} season ${row.season}: ${row.fields.join(", ") || "row added/removed"}`).join("\\n")}\n- Slug/srID changes (${manifest.slugOrSrIDChanges.length}): ${manifest.slugOrSrIDChanges.map((row) => `${row.slug} [${row.fields.join(", ")}]`).join(", ")}\n- Image reference changes (${manifest.imageChanges.length}): ${manifest.imageChanges.join(", ") || "none"}\n- Injury diff: ${manifest.excludedDiffs.injuries}\n- Historical stats diff: ${manifest.excludedDiffs.historicalStats}\n- Expansion scheduled events diff: ${manifest.excludedDiffs.expansionScheduledEvents}\n\nProtected fields are byte-for-byte preserved from the target baseline: ${stable.join(", ")}. No images were copied or generated.\n`,
 );
 console.log(JSON.stringify(manifest, null, 2));

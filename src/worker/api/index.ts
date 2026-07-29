@@ -22,6 +22,7 @@ import leagueFileUpload, {
 	parseJSON,
 } from "./leagueFileUpload.ts";
 import processInputs from "./processInputs.ts";
+import { getTradeReputationByTid } from "../core/player/getTradeReputation.ts";
 import {
 	allStar,
 	contractNegotiation,
@@ -3059,9 +3060,10 @@ const relocateVote = (params: {
 const removeLastTeam = async () => {
 	const tid = g.get("numTeams") - 1;
 	const players = await idb.cache.players.indexGetAll("playersByTid", tid);
+	const tradeReputationByTid = await getTradeReputationByTid();
 
 	for (const p of players) {
-		await player.addToFreeAgents(p);
+		await player.addToFreeAgents(p, tradeReputationByTid);
 		await idb.cache.players.put(p);
 	}
 

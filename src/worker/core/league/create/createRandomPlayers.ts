@@ -8,6 +8,7 @@ import type {
 	Team,
 } from "../../../../common/types.ts";
 import { g, random } from "../../../util/index.ts";
+import { getTradeReputationByTid } from "../../player/getTradeReputation.ts";
 
 export const getNumPlayersPerTeam = () => {
 	// 13 for basketball
@@ -284,6 +285,7 @@ const createRandomPlayers = async ({
 		}
 	}
 
+	const tradeReputationByTid = await getTradeReputationByTid();
 	const addToFreeAgents = async (
 		p: PlayerWithoutKey<MinimalPlayerRatings> | undefined,
 	) => {
@@ -301,7 +303,7 @@ const createRandomPlayers = async ({
 				false,
 			);
 			p.contract.temp = true;
-			await player.addToFreeAgents(p);
+			await player.addToFreeAgents(p, tradeReputationByTid);
 			players.push(p);
 		}
 	};

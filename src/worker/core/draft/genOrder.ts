@@ -26,6 +26,7 @@ import {
 	initializeNba2027,
 	updateNba2027AfterLottery,
 } from "./nba2027.ts";
+import { simLottery } from "../../../common/draftLottery.ts";
 
 type ReturnVal = {
 	draftLotteryResult:
@@ -60,7 +61,11 @@ const NBA_321_PROTECTED_TEAM_COUNT = 3;
 const NBA_321_PROTECTED_FLOOR_PICK = 12;
 
 // chances does not have to be the perfect length. If chances is too long for numLotteryTeams, it will be truncated. If it's too short, the last entry will be repeated until it's long enough.
-const getLotteryInfo = (draftType: DraftType, numLotteryTeams: number) => {
+export const getLotteryInfo = (
+	draftType: DraftType,
+	numLotteryTeams: number,
+	numPlayInTeams = 0,
+) => {
 	if (draftType === "coinFlip") {
 		return {
 			numToPick: 2,
@@ -116,8 +121,8 @@ const getLotteryInfo = (draftType: DraftType, numLotteryTeams: number) => {
 	}
 
 	if (draftType === "nba2027") {
-		const numToPick = Math.max(numLotteryTeams, 6);
-		const chances = Array.from({ length: numToPick }, (_, i) => {
+		let numToPick = Math.max(numLotteryTeams, 6);
+		const chances: number[] = Array.from({ length: numToPick }, (_, i) => {
 			if (i < 3) {
 				return 2;
 			}
@@ -133,6 +138,10 @@ const getLotteryInfo = (draftType: DraftType, numLotteryTeams: number) => {
 			}
 			return 3;
 		});
+		if (numPlayInTeams === 4) {
+			numToPick += 2;
+			chances.push(1, 1);
+		}
 		return { numToPick, chances };
 	}
 
@@ -188,9 +197,14 @@ const draftHasLottery = (
 export const getNumToPick = (
 	draftType: DraftType | "dummy" | undefined,
 	numLotteryTeams: number,
+	numPlayInTeams = 0,
 ) => {
 	if (draftHasLottery(draftType)) {
-		return getLotteryInfo(draftType, numLotteryTeams).numToPick;
+		const nonPlayoffTeams =
+			draftType === "nba2027" && numPlayInTeams === 4
+				? numLotteryTeams - 2
+				: numLotteryTeams;
+		return getLotteryInfo(draftType, nonPlayoffTeams, numPlayInTeams).numToPick;
 	}
 
 	return 0;
@@ -328,6 +342,9 @@ const genOrder = async (
 
 	// Draft lottery
 	const firstN: number[] = [];
+	let nba2027RestrictionsForResult:
+		| { restricted1: number[]; restricted5: number[] }
+		| undefined;
 	let numLotteryTeams = 0;
 	let chances: number[] = [];
 	let lotteryTeams = firstRoundTeams;
@@ -338,6 +355,7 @@ const genOrder = async (
 		const info = getLotteryInfo(
 			draftType,
 			firstRoundTeams.length - numPlayoffTeams,
+			(await getNumPlayoffTeams(g.get("season"))).numPlayInTeams,
 		);
 		const numToPick = info.numToPick;
 
@@ -359,7 +377,7 @@ const genOrder = async (
 			);
 		}
 
-		if (draftType === "nba321" || draftType === "nba2027") {
+		if (draftType === "nba321") {
 			const fallbackLotteryTeams = firstRoundTeams.slice(
 				0,
 				NBA_321_CHANCES.length,
@@ -456,6 +474,11 @@ const genOrder = async (
 
 			numLotteryTeams = lotteryTeams.length;
 			chances = [...NBA_321_CHANCES].slice(0, numLotteryTeams);
+		} else if (draftType === "nba2027") {
+			// NBA 2027 is dynamic: the number of lottery teams and its chance
+			// vector follow the actual league size (including expansion).
+			lotteryTeams = firstRoundTeams.slice(0, numLotteryTeams);
+			chances = info.chances.slice(0, numLotteryTeams);
 		} else if (draftType === "cola") {
 			lotteryTeams = firstRoundTeams.slice(0, numLotteryTeams);
 			// If the playoffs aren't over yet, then we haven't yet added COLA_ALPHA to all the lottery teams
@@ -486,27 +509,6 @@ const genOrder = async (
 				chances.push(chances.at(-1)!);
 			}
 		}
-		if (draftType === "nba2027") {
-			const teams = await idb.cache.teams.getAll();
-			const restricted1 = new Set(
-				teams
-					.filter((team) => team.draftLottery?.restricted1)
-					.map((team) => team.tid),
-			);
-			const restricted5 = new Set(
-				teams
-					.filter((team) => team.draftLottery?.restricted5)
-					.map((team) => team.tid),
-			);
-			chances = chances.map((chance, index) => {
-				const tid = lotteryTeams[index]?.tid;
-				return tid !== undefined &&
-					(restricted1.has(tid) || restricted5.has(tid))
-					? 0
-					: chance;
-			});
-		}
-
 		if (
 			DIVIDE_CHANCES_OVER_TIED_TEAMS &&
 			draftType !== "cola" &&
@@ -539,21 +541,43 @@ const genOrder = async (
 					return null;
 				})
 			: undefined;
-		firstN.push(
-			...drawLotterySelections({
-				chances,
-				numToPick,
-				riggedLotteryChances,
-				protectedTeamCount:
-					draftType === "nba321" || draftType === "nba2027"
-						? NBA_321_PROTECTED_TEAM_COUNT
-						: undefined,
-				protectedFloorPick:
-					draftType === "nba321" || draftType === "nba2027"
-						? NBA_321_PROTECTED_FLOOR_PICK
-						: undefined,
-			}),
-		);
+		const nba2027Restrictions =
+			draftType === "nba2027"
+				? {
+						restricted1: (await idb.cache.teams.getAll())
+							.filter((team) => team.draftLottery?.restricted1)
+							.map((team) =>
+								lotteryTeams.findIndex((lt) => lt.tid === team.tid),
+							)
+							.filter((index) => index >= 0),
+						restricted5: (await idb.cache.teams.getAll())
+							.filter((team) => team.draftLottery?.restricted5 === 2)
+							.map((team) =>
+								lotteryTeams.findIndex((lt) => lt.tid === team.tid),
+							)
+							.filter((index) => index >= 0),
+					}
+				: undefined;
+		nba2027RestrictionsForResult = nba2027Restrictions;
+		const selections =
+			draftType === "nba2027"
+				? simLottery(
+						draftType,
+						chances,
+						numToPick,
+						nba2027Restrictions,
+						riggedLotteryChances?.map((i) => (i === null ? undefined : i)),
+					)
+				: drawLotterySelections({
+						chances,
+						numToPick,
+						riggedLotteryChances,
+						protectedTeamCount:
+							draftType === "nba321" ? NBA_321_PROTECTED_TEAM_COUNT : undefined,
+						protectedFloorPick:
+							draftType === "nba321" ? NBA_321_PROTECTED_FLOOR_PICK : undefined,
+					});
+		firstN.push(...selections);
 
 		if (!mock) {
 			logLotteryChances(chancePct, lotteryTeams, draftPicksIndexed, conditions);
@@ -667,6 +691,12 @@ const genOrder = async (
 					};
 				}),
 		};
+		if (draftType === "nba2027") {
+			draftLotteryResult.nba2027 = {
+				restricted1: nba2027RestrictionsForResult?.restricted1 ?? [],
+				restricted5: nba2027RestrictionsForResult?.restricted5 ?? [],
+			};
+		}
 
 		if (!mock) {
 			await idb.cache.draftLotteryResults.put(draftLotteryResult);

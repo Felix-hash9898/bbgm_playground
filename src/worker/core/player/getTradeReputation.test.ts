@@ -1,5 +1,6 @@
 import { assert, test } from "vitest";
 import { getTradeReputation } from "./getTradeReputation.ts";
+import addToFreeAgents from "./addToFreeAgents.ts";
 
 test("trade reputation uses the three-season weighted snapshot", () => {
 	assert.strictEqual(
@@ -13,4 +14,17 @@ test("trade reputation uses the three-season weighted snapshot", () => {
 		),
 		8,
 	);
+});
+
+test("batch free-agent entry copies one snapshot per player", async () => {
+	const snapshot = { 0: 1.5, 1: 0.25 };
+	const p1 = { tid: 0, usageBias: 0, ratings: [], contract: {} } as any;
+	const p2 = { tid: 1, usageBias: 0, ratings: [], contract: {} } as any;
+	await addToFreeAgents(p1, snapshot);
+	await addToFreeAgents(p2, snapshot);
+	assert.deepStrictEqual(p1.tradeReputationByTid, snapshot);
+	assert.deepStrictEqual(p2.tradeReputationByTid, snapshot);
+	assert.notStrictEqual(p1.tradeReputationByTid, p2.tradeReputationByTid);
+	p1.tradeReputationByTid[0] = 99;
+	assert.strictEqual(p2.tradeReputationByTid[0], 1.5);
 });

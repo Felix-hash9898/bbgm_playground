@@ -3,6 +3,7 @@ import type {
 	RealTeamInfo,
 } from "../../../../common/types.ts";
 import { idb } from "../../../db/index.ts";
+import toUI from "../../../util/toUI.ts";
 import {
 	validateRealPlayerPhotos,
 	validateRealTeamInfo,
@@ -27,6 +28,13 @@ const getRealTeamPlayerData = async ({
 					realPlayerPhotos = value as RealPlayerPhotos;
 				} catch (error) {
 					console.error("Ignoring invalid stored real player photos", error);
+					await toUI("showEvent", [
+						{
+							type: "error",
+							text: "Invalid stored real player photos were ignored.",
+							persistent: false,
+						},
+					]);
 				}
 			}
 		}
@@ -38,6 +46,13 @@ const getRealTeamPlayerData = async ({
 					realTeamInfo = value as RealTeamInfo;
 				} catch (error) {
 					console.error("Ignoring invalid stored real team info", error);
+					await toUI("showEvent", [
+						{
+							type: "error",
+							text: "Invalid stored real team information was ignored.",
+							persistent: false,
+						},
+					]);
 				}
 			}
 		}

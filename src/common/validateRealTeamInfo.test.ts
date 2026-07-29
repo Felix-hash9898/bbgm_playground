@@ -24,5 +24,8 @@ test("validates real team info and season overrides", () => {
 		validateRealTeamInfo({ LV: { colors: ["#000", "#111"] } }),
 	);
 	assert.throws(() => validateRealTeamInfo({ LV: { seasons: { nope: {} } } }));
+	assert.throws(() =>
+		validateRealTeamInfo({ LV: { seasons: { "2029": { seasons: {} } } } }),
+	);
 	assert.throws(() => validateRealTeamInfo({ LV: { extra: true } }));
 });
