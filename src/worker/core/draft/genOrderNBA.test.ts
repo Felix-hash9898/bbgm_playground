@@ -118,3 +118,17 @@ test("nba321 uses an exact precomputed probability matrix", async () => {
 	assert.strictEqual(probs[3]?.[0], 0.08108108108108109);
 	assert.strictEqual(probs[14]?.[15], 0.2652305869491766);
 });
+
+test("nba2027 uses the new rule while legacy nba321 remains selectable", async () => {
+	const modern = await draft.genOrder(true, undefined, "nba2027");
+	assert(modern.draftLotteryResult);
+	assert.strictEqual(modern.draftLotteryResult.draftType, "nba2027");
+	assert.strictEqual(modern.draftLotteryResult.result.length, 16);
+	assert.deepStrictEqual(
+		modern.draftLotteryResult.result.slice(0, 3).map((row) => row.chances),
+		[2, 2, 2],
+	);
+	const legacy = await draft.genOrder(true, undefined, "nba321");
+	assert(legacy.draftLotteryResult);
+	assert.strictEqual(legacy.draftLotteryResult.draftType, "nba321");
+});

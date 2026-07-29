@@ -11,6 +11,7 @@ import {
 import type { Settings } from "./settings.ts";
 import { unwrapGameAttribute } from "../../common/index.ts";
 import goatFormula from "../util/goatFormula.ts";
+import { validateRealTeamInfo } from "../../common/validateRealTeamInfo.ts";
 
 const getDefaultRealStats = () => {
 	return env.mobile ? "none" : "allActiveHOF";
@@ -462,7 +463,15 @@ export const getRealTeamInfo = async () => {
 		| RealTeamInfo
 		| undefined;
 
-	return realTeamInfo;
+	try {
+		if (realTeamInfo !== undefined) {
+			validateRealTeamInfo(realTeamInfo);
+		}
+		return realTeamInfo;
+	} catch (error) {
+		console.error("Ignoring invalid stored real team info", error);
+		return undefined;
+	}
 };
 
 const updateNewLeague = async ({ lid, type }: ViewInput<"newLeague">) => {

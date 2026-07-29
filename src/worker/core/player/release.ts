@@ -50,7 +50,7 @@ const release = async (p: Player, justDrafted: boolean) => {
 		pids: [p.pid],
 		tids: [p.tid],
 	});
-	addToFreeAgents(p);
+	await addToFreeAgents(p);
 	await idb.cache.players.put(p);
 };
 

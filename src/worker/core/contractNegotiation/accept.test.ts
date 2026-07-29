@@ -619,4 +619,32 @@ test("concurrent accepts consume one negotiation and sign once", async () => {
 	const signed = await idb.cache.players.get(pid);
 	assert.strictEqual(signed?.tid, g.get("userTid"));
 	assert.strictEqual(signed?.contract.amount, g.get("minContract"));
+	// This signing path records the contract on the player but does not append a
+	// transaction row; the negotiation deletion and final contract are the
+	// durable effects observable here.
+});
+
+test("concurrent dry runs do not use the accept submission lock", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+
+	const results = await Promise.all([
+		contractNegotiation.accept({
+			pid,
+			amount: g.get("minContract"),
+			exp: g.get("season") + 1,
+			dryRun: true,
+		}),
+		contractNegotiation.accept({
+			pid,
+			amount: g.get("minContract"),
+			exp: g.get("season") + 1,
+			dryRun: true,
+		}),
+	]);
+
+	assert.deepStrictEqual(results, [undefined, undefined]);
+	assert.isDefined(await idb.cache.negotiations.get(pid));
 });

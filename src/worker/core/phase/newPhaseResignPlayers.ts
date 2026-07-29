@@ -58,7 +58,7 @@ const newPhaseResignPlayers = async (
 			: [];
 
 	for (const p of [...existingFreeAgents, ...undraftedPlayers]) {
-		player.addToFreeAgents(p);
+		await player.addToFreeAgents(p);
 		await idb.cache.players.put(p);
 	}
 
@@ -179,7 +179,7 @@ const newPhaseResignPlayers = async (
 		) {
 			const tid = p.tid;
 
-			player.addToFreeAgents(p);
+			await player.addToFreeAgents(p);
 
 			await idb.cache.players.put(p);
 			const error = await contractNegotiation.create(p.pid, true, tid);
@@ -281,7 +281,7 @@ const newPhaseResignPlayers = async (
 			}
 
 			if (!reSignPlayer) {
-				player.addToFreeAgents(p);
+				await player.addToFreeAgents(p);
 			}
 
 			// Delete rookieResign for AI players, since we're done re-signing them. Leave it for user players.

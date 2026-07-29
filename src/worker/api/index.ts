@@ -156,6 +156,10 @@ import loadData from "../core/realRosters/loadData.basketball.ts";
 import formatPlayerFactory from "../core/realRosters/formatPlayerFactory.ts";
 import { applyRealPlayerPhotos } from "../core/league/processPlayerNewLeague.ts";
 import { actualPhase } from "../util/actualPhase.ts";
+import {
+	validateRealPlayerPhotos as validateRealPlayerPhotosData,
+	validateRealTeamInfo as validateRealTeamInfoData,
+} from "../../common/validateRealTeamInfo.ts";
 import getCol from "../../common/getCol.ts";
 import getCols from "../../common/getCols.ts";
 import { formatScheduleForEditor } from "../views/scheduleEditor.ts";
@@ -3057,7 +3061,7 @@ const removeLastTeam = async () => {
 	const players = await idb.cache.players.indexGetAll("playersByTid", tid);
 
 	for (const p of players) {
-		player.addToFreeAgents(p);
+		await player.addToFreeAgents(p);
 		await idb.cache.players.put(p);
 	}
 
@@ -4066,6 +4070,7 @@ const updateOptions = async (
 				"Invalid data format in real player photos - input is not an object",
 			);
 		}
+		validateRealPlayerPhotosData(realPlayerPhotos);
 		for (const [key, value] of Object.entries(realPlayerPhotos)) {
 			if (typeof value !== "string") {
 				throw new Error(
@@ -4086,6 +4091,7 @@ const updateOptions = async (
 				"Invalid data format in real team info - input is not an object",
 			);
 		}
+		validateRealTeamInfoData(realTeamInfo);
 		for (const [abbrev, teamInfo] of Object.entries(realTeamInfo)) {
 			validateRealTeamInfo(abbrev, teamInfo);
 			if (typeof teamInfo !== "object" || teamInfo === null) {

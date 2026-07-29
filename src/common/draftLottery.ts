@@ -114,7 +114,11 @@ const NBA_321_PROBS = [
 	[...NBA_321_PROBS_PLAY_IN_7_8_LOSER_ROW],
 ];
 
-const simLottery = (chances: number[], numToPick: number) => {
+const simLottery = (
+	chances: number[],
+	numToPick: number,
+	random = Math.random,
+) => {
 	let teams = chances.map((chance, index) => ({
 		chances: chance,
 		index,
@@ -127,7 +131,11 @@ const simLottery = (chances: number[], numToPick: number) => {
 		for (const t of teams) {
 			sum += t.chances;
 		}
-		const rand = Math.random() * sum;
+		if (sum <= 0) {
+			pickIndexes.push(...teams.map((team) => team.index));
+			break;
+		}
+		const rand = random() * sum;
 		let sum2 = 0;
 		for (const t of teams) {
 			sum2 += t.chances;
@@ -145,7 +153,7 @@ const simLottery = (chances: number[], numToPick: number) => {
 	return pickIndexes;
 };
 
-const simNba321Lottery = (chances: number[]) => {
+const simNba321Lottery = (chances: number[], random = Math.random) => {
 	let teams = chances.map((chance, index) => ({
 		chances: chance,
 		index,
@@ -169,7 +177,11 @@ const simNba321Lottery = (chances: number[]) => {
 		for (const t of candidates) {
 			sum += t.chances;
 		}
-		const rand = Math.random() * sum;
+		if (sum <= 0) {
+			pickIndexes.push(...teams.map((team) => team.index));
+			break;
+		}
+		const rand = random() * sum;
 		let sum2 = 0;
 		for (const t of candidates) {
 			sum2 += t.chances;
@@ -196,12 +208,17 @@ const monteCarloLotteryProbs = (
 	const probs: number[][] = [];
 
 	const chances = result.map((row) => row.chances);
+	let seed = 0x9e3779b9;
+	const random = () => {
+		seed = (Math.imul(seed ^ (seed >>> 16), 2246822507) + 3266489909) | 0;
+		return (seed >>> 0) / 4294967296;
+	};
 
 	for (let i = 0; i < ITERATIONS; i++) {
 		const result =
 			draftType === "nba321"
-				? simNba321Lottery(chances)
-				: simLottery(chances, numToPick);
+				? simNba321Lottery(chances, random)
+				: simLottery(chances, numToPick, random);
 		for (let j = 0; j < result.length; j++) {
 			const k = result[j]!;
 			if (!probs[k]) {
@@ -246,6 +263,14 @@ export const getDraftLotteryProbs = (
 		(total, { chances }) => total + chances,
 		0,
 	);
+
+	if (totalChances <= 0) {
+		const uniform = 1 / result.length;
+		return {
+			tooSlow: false,
+			probs: result.map(() => new Array(result.length).fill(uniform)),
+		};
+	}
 
 	if (draftType === "randomLottery") {
 		for (let i = 0; i < result.length; i++) {
@@ -585,10 +610,19 @@ export const getDraftLotteryProbs = (
 				? 1
 				: getProb(prevLotteryWinnerIndexes);
 
+		if (chancesLeft <= 0) {
+			return 0;
+		}
 		const prob = (priorProb * result[currentTeamIndex]!.chances) / chancesLeft;
 
 		return prob;
 	};
+	if (result.filter((row) => row.chances > 0).length < numToPick) {
+		return {
+			tooSlow: false,
+			probs: monteCarloLotteryProbs(result, numToPick, draftType),
+		};
+	}
 
 	for (let pickIndex = 0; pickIndex < numToPick; pickIndex += 1) {
 		const range = new MultiDimensionalRange(result.length, pickIndex + 1);

@@ -198,6 +198,10 @@ const acceptUnsafe = async ({
 };
 
 const accept = async (params: Parameters<typeof acceptUnsafe>[0]) => {
+	if (params.dryRun) {
+		return acceptUnsafe(params);
+	}
+
 	if (accepting.has(params.pid)) {
 		return `Contract negotiation for player ${params.pid} is already being processed.`;
 	}

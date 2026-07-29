@@ -67,7 +67,7 @@ const disable = async (tid: number) => {
 	const players = await idb.cache.players.indexGetAll("playersByTid", t.tid);
 
 	for (const p of players) {
-		player.addToFreeAgents(p);
+		await player.addToFreeAgents(p);
 		await idb.cache.players.put(p);
 
 		logEvent({

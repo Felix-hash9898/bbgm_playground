@@ -43,6 +43,8 @@ export const getDraftTypeDescription = (
 		nba2019: "Weighted lottery for the top 4 picks, like the NBA since 2019",
 		nba321:
 			"Weighted 16-team anti-tanking lottery based on the NBA's current 3-2-1 proposal, with all 16 lottery spots drawn and the three worst teams unable to fall below pick 12",
+		nba2027:
+			"Weighted NBA 2027 3-2-1 lottery with a floor for the three worst teams",
 		nba1994:
 			"Weighted lottery for the top 3 picks, like the NBA from 1994-2018",
 		nba1990:

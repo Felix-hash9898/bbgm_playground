@@ -8,6 +8,7 @@ import {
 	season,
 	team,
 } from "../index.ts";
+import { getTradeReputationByTid } from "../player/getTradeReputation.ts";
 import {
 	applyRealTeamInfo,
 	DEFAULT_STADIUM_CAPACITY,
@@ -1605,7 +1606,11 @@ const afterDBStream = async ({
 	delete gameAttributesToUpdate.teamInfoCache;
 
 	// Need this before calling setGameAttributes, so the "cola" draftType can see recent top draft picks
+	const tradeReputationByTid = await getTradeReputationByTid();
 	for (const p of activePlayers) {
+		if (p.tid === PLAYER.FREE_AGENT && p.tradeReputationByTid === undefined) {
+			p.tradeReputationByTid = { ...tradeReputationByTid };
+		}
 		await idb.cache.players.put(p);
 	}
 

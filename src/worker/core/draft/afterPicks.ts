@@ -54,7 +54,7 @@ const afterPicks = async (draftOver: boolean, conditions: Conditions = {}) => {
 				);
 
 				for (const p of playersUndrafted) {
-					player.addToFreeAgents(p);
+					await player.addToFreeAgents(p);
 					await idb.cache.players.put(p);
 				}
 				await freeAgents.normalizeContractDemands({
