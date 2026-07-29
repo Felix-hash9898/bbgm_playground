@@ -1,7 +1,12 @@
 import { player, team } from "../index.ts";
 import cancel from "./cancel.ts";
 import { idb } from "../../db/index.ts";
-import { g, helpers, toUI, recomputeLocalUITeamOvrs } from "../../util/index.ts";
+import {
+	g,
+	helpers,
+	toUI,
+	recomputeLocalUITeamOvrs,
+} from "../../util/index.ts";
 import type { PlayerContract } from "../../../common/types.ts";
 import { PHASE } from "../../../common/index.ts";
 import {
@@ -36,7 +41,9 @@ import {
  * @param {number} pid An integer that must correspond with the player ID of a player in an ongoing negotiation.
  * @return {Promise.<string=>} If an error occurs, resolves to a string error message.
  */
-const accept = async ({
+const accepting = new Set<number>();
+
+const acceptUnsafe = async ({
 	pid,
 	amount,
 	exp,
@@ -187,6 +194,19 @@ const accept = async ({
 
 		await toUI("realtimeUpdate", [["playerMovement"]]);
 		await recomputeLocalUITeamOvrs();
+	}
+};
+
+const accept = async (params: Parameters<typeof acceptUnsafe>[0]) => {
+	if (accepting.has(params.pid)) {
+		return `Contract negotiation for player ${params.pid} is already being processed.`;
+	}
+
+	accepting.add(params.pid);
+	try {
+		return await acceptUnsafe(params);
+	} finally {
+		accepting.delete(params.pid);
 	}
 };
 
