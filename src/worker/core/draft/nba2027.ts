@@ -76,9 +76,38 @@ export const initializeNba2027 = async () => {
 			{ draftYear: season },
 			"noCopyCache",
 		);
-		return players
+		const draftedPlayerRows = players
 			.filter((p) => p.draft.round === 1 && p.draft.pick > 0)
 			.map((p) => ({ pick: p.draft.pick, originalTid: p.draft.originalTid }));
+		if (draftedPlayerRows.length > 0) {
+			return draftedPlayerRows;
+		}
+
+		const realizedDraftPicks = (
+			await idb.getCopies.draftPicks(undefined, "noCopyCache")
+		).filter(
+			(dp) =>
+				dp.season === season &&
+				dp.round === 1 &&
+				Number.isInteger(dp.pick) &&
+				dp.pick >= RESTRICTED_1_PICK &&
+				dp.pick <= RESTRICTED_5_PICK,
+		);
+		const rowsByPick = new Map(realizedDraftPicks.map((dp) => [dp.pick, dp]));
+		if (
+			realizedDraftPicks.length !== RESTRICTED_5_PICK ||
+			rowsByPick.size !== RESTRICTED_5_PICK
+		) {
+			return [];
+		}
+
+		return [1, 2, 3, 4, 5].map((pick) => {
+			const dp = rowsByPick.get(pick)!;
+			return {
+				pick,
+				originalTid: dp.originalTid,
+			};
+		});
 	};
 	applyRows(
 		results && results.result.length > RESTRICTED_5_PICK
