@@ -1,6 +1,19 @@
-import { assert, test } from "vitest";
-import { getTradeReputation } from "./getTradeReputation.ts";
+import { afterEach, assert, test } from "vitest";
+import { mockIDBLeague, resetCache, resetG } from "../../../test/helpers.ts";
+import { idb } from "../../db/index.ts";
+import { g } from "../../util/index.ts";
+import {
+	getTradeReputation,
+	getTradeReputationByTid,
+} from "./getTradeReputation.ts";
 import addToFreeAgents from "./addToFreeAgents.ts";
+
+afterEach(() => {
+	// @ts-expect-error -- tests intentionally model a freshly reset g
+	delete g.season;
+	// @ts-expect-error
+	idb.league = undefined;
+});
 
 test("trade reputation uses the three-season weighted snapshot", () => {
 	assert.strictEqual(
@@ -27,4 +40,23 @@ test("batch free-agent entry copies one snapshot per player", async () => {
 	assert.notStrictEqual(p1.tradeReputationByTid, p2.tradeReputationByTid);
 	p1.tradeReputationByTid[0] = 99;
 	assert.strictEqual(p2.tradeReputationByTid[0], 1.5);
+});
+
+test("explicit create/import season works before g.season is installed", async () => {
+	resetG();
+	// createStream resets g and only restores the lid before this calculation.
+	// @ts-expect-error -- intentionally verify the missing attribute path
+	delete g.season;
+	g.setWithoutSavingToDB("lid", 1);
+	idb.league = mockIDBLeague();
+	await resetCache({
+		teams: [{ tid: 0, disabled: false }] as any,
+		teamSeasons: [
+			{ tid: 0, season: 2024, numPlayersTradedAway: 4 },
+			{ tid: 0, season: 2025, numPlayersTradedAway: 2 },
+			{ tid: 0, season: 2026, numPlayersTradedAway: 8 },
+		] as any,
+	});
+
+	assert.deepStrictEqual(await getTradeReputationByTid(2026), { 0: 8 });
 });

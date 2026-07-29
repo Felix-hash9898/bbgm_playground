@@ -1,33 +1,139 @@
-import fs from "node:fs";
 import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
-const targetPath = "data/real-player-data.basketball.json";
-const officialPath = "../bbgm_official/data/real-player-data.basketball.json";
+// D49 is deliberately reproducible. Do not replace either of these with HEAD
+// or with the worktree file; the current worktree is the output, never input.
 const BASELINE_COMMIT = "76313676b";
-const currentSeason = 2026;
-const target = JSON.parse(fs.readFileSync(targetPath, "utf8"));
-const baseline = JSON.parse(
-	execFileSync("git", ["show", `${BASELINE_COMMIT}:${targetPath}`], {
-		encoding: "utf8",
-		maxBuffer: 100 * 1024 * 1024,
-	}),
-);
-const official = JSON.parse(fs.readFileSync(officialPath, "utf8"));
+const OFFICIAL_COMMIT = "c127a384b2d110aab7e42f4ac2a84f4ebb8251ec";
+const OFFICIAL_REPO = "../bbgm_official";
+const TARGET_PATH = "data/real-player-data.basketball.json";
+const MANIFEST_PATH = ".ai-bridge/d49-d52-manifest.md";
+const CURRENT_SEASON = 2026;
 
-const protectedKeys = Object.keys(target).filter(
-	(key) => !["teams", "ratings", "salaries", "bios"].includes(key),
-);
-const rowKey = (row, field) =>
-	field === "start" ? `${row.slug}:${row.start}` : `${row.slug}:${row[field]}`;
-const value = (item) => JSON.stringify(item);
-const fieldsChanged = (oldRow, newRow, fields) =>
-	fields.filter((field) => value(oldRow?.[field]) !== value(newRow?.[field]));
+const COLLECTIONS = [
+	{
+		name: "teams",
+		period: "season",
+		fields: ["slug", "season", "abbrev", "jerseyNumber"],
+	},
+	{
+		name: "ratings",
+		period: "season",
+		fields: [
+			"slug",
+			"season",
+			"diq",
+			"dnk",
+			"drb",
+			"endu",
+			"fg",
+			"ft",
+			"fuzz",
+			"hgt",
+			"ins",
+			"jmp",
+			"oiq",
+			"pss",
+			"reb",
+			"spd",
+			"stre",
+			"tp",
+		],
+	},
+	{
+		name: "salaries",
+		period: "start",
+		fields: ["slug", "start", "exp", "amounts"],
+	},
+];
+const BIO_FIELDS = [
+	"bornYear",
+	"college",
+	"country",
+	"diedYear",
+	"draftAbbrev",
+	"draftPick",
+	"draftRound",
+	"draftYear",
+	"height",
+	"name",
+	"pos",
+	"weight",
+];
+const PROTECTED_TOP_LEVEL = [
+	"awards",
+	"draftPicks",
+	"expansionDrafts",
+	"freeAgents",
+	"injuries",
+	"playIns",
+	"playoffSeries",
+	"relatives",
+	"retiredJerseyNumbers",
+	"scheduledEventsGameAttributes",
+	"scheduledEventsTeams",
+	"teamSeasons",
+];
+
+const json = (value) => JSON.stringify(value);
+const clone = (value) => structuredClone(value);
+const rowKey = (row, period) => `${row.slug}:${row[period]}`;
+const isCurrent = (row, period) => row[period] >= CURRENT_SEASON;
+const gitJSON = (cwd, revision) =>
+	JSON.parse(
+		execFileSync("git", ["show", `${revision}:${TARGET_PATH}`], {
+			cwd,
+			encoding: "utf8",
+			maxBuffer: 100 * 1024 * 1024,
+		}),
+	);
+
+const baseline = gitJSON(process.cwd(), BASELINE_COMMIT);
+const official = gitJSON(OFFICIAL_REPO, OFFICIAL_COMMIT);
+const target = clone(baseline);
+
+const assertNoUnknownFields = (row, fields, label) => {
+	for (const field of Object.keys(row)) {
+		if (!fields.includes(field)) {
+			throw new Error(`${label} has unapproved source field ${field}`);
+		}
+	}
+};
+
+// Official has a few repeated salary records. Its fixed-source record order is
+// authoritative: later rows supersede earlier rows with the same slug/period.
+const canonicalCurrentRows = (rows, period, fields, label) => {
+	const output = new Map();
+	for (const row of rows) {
+		if (!isCurrent(row, period)) {
+			continue;
+		}
+		assertNoUnknownFields(row, fields, label);
+		output.set(rowKey(row, period), clone(row));
+	}
+	return output;
+};
+
+const changedFields = (before, after, fields) =>
+	fields.filter((field) => json(before?.[field]) !== json(after?.[field]));
+const copyApprovedFields = (previous, source, fields) => {
+	const output = clone(previous ?? {});
+	for (const field of fields) {
+		if (Object.hasOwn(source, field)) {
+			output[field] = clone(source[field]);
+		} else {
+			// An Official omission is intentional. Do not leave stale target data.
+			delete output[field];
+		}
+	}
+	return output;
+};
 
 const manifest = {
 	baseline: BASELINE_COMMIT,
-	source: "local ../bbgm_official current HEAD",
-	target: "current worktree",
-	currentSeason,
+	official: OFFICIAL_COMMIT,
+	currentSeason: CURRENT_SEASON,
 	collections: {},
 	bios: { changed: [], added: [], removed: [] },
 	slugRenames: [],
@@ -35,225 +141,204 @@ const manifest = {
 	imageChanges: [],
 };
 
-const mergeRows = (field, keyField, approvedFields) => {
-	const predicate = (row) => row[keyField] >= currentSeason;
-	const oldTarget = target[field];
-	const currentTarget = new Map(
-		oldTarget.filter(predicate).map((row) => [rowKey(row, keyField), row]),
+for (const { name, period, fields } of COLLECTIONS) {
+	const baselineCurrent = new Map(
+		baseline[name]
+			.filter((row) => isCurrent(row, period))
+			.map((row) => [rowKey(row, period), row]),
 	);
-	const sourceRows = official[field].filter(predicate);
-	const sourceKeys = new Set(sourceRows.map((row) => rowKey(row, keyField)));
-	const outputRows = [];
-	const seen = new Set();
-	for (const row of oldTarget) {
-		if (!predicate(row)) {
-			outputRows.push(row);
-			continue;
-		}
-		const key = rowKey(row, keyField);
-		if (seen.has(key)) {
-			continue;
-		}
-		const source = sourceRows.find(
-			(candidate) => rowKey(candidate, keyField) === key,
+	const sourceCurrent = canonicalCurrentRows(
+		official[name],
+		period,
+		fields,
+		name,
+	);
+	const outputCurrent = new Map();
+	for (const [key, source] of sourceCurrent) {
+		outputCurrent.set(
+			key,
+			copyApprovedFields(baselineCurrent.get(key), source, fields),
 		);
-		if (source) {
-			const merged = { ...row };
-			for (const approved of approvedFields) {
-				if (source[approved] !== undefined) {
-					merged[approved] = source[approved];
-				}
-			}
-			outputRows.push(merged);
-			seen.add(key);
-		}
 	}
-	for (const source of sourceRows) {
-		const key = rowKey(source, keyField);
-		if (seen.has(key)) {
+
+	// Historical records are copied byte-for-byte from the fixed baseline. Keep
+	// their surrounding source order too, so the generated diff is field-level.
+	const emitted = new Set();
+	target[name] = [];
+	for (const baselineRow of baseline[name]) {
+		if (!isCurrent(baselineRow, period)) {
+			target[name].push(clone(baselineRow));
 			continue;
 		}
-		const old = currentTarget.get(key);
-		const merged = old ? { ...old } : {};
-		for (const approved of approvedFields) {
-			if (source[approved] !== undefined) {
-				merged[approved] = source[approved];
-			}
+		const key = rowKey(baselineRow, period);
+		const outputRow = outputCurrent.get(key);
+		if (outputRow && !emitted.has(key)) {
+			target[name].push(outputRow);
+			emitted.add(key);
 		}
-		outputRows.push(merged);
-		seen.add(key);
 	}
-	target[field] = outputRows;
+	for (const [key, outputRow] of outputCurrent) {
+		if (!emitted.has(key)) {
+			target[name].push(outputRow);
+		}
+	}
 
-	const before = new Map(
-		baseline[field]
-			.filter(predicate)
-			.map((row) => [rowKey(row, keyField), row]),
-	);
-	const after = new Map(
-		target[field].filter(predicate).map((row) => [rowKey(row, keyField), row]),
-	);
 	const details = { changed: [], added: [], removed: [] };
-	for (const [key, row] of after) {
-		if (!before.has(key)) {
-			details.added.push({ key, row });
-		} else {
-			const old = before.get(key);
-			const fields = fieldsChanged(old, row, approvedFields);
-			if (fields.length > 0) {
-				details.changed.push({
-					key,
-					slug: row.slug,
-					period: row[keyField],
-					fields: fields.map((field) => ({
-						field,
-						old: old[field],
-						new: row[field],
-					})),
-				});
-			}
+	for (const [key, after] of outputCurrent) {
+		const before = baselineCurrent.get(key);
+		if (!before) {
+			details.added.push({
+				key,
+				slug: after.slug,
+				period: after[period],
+				row: after,
+			});
+			continue;
+		}
+		const fieldsChanged = changedFields(before, after, fields);
+		if (fieldsChanged.length > 0) {
+			details.changed.push({
+				key,
+				slug: after.slug,
+				period: after[period],
+				fields: fieldsChanged.map((field) => ({
+					field,
+					old: before[field],
+					new: after[field],
+				})),
+			});
 		}
 	}
-	for (const [key, row] of before) {
-		if (!after.has(key)) {
-			details.removed.push({ key, row });
+	for (const [key, before] of baselineCurrent) {
+		if (!outputCurrent.has(key)) {
+			details.removed.push({
+				key,
+				slug: before.slug,
+				period: before[period],
+				row: before,
+			});
 		}
 	}
-	manifest.collections[field] = details;
-};
-
-mergeRows("teams", "season", ["slug", "season", "abbrev", "jerseyNumber"]);
-const ratingFields = [
-	...new Set(
-		official.ratings
-			.filter((row) => row.season >= currentSeason)
-			.flatMap((row) => Object.keys(row)),
-	),
-];
-mergeRows("ratings", "season", ratingFields);
-mergeRows("salaries", "start", ["slug", "start", "exp", "amounts"]);
+	manifest.collections[name] = details;
+}
 
 const currentSlugs = new Set(
-	["teams", "ratings", "salaries"].flatMap((field) =>
-		target[field]
-			.filter(
-				(row) =>
-					row[field === "salaries" ? "start" : "season"] >= currentSeason,
-			)
+	COLLECTIONS.flatMap(({ name, period }) =>
+		target[name].filter((row) => isCurrent(row, period)).map((row) => row.slug),
+	),
+);
+const baselineCurrentSlugs = new Set(
+	COLLECTIONS.flatMap(({ name, period }) =>
+		baseline[name]
+			.filter((row) => isCurrent(row, period))
 			.map((row) => row.slug),
 	),
 );
-const bioFields = [
-	...new Set(
-		currentSlugs
-			? Object.values(official.bios).flatMap((bio) => Object.keys(bio))
-			: [],
-	),
-];
 for (const slug of currentSlugs) {
 	const source = official.bios[slug];
 	if (!source) {
-		throw new Error(`Missing Official identity for ${slug}`);
+		throw new Error(`Missing fixed Official bio for current player ${slug}`);
 	}
-	const old = target.bios[slug];
-	const baselineBio = baseline.bios[slug];
-	const merged = { ...(old ?? {}) };
-	for (const field of bioFields) {
-		if (source[field] !== undefined) {
-			merged[field] = source[field];
-		}
-	}
-	target.bios[slug] = merged;
-	if (!baselineBio) {
-		manifest.bios.added.push({ slug, new: merged });
+	assertNoUnknownFields(source, BIO_FIELDS, `bio ${slug}`);
+	const before = baseline.bios[slug];
+	const after = copyApprovedFields(before, source, BIO_FIELDS);
+	target.bios[slug] = after;
+	if (!before) {
+		manifest.bios.added.push({ slug, name: after.name, row: after });
 	} else {
-		const fields = fieldsChanged(baselineBio, merged, bioFields);
+		const fields = changedFields(before, after, BIO_FIELDS);
 		if (fields.length > 0) {
 			manifest.bios.changed.push({
 				slug,
-				name: merged.name,
+				name: after.name,
 				fields: fields.map((field) => ({
 					field,
-					old: baselineBio[field],
-					new: merged[field],
+					old: before[field],
+					new: after[field],
 				})),
 			});
 		}
 	}
 }
-
-const baselineCurrentSlugs = new Set(
-	["teams", "ratings", "salaries"].flatMap((field) =>
-		baseline[field]
-			.filter(
-				(row) =>
-					row[field === "salaries" ? "start" : "season"] >= currentSeason,
-			)
-			.map((row) => row.slug),
-	),
-);
 for (const slug of baselineCurrentSlugs) {
 	if (!currentSlugs.has(slug)) {
-		manifest.bios.removed.push({ slug, old: baseline.bios[slug] });
+		manifest.bios.removed.push({
+			slug,
+			name: baseline.bios[slug]?.name,
+			row: baseline.bios[slug],
+		});
 	}
 }
 
-const getRows = (field) =>
-	target[field].filter(
-		(row) => row[field === "salaries" ? "start" : "season"] >= currentSeason,
+const assertEqual = (actual, expected, message) => {
+	if (json(actual) !== json(expected)) {
+		throw new Error(message);
+	}
+};
+for (const { name, period, fields } of COLLECTIONS) {
+	const source = canonicalCurrentRows(official[name], period, fields, name);
+	const output = new Map(
+		target[name]
+			.filter((row) => isCurrent(row, period))
+			.map((row) => [rowKey(row, period), row]),
 	);
-for (const field of ["teams", "ratings", "salaries"]) {
-	const seen = new Set();
-	for (const row of getRows(field)) {
-		const key = rowKey(row, field === "salaries" ? "start" : "season");
-		if (seen.has(key)) {
-			throw new Error(`Duplicate current ${field} key ${key}`);
+	if (
+		output.size !== target[name].filter((row) => isCurrent(row, period)).length
+	) {
+		throw new Error(`Duplicate current ${name} key`);
+	}
+	if (output.size !== source.size) {
+		throw new Error(`${name} source/output row count mismatch`);
+	}
+	let mismatchCount = 0;
+	for (const [key, sourceRow] of source) {
+		const outputRow = output.get(key);
+		if (!outputRow) {
+			throw new Error(`Missing ${name} row ${key}`);
 		}
-		seen.add(key);
-		if (!target.bios[row.slug]) {
-			throw new Error(`Missing identity for ${row.slug}`);
+		for (const field of fields) {
+			if (json(outputRow[field]) !== json(sourceRow[field])) {
+				mismatchCount += 1;
+			}
 		}
+	}
+	if (mismatchCount !== 0) {
+		throw new Error(
+			`${name} has ${mismatchCount} fixed-source field mismatches`,
+		);
 	}
 }
-for (const row of getRows("salaries")) {
+for (const slug of currentSlugs) {
+	if (!target.bios[slug]) {
+		throw new Error(`Missing output bio for ${slug}`);
+	}
+	for (const field of BIO_FIELDS) {
+		assertEqual(
+			target.bios[slug][field],
+			official.bios[slug][field],
+			`Bio mismatch for ${slug}.${field}`,
+		);
+	}
+}
+for (const row of target.salaries.filter((row) => isCurrent(row, "start"))) {
 	if (
 		!Array.isArray(row.amounts) ||
-		row.amounts.length === 0 ||
-		row.amounts.some((amount) => !Number.isFinite(amount))
+		row.amounts.length !== row.exp - row.start + 1
 	) {
-		throw new Error(`Invalid salary amounts for ${row.slug}`);
-	}
-	if (row.exp < row.start) {
-		throw new Error(`Invalid salary expiration for ${row.slug}`);
+		throw new Error(`Invalid salary duration for ${row.slug}:${row.start}`);
 	}
 }
 for (const row of target.relatives) {
 	if (!target.bios[row.slug] || !target.bios[row.slug2]) {
-		throw new Error(`Missing relative identity ${row.slug}/${row.slug2}`);
+		throw new Error(`Relative has missing bio ${row.slug}/${row.slug2}`);
 	}
 }
-
-const imageKeys = (object) =>
-	Object.keys(object ?? {}).filter((key) => /image|img|photo/i.test(key));
-for (const slug of currentSlugs) {
-	const old = baseline.bios[slug] ?? {};
-	const next = target.bios[slug] ?? {};
-	for (const field of imageKeys(next)) {
-		if (value(old[field]) !== value(next[field])) {
-			manifest.imageChanges.push({
-				slug,
-				field,
-				old: old[field],
-				new: next[field],
-			});
-		}
-	}
-}
-
-for (const key of protectedKeys) {
-	if (value(target[key]) !== value(baseline[key])) {
-		throw new Error(`Protected non-target field changed: ${key}`);
-	}
+for (const key of PROTECTED_TOP_LEVEL) {
+	assertEqual(
+		target[key],
+		baseline[key],
+		`Protected top-level field changed: ${key}`,
+	);
 }
 
 const summary = (details) => ({
@@ -261,11 +346,10 @@ const summary = (details) => ({
 	added: details.added.length,
 	removed: details.removed.length,
 });
-for (const [field, details] of Object.entries(manifest.collections)) {
+for (const details of Object.values(manifest.collections)) {
 	details.summary = summary(details);
 }
 manifest.summary = {
-	baseline: BASELINE_COMMIT,
 	addedPlayers: manifest.bios.added.length,
 	removedPlayers: manifest.bios.removed.length,
 	teamRows: manifest.collections.teams.summary,
@@ -277,42 +361,68 @@ manifest.summary = {
 	imageChanges: manifest.imageChanges.length,
 };
 
-const renderRow = (entry) => {
-	const displayName = target.bios[entry.slug]?.name ?? entry.slug;
+const nameFor = (slug) => target.bios[slug]?.name ?? slug;
+const renderValue = (value) =>
+	value === undefined ? "<deleted>" : json(value);
+const renderEntry = (entry) => {
 	if (entry.fields) {
-		return `- ${entry.slug ?? entry.key} (${displayName}) period ${entry.period}: ${entry.fields.map((field) => `${field.field}=${value(field.old)} -> ${value(field.new)}`).join("; ")}`;
+		return `- ${entry.key} (${nameFor(entry.slug)}) period ${entry.period}: ${entry.fields.map((field) => `${field.field}=${renderValue(field.old)} -> ${renderValue(field.new)}`).join("; ")}`;
 	}
-	return `- ${entry.key} (${displayName}): ${value(entry.row)}`;
+	return `- ${entry.key ?? entry.slug} (${entry.name ?? nameFor(entry.slug)}): ${json(entry.row)}`;
 };
-const renderCollection = (name, details) =>
-	`## ${name}\n\nSummary: changed ${details.changed.length}, added ${details.added.length}, removed ${details.removed.length}.\n\n### Changed\n${details.changed.map(renderRow).join("\n") || "- None"}\n\n### Added\n${details.added.map(renderRow).join("\n") || "- None"}\n\n### Removed\n${details.removed.map(renderRow).join("\n") || "- None"}\n`;
+const renderSection = (title, details) =>
+	[
+		`## ${title}`,
+		"",
+		`Summary: changed ${details.changed.length}, added ${details.added.length}, removed ${details.removed.length}.`,
+		"",
+		"### Changed",
+		details.changed.map(renderEntry).join("\n") || "- None",
+		"",
+		"### Added",
+		details.added.map(renderEntry).join("\n") || "- None",
+		"",
+		"### Removed",
+		details.removed.map(renderEntry).join("\n") || "- None",
+		"",
+	].join("\n");
 const manifestText = [
 	"# D49/D52 field-level manifest",
 	"",
-	`- Baseline: ${BASELINE_COMMIT} (pre-D49 data file)`,
-	"- Official source: local current HEAD",
-	"- Target: current worktree",
-	`- Current-season boundary: ${currentSeason}`,
-	`- Added players: ${manifest.summary.addedPlayers}`,
-	`- Removed players: ${manifest.summary.removedPlayers}`,
-	`- Bio/identity changes: ${manifest.summary.bioChanges}`,
-	`- Slug renames: ${manifest.summary.slugRenames}`,
-	`- srID changes: ${manifest.summary.srIDChanges}`,
-	`- Image reference changes: ${manifest.summary.imageChanges}`,
+	`- Baseline commit: ${BASELINE_COMMIT}`,
+	`- Fixed Official commit: ${OFFICIAL_COMMIT}`,
+	`- Official repository: ${OFFICIAL_REPO}`,
+	`- Current-season boundary: ${CURRENT_SEASON}`,
+	"- Source duplicate policy: the last fixed-Official row for a slug/period wins.",
+	"- The target is rebuilt from the fixed baseline; the worktree data file is never read as input.",
 	"",
-	renderCollection("Teams", manifest.collections.teams),
-	renderCollection(
-		"Ratings (every changed rating field is listed)",
-		manifest.collections.ratings,
-	),
-	renderCollection("Salaries", manifest.collections.salaries),
-	`## Bios / identities\n\n### Changed\n${manifest.bios.changed.map(renderRow).join("\n") || "- None"}\n\n### Added\n${manifest.bios.added.map(renderRow).join("\n") || "- None"}\n\n### Removed\n${manifest.bios.removed.map(renderRow).join("\n") || "- None"}\n`,
+	renderSection("Teams", manifest.collections.teams),
+	renderSection("Ratings", manifest.collections.ratings),
+	renderSection("Salaries", manifest.collections.salaries),
+	renderSection("Bios / identities", manifest.bios),
+	"## Identity reference changes",
+	"",
+	`- Slug renames: ${manifest.slugRenames.length}`,
+	`- srID changes: ${manifest.srIDChanges.length}`,
+	`- Image reference changes: ${manifest.imageChanges.length}`,
+	"",
 	"## Protection proof",
 	"",
-	`The script asserts byte-for-byte equality from baseline to output for: ${protectedKeys.join(", ")}. This includes injuries, teamSeasons, playoffSeries, playIns, scheduled events, expansionDrafts, historical/source data, awards, freeAgents, draftPicks, retiredJerseyNumbers, and relatives. No D63 automatic expansion or image asset copy/generation is performed.`,
+	`The script asserts exact fixed-baseline equality for: ${PROTECTED_TOP_LEVEL.join(", ")}. It also asserts unique current keys, complete current bios, valid relatives, valid salary durations, and zero fixed-Official mismatches for all approved fields.`,
 	"",
 ].join("\n");
 
-fs.writeFileSync(targetPath, `${JSON.stringify(target, null, 2)}\n`);
-fs.writeFileSync(".ai-bridge/d49-d52-manifest.md", manifestText);
-console.log(JSON.stringify(manifest.summary, null, 2));
+fs.writeFileSync(TARGET_PATH, `${JSON.stringify(target, null, 2)}\n`);
+fs.mkdirSync(path.dirname(MANIFEST_PATH), { recursive: true });
+fs.writeFileSync(MANIFEST_PATH, manifestText);
+console.log(
+	JSON.stringify(
+		{
+			baseline: BASELINE_COMMIT,
+			official: OFFICIAL_COMMIT,
+			...manifest.summary,
+		},
+		null,
+		2,
+	),
+);

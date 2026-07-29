@@ -718271,6 +718271,8 @@
       "tp": 26
     },
     {
+      "slug": "balad01",
+      "season": 2026,
       "diq": 22,
       "dnk": 55,
       "drb": 42,
@@ -718284,13 +718286,13 @@
       "oiq": 27,
       "pss": 38,
       "reb": 46,
-      "season": 2026,
-      "slug": "balad01",
       "spd": 58,
       "stre": 34,
       "tp": 38
     },
     {
+      "slug": "grayha01",
+      "season": 2026,
       "diq": 49,
       "dnk": 14,
       "drb": 41,
@@ -718304,13 +718306,13 @@
       "oiq": 31,
       "pss": 52,
       "reb": 41,
-      "season": 2026,
-      "slug": "grayha01",
       "spd": 49,
       "stre": 26,
       "tp": 41
     },
     {
+      "slug": "keyty01",
+      "season": 2026,
       "diq": 39,
       "dnk": 55,
       "drb": 47,
@@ -718324,13 +718326,13 @@
       "oiq": 37,
       "pss": 47,
       "reb": 39,
-      "season": 2026,
-      "slug": "keyty01",
       "spd": 43,
       "stre": 30,
       "tp": 51
     },
     {
+      "slug": "okanito01",
+      "season": 2026,
       "diq": 53,
       "dnk": 43,
       "drb": 38,
@@ -718344,13 +718346,13 @@
       "oiq": 29,
       "pss": 36,
       "reb": 43,
-      "season": 2026,
-      "slug": "okanito01",
       "spd": 42,
       "stre": 43,
       "tp": 27
     },
     {
+      "slug": "scotttr01",
+      "season": 2026,
       "diq": 30,
       "dnk": 39,
       "drb": 27,
@@ -718364,13 +718366,13 @@
       "oiq": 33,
       "pss": 27,
       "reb": 65,
-      "season": 2026,
-      "slug": "scotttr01",
       "spd": 34,
       "stre": 33,
       "tp": 25
     },
     {
+      "slug": "willilu01",
+      "season": 2026,
       "diq": 42,
       "dnk": 47,
       "drb": 39,
@@ -718384,8 +718386,6 @@
       "oiq": 36,
       "pss": 33,
       "reb": 57,
-      "season": 2026,
-      "slug": "willilu01",
       "spd": 57,
       "stre": 38,
       "tp": 51
@@ -725616,8 +725616,8 @@
     },
     {
       "amounts": [
-        8104000,
-        8104000
+        8100000,
+        8100000
       ],
       "exp": 2027,
       "slug": "aytonde01",
@@ -727773,8 +727773,8 @@
     },
     {
       "amounts": [
-        5354000,
-        5621700
+        5500000,
+        5500000
       ],
       "exp": 2027,
       "slug": "bealbr01",
@@ -733345,7 +733345,7 @@
     },
     {
       "amounts": [
-        131970
+        844607
       ],
       "exp": 2026,
       "slug": "bufkiko01",
@@ -768855,11 +768855,13 @@
     },
     {
       "amounts": [
-        14104000,
-        13398800,
-        14104000
+        22516603,
+        22516603,
+        22516603,
+        22516603,
+        22516603
       ],
-      "exp": 2028,
+      "exp": 2030,
       "slug": "lillada01",
       "start": 2026
     },
@@ -793966,8 +793968,8 @@
     },
     {
       "amounts": [
-        5134000,
-        5390700
+        5200000,
+        5200000
       ],
       "exp": 2027,
       "slug": "smartma01",
@@ -809411,837 +809413,839 @@
       "start": 2026
     },
     {
-      "amounts": [
-        2296274
-      ],
-      "exp": 2026,
       "slug": "anthoco01",
-      "start": 2026
+      "start": 2026,
+      "exp": 2028,
+      "amounts": [
+        3700000,
+        3700000,
+        3700000
+      ]
     },
     {
+      "slug": "balad01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         43892
-      ],
-      "exp": 2026,
-      "slug": "balad01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "bambamo01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         194771
-      ],
-      "exp": 2026,
-      "slug": "bambamo01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "banchpa01",
+      "start": 2027,
+      "exp": 2031,
       "amounts": [
         41500000,
         44820000,
         48140000,
         51460000,
         54780000
-      ],
-      "exp": 2031,
-      "slug": "banchpa01",
-      "start": 2027
+      ]
     },
     {
-      "amounts": [
-        131970
-      ],
-      "exp": 2026,
       "slug": "bantoda01",
-      "start": 2026
-    },
-    {
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         131970
-      ],
-      "exp": 2026,
-      "slug": "bassech01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "bassech01",
+      "start": 2026,
+      "exp": 2026,
+      "amounts": [
+        131970
+      ]
+    },
+    {
+      "slug": "batesem01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         15000
-      ],
-      "exp": 2026,
-      "slug": "batesem01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "berinjo01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         7098163
-      ],
-      "exp": 2029,
-      "slug": "berinjo01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "bouchch01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         2296274
-      ],
-      "exp": 2026,
-      "slug": "bouchch01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "braunch01",
+      "start": 2027,
+      "exp": 2031,
       "amounts": [
         21551726,
         23275863,
         25000000,
         26724137,
         28448274
-      ],
-      "exp": 2031,
-      "slug": "braunch01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "broomjo01",
+      "start": 2027,
+      "exp": 2029,
       "amounts": [
         2150917,
         2525901,
         2735698
-      ],
-      "exp": 2029,
-      "slug": "broomjo01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "bryanca01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         7983539
-      ],
-      "exp": 2029,
-      "slug": "bryanca01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "camarto01",
+      "start": 2027,
+      "exp": 2030,
       "amounts": [
         18080358,
         19526786,
         20973214,
         22419642
-      ],
-      "exp": 2030,
-      "slug": "camarto01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "carteje01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         871000
-      ],
-      "exp": 2026,
-      "slug": "carteje01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "cissosi01",
+      "start": 2027,
+      "exp": 2027,
       "amounts": [
         2497812
-      ],
-      "exp": 2027,
-      "slug": "cissosi01",
-      "start": 2027
+      ]
     },
     {
-      "amounts": [
-        10651561
-      ],
-      "exp": 2026,
       "slug": "clarkjo01",
-      "start": 2026
+      "start": 2026,
+      "exp": 2026,
+      "amounts": [
+        2296274
+      ]
     },
     {
+      "slug": "claytwa01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         6752312
-      ],
-      "exp": 2029,
-      "slug": "claytwa01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "cliffni01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         5979481
-      ],
-      "exp": 2029,
-      "slug": "cliffni01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "conlemi01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         725834
-      ],
-      "exp": 2026,
-      "slug": "conlemi01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "connapa01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         1315814
-      ],
-      "exp": 2026,
-      "slug": "connapa01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "connapa01",
+      "start": 2027,
+      "exp": 2027,
       "amounts": [
         3815861
-      ],
-      "exp": 2027,
-      "slug": "connapa01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "daniedy01",
+      "start": 2027,
+      "exp": 2030,
       "amounts": [
         25000000,
         25000000,
         25000000,
         25000000
-      ],
-      "exp": 2030,
-      "slug": "daniedy01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "djurini01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         1272870
-      ],
-      "exp": 2026,
-      "slug": "djurini01",
-      "start": 2026
+      ]
     },
     {
-      "amounts": [
-        2296274
-      ],
-      "exp": 2026,
       "slug": "eubandr01",
-      "start": 2026
-    },
-    {
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         2296274
-      ],
-      "exp": 2026,
-      "slug": "exumda01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "exumda01",
+      "start": 2026,
+      "exp": 2026,
+      "amounts": [
+        2296274
+      ]
+    },
+    {
+      "slug": "flemira01",
+      "start": 2027,
+      "exp": 2029,
       "amounts": [
         2150917,
         2525901,
         2735698
-      ],
-      "exp": 2029,
-      "slug": "flemira01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "gardnmy01",
+      "start": 2027,
+      "exp": 2028,
       "amounts": [
         2150917,
         2525901
-      ],
-      "exp": 2028,
-      "slug": "gardnmy01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "gilgesh01",
+      "start": 2028,
+      "exp": 2031,
       "amounts": [
         61005000,
         65885400,
         70765800,
         75646200
-      ],
-      "exp": 2031,
-      "slug": "gilgesh01",
-      "start": 2028
+      ]
     },
     {
+      "slug": "gonzahu01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         5528065
-      ],
-      "exp": 2029,
-      "slug": "gonzahu01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "gordoaa01",
+      "start": 2026,
+      "exp": 2029,
       "amounts": [
         31600000,
         31600000,
         31600000,
         31600000
-      ],
-      "exp": 2029,
-      "slug": "gordoaa01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "gordoaa01",
+      "start": 2027,
+      "exp": 2029,
       "amounts": [
         33658037,
         36350680,
         39043323
-      ],
-      "exp": 2029,
-      "slug": "gordoaa01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "gordoer01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         2296274
-      ],
-      "exp": 2026,
-      "slug": "gordoer01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "greenaj01",
+      "start": 2027,
+      "exp": 2030,
       "amounts": [
         10044644,
         10848215,
         11651786,
         12455355
-      ],
-      "exp": 2030,
-      "slug": "greenaj01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "gueyemo01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         1300000
-      ],
-      "exp": 2026,
-      "slug": "gueyemo01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "hayesni01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         2048494
-      ],
-      "exp": 2026,
-      "slug": "hayesni01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "highsha01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         827984
-      ],
-      "exp": 2026,
-      "slug": "highsha01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "highsha01",
+      "start": 2027,
+      "exp": 2027,
       "amounts": [
         3018158
-      ],
-      "exp": 2027,
-      "slug": "highsha01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "holidaa01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         2296274
-      ],
-      "exp": 2026,
-      "slug": "holidaa01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "holmgch01",
+      "start": 2027,
+      "exp": 2031,
       "amounts": [
         41500000,
         44820000,
         48140000,
         51460000,
         54780000
-      ],
-      "exp": 2031,
-      "slug": "holmgch01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "houstca01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         699440
-      ],
-      "exp": 2026,
-      "slug": "houstca01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "jakucka01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         6205687
-      ],
-      "exp": 2029,
-      "slug": "jakucka01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "joneska03",
+      "start": 2027,
+      "exp": 2029,
       "amounts": [
         2150917,
         2525901,
         2735698
-      ],
-      "exp": 2029,
-      "slug": "joneska03",
-      "start": 2027
+      ]
     },
     {
+      "slug": "jovicni01",
+      "start": 2027,
+      "exp": 2030,
       "amounts": [
         16200000,
         14904000,
         15096000,
         16200000
-      ],
-      "exp": 2030,
-      "slug": "jovicni01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "konanya01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         5448356
-      ],
-      "exp": 2029,
-      "slug": "konanya01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "landajo01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         2296274
-      ],
-      "exp": 2026,
-      "slug": "landajo01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "laniech01",
+      "start": 2027,
+      "exp": 2029,
       "amounts": [
         2150917,
         2525901,
         2735698
-      ],
-      "exp": 2029,
-      "slug": "laniech01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "loverla01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         87784
-      ],
-      "exp": 2026,
-      "slug": "loverla01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "martico01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         131970
-      ],
-      "exp": 2026,
-      "slug": "martico01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "mathega01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         297355
-      ],
-      "exp": 2026,
-      "slug": "mathega01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "mbengbe01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         1300000
-      ],
-      "exp": 2026,
-      "slug": "mbengbe01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "mcgloga01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         73153
-      ],
-      "exp": 2026,
-      "slug": "mcgloga01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "mcgowbr01",
+      "start": 2027,
+      "exp": 2028,
       "amounts": [
         2584539,
         2934742
-      ],
-      "exp": 2028,
-      "slug": "mcgowbr01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "mcneeli01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         5487778
-      ],
-      "exp": 2029,
-      "slug": "mcneeli01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "micicva01",
+      "start": 2026,
+      "exp": 2028,
       "amounts": [
         666667,
         666667,
         666667
-      ],
-      "exp": 2028,
-      "slug": "micicva01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "millejo02",
+      "start": 2027,
+      "exp": 2027,
       "amounts": [
         2497812
-      ],
-      "exp": 2027,
-      "slug": "millejo02",
-      "start": 2027
+      ]
     },
     {
+      "slug": "morrimo01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         321184
-      ],
-      "exp": 2026,
-      "slug": "morrimo01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "murrake02",
+      "start": 2027,
+      "exp": 2031,
       "amounts": [
         24137936,
         26068965,
         27999999,
         29931033,
         31862067
-      ],
-      "exp": 2031,
-      "slug": "murrake02",
-      "start": 2027
+      ]
     },
     {
+      "slug": "nesmiaa01",
+      "start": 2028,
+      "exp": 2029,
       "amounts": [
         19418000,
         20971440
-      ],
-      "exp": 2029,
-      "slug": "nesmiaa01",
-      "start": 2028
+      ]
     },
     {
+      "slug": "newelas01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         6042814
-      ],
-      "exp": 2029,
-      "slug": "newelas01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "nfalyda01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         2048494
-      ],
-      "exp": 2026,
-      "slug": "nfalyda01",
-      "start": 2026
+      ]
     },
     {
-      "amounts": [
-        2296274
-      ],
-      "exp": 2026,
       "slug": "okogijo01",
-      "start": 2026
-    },
-    {
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         2296274
-      ],
-      "exp": 2026,
+      ]
+    },
+    {
       "slug": "paulch01",
-      "start": 2026
+      "start": 2026,
+      "exp": 2026,
+      "amounts": [
+        2296274
+      ]
     },
     {
-      "amounts": [
-        2150917,
-        2525901,
-        2735698
-      ],
-      "exp": 2029,
       "slug": "peavymi01",
-      "start": 2027
-    },
-    {
+      "start": 2027,
+      "exp": 2029,
       "amounts": [
         2150917,
         2525901,
         2735698
-      ],
-      "exp": 2029,
-      "slug": "pendano01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "pendano01",
+      "start": 2027,
+      "exp": 2029,
+      "amounts": [
+        2150917,
+        2525901,
+        2735698
+      ]
+    },
+    {
+      "slug": "pottemi01",
+      "start": 2027,
+      "exp": 2027,
       "amounts": [
         2801346
-      ],
-      "exp": 2027,
-      "slug": "pottemi01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "poweldr01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         6101832
-      ],
-      "exp": 2029,
-      "slug": "poweldr01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "proctty01",
+      "start": 2027,
+      "exp": 2029,
       "amounts": [
         2150917,
         2525901,
         2735698
-      ],
-      "exp": 2029,
-      "slug": "proctty01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "queende01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         8107918
-      ],
-      "exp": 2029,
-      "slug": "queende01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "raynama01",
+      "start": 2027,
+      "exp": 2028,
       "amounts": [
         2150917,
         2525901
-      ],
-      "exp": 2028,
-      "slug": "raynama01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "richaja02",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         5910882
-      ],
-      "exp": 2029,
-      "slug": "richaja02",
-      "start": 2029
+      ]
     },
     {
+      "slug": "richawi02",
+      "start": 2027,
+      "exp": 2029,
       "amounts": [
         2150917,
         2525901,
         2735698
-      ],
-      "exp": 2029,
-      "slug": "richawi02",
-      "start": 2027
+      ]
     },
     {
+      "slug": "richmka01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         73153
-      ],
-      "exp": 2026,
-      "slug": "richmka01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "rileywi01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         6155352
-      ],
-      "exp": 2029,
-      "slug": "rileywi01",
-      "start": 2029
+      ]
     },
     {
-      "amounts": [
-        131970
-      ],
-      "exp": 2026,
       "slug": "robinje02",
-      "start": 2026
+      "start": 2026,
+      "exp": 2026,
+      "amounts": [
+        325365
+      ]
     },
     {
+      "slug": "ruperra01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         131970
-      ],
-      "exp": 2026,
-      "slug": "ruperra01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "sandeko01",
+      "start": 2027,
+      "exp": 2027,
       "amounts": [
         2150917
-      ],
-      "exp": 2027,
-      "slug": "sandeko01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "sarafbe01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         5720776
-      ],
-      "exp": 2029,
-      "slug": "sarafbe01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "scotttr01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         11773
-      ],
-      "exp": 2026,
-      "slug": "scotttr01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "sharpsh01",
+      "start": 2027,
+      "exp": 2030,
       "amounts": [
         20089287,
         21696429,
         23303571,
         24910713
-      ],
-      "exp": 2030,
-      "slug": "sharpsh01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "smithja05",
+      "start": 2027,
+      "exp": 2031,
       "amounts": [
         23643411,
         21751940,
         23643411,
         25534883,
         27426355
-      ],
-      "exp": 2031,
-      "slug": "smithja05",
-      "start": 2027
+      ]
     },
     {
+      "slug": "sochaje01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         778622
-      ],
-      "exp": 2026,
-      "slug": "sochaje01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "sorbeth01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         7849573
-      ],
-      "exp": 2029,
-      "slug": "sorbeth01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "thierad01",
+      "start": 2027,
+      "exp": 2028,
       "amounts": [
         2150917,
         2525901
-      ],
-      "exp": 2028,
-      "slug": "thierad01",
-      "start": 2027
+      ]
     },
     {
-      "amounts": [
-        844607
-      ],
-      "exp": 2026,
       "slug": "thomaca02",
-      "start": 2026
+      "start": 2026,
+      "exp": 2026,
+      "amounts": [
+        5993172
+      ]
     },
     {
+      "slug": "tomlina01",
+      "start": 2027,
+      "exp": 2027,
       "amounts": [
         2411090
-      ],
-      "exp": 2027,
-      "slug": "tomlina01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "traorno01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         6457282
-      ],
-      "exp": 2029,
-      "slug": "traorno01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "wagnemo01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         5000000
-      ],
-      "exp": 2026,
-      "slug": "wagnemo01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "walkeja01",
+      "start": 2027,
+      "exp": 2027,
       "amounts": [
         2584539
-      ],
-      "exp": 2027,
-      "slug": "walkeja01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "washipj01",
+      "start": 2027,
+      "exp": 2030,
       "amounts": [
         19813044,
         21398088,
         22983132,
         24568176
-      ],
-      "exp": 2030,
-      "slug": "washipj01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "willial06",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         131970
-      ],
-      "exp": 2026,
-      "slug": "willial06",
-      "start": 2026
+      ]
     },
     {
+      "slug": "william01",
+      "start": 2027,
+      "exp": 2027,
       "amounts": [
         2150917
-      ],
-      "exp": 2027,
-      "slug": "william01",
-      "start": 2027
+      ]
     },
     {
+      "slug": "willija06",
+      "start": 2027,
+      "exp": 2031,
       "amounts": [
         41500000,
         44820000,
         48140000,
         51460000,
         54780000
-      ],
-      "exp": 2031,
-      "slug": "willija06",
-      "start": 2027
+      ]
     },
     {
+      "slug": "wisemja01",
+      "start": 2026,
+      "exp": 2026,
       "amounts": [
         131970
-      ],
-      "exp": 2026,
-      "slug": "wisemja01",
-      "start": 2026
+      ]
     },
     {
+      "slug": "wolfda01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         5559640
-      ],
-      "exp": 2029,
-      "slug": "wolfda01",
-      "start": 2029
+      ]
     },
     {
+      "slug": "yangha01",
+      "start": 2029,
+      "exp": 2029,
       "amounts": [
         7462788
-      ],
-      "exp": 2029,
-      "slug": "yangha01",
-      "start": 2029
+      ]
     }
   ],
   "scheduledEventsGameAttributes": [
@@ -840663,9 +840667,9 @@
     },
     {
       "abbrev": "MIL",
-      "jerseyNumber": "43",
       "season": 2026,
-      "slug": "antetth01"
+      "slug": "antetth01",
+      "jerseyNumber": "43"
     },
     {
       "abbrev": "DEN",
@@ -848784,9 +848788,9 @@
     },
     {
       "abbrev": "NOL",
-      "jerseyNumber": "41",
       "season": 2026,
-      "slug": "beysa01"
+      "slug": "beysa01",
+      "jerseyNumber": "41"
     },
     {
       "abbrev": "DAL",
@@ -917975,9 +917979,9 @@
     },
     {
       "abbrev": "MIA",
-      "jerseyNumber": "8",
       "season": 2026,
-      "slug": "keelstr01"
+      "slug": "keelstr01",
+      "jerseyNumber": "8"
     },
     {
       "abbrev": "_PRO",
@@ -974787,9 +974791,9 @@
     },
     {
       "abbrev": "IND",
-      "jerseyNumber": "18",
       "season": 2026,
-      "slug": "slawsja01"
+      "slug": "slawsja01",
+      "jerseyNumber": "18"
     },
     {
       "abbrev": "BKN",
@@ -1004710,46 +1004714,46 @@
       "slug": "zunicma01"
     },
     {
+      "slug": "bantoda01",
+      "season": 2026,
       "abbrev": "BOS",
-      "jerseyNumber": "45",
-      "season": 2026,
-      "slug": "bantoda01"
+      "jerseyNumber": "45"
     },
     {
+      "slug": "bassech01",
+      "season": 2026,
       "abbrev": "GS",
-      "jerseyNumber": "28",
-      "season": 2026,
-      "slug": "bassech01"
+      "jerseyNumber": "28"
     },
     {
+      "slug": "bradlto01",
+      "season": 2026,
       "abbrev": "ATL",
-      "jerseyNumber": "13",
-      "season": 2026,
-      "slug": "bradlto01"
+      "jerseyNumber": "13"
     },
     {
+      "slug": "gueyemo01",
+      "season": 2026,
       "abbrev": "CHI",
-      "jerseyNumber": "16",
-      "season": 2026,
-      "slug": "gueyemo01"
+      "jerseyNumber": "16"
     },
     {
+      "slug": "mbengbe01",
+      "season": 2026,
       "abbrev": "UTA",
-      "jerseyNumber": "21",
-      "season": 2026,
-      "slug": "mbengbe01"
+      "jerseyNumber": "21"
     },
     {
+      "slug": "paulch01",
+      "season": 2026,
       "abbrev": "LAC",
-      "jerseyNumber": "3",
-      "season": 2026,
-      "slug": "paulch01"
+      "jerseyNumber": "3"
     },
     {
-      "abbrev": "BKN",
-      "jerseyNumber": "18",
+      "slug": "smithma02",
       "season": 2026,
-      "slug": "smithma02"
+      "abbrev": "BKN",
+      "jerseyNumber": "18"
     }
   ]
 }

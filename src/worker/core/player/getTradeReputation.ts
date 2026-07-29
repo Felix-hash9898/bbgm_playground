@@ -19,8 +19,7 @@ export const getTradeReputation = (
 	return value;
 };
 
-export const getTradeReputationByTid = async () => {
-	const season = g.get("season");
+export const getTradeReputationByTid = async (season = g.get("season")) => {
 	const teamSeasons = await idb.cache.teamSeasons.indexGetAll(
 		"teamSeasonsBySeasonTid",
 		[[season - 2], [season, "Z"]],
