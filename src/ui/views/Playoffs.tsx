@@ -5,7 +5,7 @@ import {
 import useTitleBar from "../hooks/useTitleBar.tsx";
 import type { View } from "../../common/types.ts";
 import { helpers, toWorker } from "../util/index.ts";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { range } from "../../common/utils.ts";
 
@@ -40,6 +40,30 @@ const Playoffs = ({
 	const actuallyEditing = canEdit && editing;
 
 	const numRounds = series.length;
+
+	// The championship banner overflows the bracket table. Preserve enough
+	// wrapper height for it while keeping horizontal scrolling intact.
+	const tableRef = useRef<HTMLTableElement>(null);
+	const [minTableHeight, setMinTableHeight] = useState(0);
+	let showingBanner = false;
+	if (numRounds === numGamesPlayoffSeries.length) {
+		const finals = series.at(-1)?.[0];
+		if (finals) {
+			const toWin = numGamesToWinSeries.at(-1);
+			showingBanner =
+				!finals.away || finals.home.won === toWin || finals.away.won === toWin;
+		}
+	}
+	useLayoutEffect(() => {
+		const updateHeight = () => {
+			setMinTableHeight(tableRef.current?.scrollHeight ?? 0);
+		};
+		updateHeight();
+		window.addEventListener("optimizedResize", updateHeight);
+		return () => {
+			window.removeEventListener("optimizedResize", updateHeight);
+		};
+	}, [season, showingBanner]);
 
 	const numGamesPlayoffSeriesReflected: (number | undefined)[] = [
 		...numGamesPlayoffSeries,
@@ -154,8 +178,11 @@ const Playoffs = ({
 				</h2>
 			) : null}
 
-			<ResponsiveTableWrapper className={showFooter ? "mb-1" : "mb-3"}>
-				<table className="table-sm w-100">
+			<ResponsiveTableWrapper
+				className={showFooter ? "mb-1" : "mb-3"}
+				style={{ minHeight: minTableHeight, overflowY: "clip" }}
+			>
+				<table className="table-sm w-100" ref={tableRef}>
 					<tbody>
 						{matchups.map((row, i) => (
 							<tr key={i}>
@@ -163,10 +190,13 @@ const Playoffs = ({
 									if (j + 1 > maxNumCols) {
 										maxNumCols = j + 1;
 									}
+									const finals =
+										m.matchup[0] === numGamesPlayoffSeries.length - 1;
 
 									return (
 										<td key={j} rowSpan={m.rowspan} style={tdStyle}>
 											<PlayoffMatchup
+												bannerForWinner={finals}
 												numGamesToWinSeries={numGamesToWinSeries[m.matchup[0]]}
 												season={season}
 												series={series[m.matchup[0]]![m.matchup[1]]}

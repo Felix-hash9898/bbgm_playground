@@ -6,10 +6,19 @@ import path from "node:path";
 // or with the worktree file; the current worktree is the output, never input.
 const BASELINE_COMMIT = "76313676b";
 const OFFICIAL_COMMIT = "c127a384b2d110aab7e42f4ac2a84f4ebb8251ec";
+const D51_OFFICIAL_COMMIT = "770e4990e168bf0d45f2083cb55940e46c30af4c";
 const OFFICIAL_REPO = "../bbgm_official";
 const TARGET_PATH = "data/real-player-data.basketball.json";
 const MANIFEST_PATH = ".ai-bridge/d49-d52-manifest.md";
 const CURRENT_SEASON = 2026;
+const D51_SEASON = 2026;
+const D51_DRAFT_PICK_FIELDS = [
+	"abbrev",
+	"originalAbbrev",
+	"pick",
+	"round",
+	"season",
+];
 
 const COLLECTIONS = [
 	{
@@ -63,7 +72,6 @@ const BIO_FIELDS = [
 ];
 const PROTECTED_TOP_LEVEL = [
 	"awards",
-	"draftPicks",
 	"expansionDrafts",
 	"freeAgents",
 	"injuries",
@@ -91,6 +99,7 @@ const gitJSON = (cwd, revision) =>
 
 const baseline = gitJSON(process.cwd(), BASELINE_COMMIT);
 const official = gitJSON(OFFICIAL_REPO, OFFICIAL_COMMIT);
+const officialD51 = gitJSON(OFFICIAL_REPO, D51_OFFICIAL_COMMIT);
 const target = clone(baseline);
 
 const assertNoUnknownFields = (row, fields, label) => {
@@ -136,6 +145,7 @@ const manifest = {
 	currentSeason: CURRENT_SEASON,
 	collections: {},
 	bios: { changed: [], added: [], removed: [] },
+	d51DraftPicks: { changed: [], added: [], removed: [] },
 	slugRenames: [],
 	srIDChanges: [],
 	imageChanges: [],
@@ -275,6 +285,66 @@ const assertEqual = (actual, expected, message) => {
 		throw new Error(message);
 	}
 };
+
+const draftPickOwnerKey = (row) =>
+	`${row.round}:${row.originalAbbrev ?? row.abbrev}`;
+const d51SourceRows = officialD51.draftPicks[D51_SEASON].filter(
+	(row) => row.season === D51_SEASON,
+);
+if (d51SourceRows.length !== 60) {
+	throw new Error(
+		`Expected 60 fixed-source D51 draft picks, found ${d51SourceRows.length}`,
+	);
+}
+for (const row of d51SourceRows) {
+	assertNoUnknownFields(row, D51_DRAFT_PICK_FIELDS, "D51 draft pick");
+}
+const baselineD51Rows = baseline.draftPicks[D51_SEASON].filter(
+	(row) => row.season === D51_SEASON,
+);
+const baselineD51ByOwner = new Map(
+	baselineD51Rows.map((row) => [draftPickOwnerKey(row), row]),
+);
+const sourceD51ByOwner = new Map(
+	d51SourceRows.map((row) => [draftPickOwnerKey(row), row]),
+);
+if (
+	baselineD51ByOwner.size !== baselineD51Rows.length ||
+	sourceD51ByOwner.size !== d51SourceRows.length
+) {
+	throw new Error("Duplicate D51 draft-pick original owner/round key");
+}
+
+target.draftPicks[D51_SEASON] = [
+	...clone(d51SourceRows),
+	...clone(
+		baseline.draftPicks[D51_SEASON].filter((row) => row.season !== D51_SEASON),
+	),
+];
+for (const [key, after] of sourceD51ByOwner) {
+	const before = baselineD51ByOwner.get(key);
+	if (!before) {
+		manifest.d51DraftPicks.added.push({ key, row: after });
+		continue;
+	}
+	const fields = changedFields(before, after, D51_DRAFT_PICK_FIELDS);
+	if (fields.length > 0) {
+		manifest.d51DraftPicks.changed.push({
+			key,
+			fields: fields.map((field) => ({
+				field,
+				old: before[field],
+				new: after[field],
+			})),
+		});
+	}
+}
+for (const [key, before] of baselineD51ByOwner) {
+	if (!sourceD51ByOwner.has(key)) {
+		manifest.d51DraftPicks.removed.push({ key, row: before });
+	}
+}
+
 for (const { name, period, fields } of COLLECTIONS) {
 	const source = canonicalCurrentRows(official[name], period, fields, name);
 	const output = new Map(
@@ -333,6 +403,48 @@ for (const row of target.relatives) {
 		throw new Error(`Relative has missing bio ${row.slug}/${row.slug2}`);
 	}
 }
+const outputD51Rows = target.draftPicks[D51_SEASON].filter(
+	(row) => row.season === D51_SEASON,
+);
+assertEqual(
+	outputD51Rows,
+	d51SourceRows,
+	"D51 latest-season draft picks differ from fixed Official source",
+);
+const d51PickKeys = new Set(
+	outputD51Rows.map((row) => `${row.round}:${row.pick}`),
+);
+if (d51PickKeys.size !== outputD51Rows.length) {
+	throw new Error("Duplicate D51 round/pick key");
+}
+const validAbbrevs = new Set(
+	target.teams
+		.filter(
+			(row) => row.season === D51_SEASON && typeof row.abbrev === "string",
+		)
+		.map((row) => row.abbrev),
+);
+for (const row of outputD51Rows) {
+	for (const abbrev of [row.abbrev, row.originalAbbrev]) {
+		if (abbrev !== undefined && !validAbbrevs.has(abbrev)) {
+			throw new Error(`Invalid D51 draft-pick team reference ${abbrev}`);
+		}
+	}
+}
+for (const season of Object.keys(baseline.draftPicks)) {
+	if (Number(season) !== D51_SEASON) {
+		assertEqual(
+			target.draftPicks[season],
+			baseline.draftPicks[season],
+			`Historical draftPicks changed for ${season}`,
+		);
+	}
+}
+assertEqual(
+	target.draftPicks[D51_SEASON].filter((row) => row.season !== D51_SEASON),
+	baseline.draftPicks[D51_SEASON].filter((row) => row.season !== D51_SEASON),
+	"Future draft picks stored in the 2026 snapshot changed",
+);
 for (const key of PROTECTED_TOP_LEVEL) {
 	assertEqual(
 		target[key],
@@ -349,6 +461,7 @@ const summary = (details) => ({
 for (const details of Object.values(manifest.collections)) {
 	details.summary = summary(details);
 }
+manifest.d51DraftPicks.summary = summary(manifest.d51DraftPicks);
 manifest.summary = {
 	addedPlayers: manifest.bios.added.length,
 	removedPlayers: manifest.bios.removed.length,
@@ -359,6 +472,7 @@ manifest.summary = {
 	slugRenames: manifest.slugRenames.length,
 	srIDChanges: manifest.srIDChanges.length,
 	imageChanges: manifest.imageChanges.length,
+	d51DraftPickRows: manifest.d51DraftPicks.summary,
 };
 
 const nameFor = (slug) => target.bios[slug]?.name ?? slug;
@@ -386,11 +500,34 @@ const renderSection = (title, details) =>
 		details.removed.map(renderEntry).join("\n") || "- None",
 		"",
 	].join("\n");
+const renderDraftPickEntry = (entry) => {
+	if (entry.fields) {
+		return `- ${entry.key}: ${entry.fields.map((field) => `${field.field}=${renderValue(field.old)} -> ${renderValue(field.new)}`).join("; ")}`;
+	}
+	return `- ${entry.key}: ${json(entry.row)}`;
+};
+const renderDraftPickSection = (details) =>
+	[
+		"## D51 latest lottery results",
+		"",
+		`Fixed source: ${D51_OFFICIAL_COMMIT}; season: ${D51_SEASON}; changed ${details.changed.length}, added ${details.added.length}, removed ${details.removed.length}.`,
+		"",
+		"### Changed",
+		details.changed.map(renderDraftPickEntry).join("\n") || "- None",
+		"",
+		"### Added",
+		details.added.map(renderDraftPickEntry).join("\n") || "- None",
+		"",
+		"### Removed",
+		details.removed.map(renderDraftPickEntry).join("\n") || "- None",
+		"",
+	].join("\n");
 const manifestText = [
-	"# D49/D52 field-level manifest",
+	"# D49/D51/D52 field-level manifest",
 	"",
 	`- Baseline commit: ${BASELINE_COMMIT}`,
 	`- Fixed Official commit: ${OFFICIAL_COMMIT}`,
+	`- Fixed D51 Official commit: ${D51_OFFICIAL_COMMIT}`,
 	`- Official repository: ${OFFICIAL_REPO}`,
 	`- Current-season boundary: ${CURRENT_SEASON}`,
 	"- Source duplicate policy: the last fixed-Official row for a slug/period wins.",
@@ -400,6 +537,7 @@ const manifestText = [
 	renderSection("Ratings", manifest.collections.ratings),
 	renderSection("Salaries", manifest.collections.salaries),
 	renderSection("Bios / identities", manifest.bios),
+	renderDraftPickSection(manifest.d51DraftPicks),
 	"## Identity reference changes",
 	"",
 	`- Slug renames: ${manifest.slugRenames.length}`,
@@ -408,7 +546,7 @@ const manifestText = [
 	"",
 	"## Protection proof",
 	"",
-	`The script asserts exact fixed-baseline equality for: ${PROTECTED_TOP_LEVEL.join(", ")}. It also asserts unique current keys, complete current bios, valid relatives, valid salary durations, and zero fixed-Official mismatches for all approved fields.`,
+	`The script asserts exact fixed-baseline equality for: ${PROTECTED_TOP_LEVEL.join(", ")}. All draftPicks outside the ${D51_SEASON} realized rows also remain fixed-baseline-equal. It additionally asserts unique current keys, valid draft-pick team references, complete current bios, valid relatives, valid salary durations, and zero fixed-Official mismatches for all approved fields.`,
 	"",
 ].join("\n");
 
@@ -420,6 +558,7 @@ console.log(
 		{
 			baseline: BASELINE_COMMIT,
 			official: OFFICIAL_COMMIT,
+			d51Official: D51_OFFICIAL_COMMIT,
 			...manifest.summary,
 		},
 		null,

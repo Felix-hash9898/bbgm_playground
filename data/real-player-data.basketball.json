@@ -154230,362 +154230,400 @@
     ],
     "2026": [
       {
-        "abbrev": "ATL",
-        "originalAbbrev": "ATL",
+        "abbrev": "WAS",
+        "pick": 1,
         "round": 1,
         "season": 2026
       },
       {
-        "abbrev": "BOS",
-        "originalAbbrev": "BOS",
+        "abbrev": "UTA",
+        "pick": 2,
         "round": 1,
         "season": 2026
       },
       {
-        "abbrev": "BKN",
-        "originalAbbrev": "BKN",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "CHA",
-        "originalAbbrev": "CHA",
+        "abbrev": "MEM",
+        "pick": 3,
         "round": 1,
         "season": 2026
       },
       {
         "abbrev": "CHI",
-        "originalAbbrev": "CHI",
+        "pick": 4,
         "round": 1,
         "season": 2026
       },
       {
-        "abbrev": "CLE",
-        "originalAbbrev": "CLE",
+        "abbrev": "LAC",
+        "originalAbbrev": "IND",
+        "pick": 5,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "BKN",
+        "pick": 6,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "SAC",
+        "pick": 7,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "ATL",
+        "originalAbbrev": "NOL",
+        "pick": 8,
         "round": 1,
         "season": 2026
       },
       {
         "abbrev": "DAL",
-        "originalAbbrev": "DAL",
+        "pick": 9,
         "round": 1,
         "season": 2026
       },
       {
-        "abbrev": "DEN",
-        "originalAbbrev": "DEN",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "DET",
-        "originalAbbrev": "DET",
+        "abbrev": "MIL",
+        "pick": 10,
         "round": 1,
         "season": 2026
       },
       {
         "abbrev": "GS",
-        "originalAbbrev": "GS",
+        "pick": 11,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "OKC",
+        "originalAbbrev": "LAC",
+        "pick": 12,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "MIA",
+        "pick": 13,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "CHA",
+        "pick": 14,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "CHI",
+        "originalAbbrev": "POR",
+        "pick": 15,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "MEM",
+        "originalAbbrev": "ORL",
+        "pick": 16,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "OKC",
+        "originalAbbrev": "PHI",
+        "pick": 17,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "CHA",
+        "originalAbbrev": "PHO",
+        "pick": 18,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "TOR",
+        "pick": 19,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "SA",
+        "originalAbbrev": "ATL",
+        "pick": 20,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "DET",
+        "originalAbbrev": "MIN",
+        "pick": 21,
         "round": 1,
         "season": 2026
       },
       {
         "abbrev": "PHI",
         "originalAbbrev": "HOU",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "IND",
-        "originalAbbrev": "IND",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "OKC",
-        "originalAbbrev": "LAC",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "LAL",
-        "originalAbbrev": "LAL",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "MEM",
-        "originalAbbrev": "MEM",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "MIA",
-        "originalAbbrev": "MIA",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "MIL",
-        "originalAbbrev": "MIL",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "MIN",
-        "originalAbbrev": "MIN",
+        "pick": 22,
         "round": 1,
         "season": 2026
       },
       {
         "abbrev": "ATL",
-        "originalAbbrev": "NOL",
+        "originalAbbrev": "CLE",
+        "pick": 23,
         "round": 1,
         "season": 2026
       },
       {
         "abbrev": "NYC",
-        "originalAbbrev": "NYC",
+        "pick": 24,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "LAL",
+        "pick": 25,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "DEN",
+        "pick": 26,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "BOS",
+        "pick": 27,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "MIN",
+        "originalAbbrev": "DET",
+        "pick": 28,
+        "round": 1,
+        "season": 2026
+      },
+      {
+        "abbrev": "CLE",
+        "originalAbbrev": "SA",
+        "pick": 29,
         "round": 1,
         "season": 2026
       },
       {
         "abbrev": "DAL",
         "originalAbbrev": "OKC",
+        "pick": 30,
         "round": 1,
         "season": 2026
       },
       {
-        "abbrev": "CHA",
-        "originalAbbrev": "ORL",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "OKC",
-        "originalAbbrev": "PHI",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "MEM",
-        "originalAbbrev": "PHO",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "POR",
-        "originalAbbrev": "POR",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "SAC",
-        "originalAbbrev": "SAC",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "SA",
-        "originalAbbrev": "SA",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "TOR",
-        "originalAbbrev": "TOR",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "UTA",
-        "originalAbbrev": "UTA",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "WAS",
+        "abbrev": "NYC",
         "originalAbbrev": "WAS",
-        "round": 1,
-        "season": 2026
-      },
-      {
-        "abbrev": "DEN",
-        "originalAbbrev": "ATL",
+        "pick": 1,
         "round": 2,
         "season": 2026
       },
       {
-        "abbrev": "ATL",
-        "originalAbbrev": "BOS",
+        "abbrev": "MEM",
+        "originalAbbrev": "IND",
+        "pick": 2,
         "round": 2,
         "season": 2026
       },
       {
         "abbrev": "BKN",
-        "originalAbbrev": "BKN",
+        "pick": 3,
         "round": 2,
         "season": 2026
       },
       {
         "abbrev": "SAC",
-        "originalAbbrev": "CHA",
+        "pick": 4,
         "round": 2,
         "season": 2026
       },
       {
-        "abbrev": "HOU",
-        "originalAbbrev": "CHI",
+        "abbrev": "SA",
+        "originalAbbrev": "UTA",
+        "pick": 5,
         "round": 2,
         "season": 2026
       },
       {
         "abbrev": "LAC",
-        "originalAbbrev": "CLE",
+        "originalAbbrev": "MEM",
+        "pick": 6,
         "round": 2,
         "season": 2026
       },
       {
         "abbrev": "OKC",
         "originalAbbrev": "DAL",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "CHI",
-        "originalAbbrev": "DEN",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "NYC",
-        "originalAbbrev": "DET",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "MIA",
-        "originalAbbrev": "GS",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "HOU",
-        "originalAbbrev": "HOU",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "MEM",
-        "originalAbbrev": "IND",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "BKN",
-        "originalAbbrev": "LAC",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "GS",
-        "originalAbbrev": "LAL",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "LAC",
-        "originalAbbrev": "MEM",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "MIN",
-        "originalAbbrev": "MIA",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "BOS",
-        "originalAbbrev": "MIL",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "WAS",
-        "originalAbbrev": "MIN",
+        "pick": 7,
         "round": 2,
         "season": 2026
       },
       {
         "abbrev": "CHI",
         "originalAbbrev": "NOL",
+        "pick": 8,
         "round": 2,
         "season": 2026
       },
       {
-        "abbrev": "NYC",
-        "originalAbbrev": "NYC",
+        "abbrev": "HOU",
+        "originalAbbrev": "CHI",
+        "pick": 9,
         "round": 2,
         "season": 2026
       },
       {
-        "abbrev": "WAS",
-        "originalAbbrev": "OKC",
+        "abbrev": "BOS",
+        "originalAbbrev": "MIL",
+        "pick": 10,
         "round": 2,
         "season": 2026
       },
       {
-        "abbrev": "ORL",
-        "originalAbbrev": "ORL",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "PHO",
-        "originalAbbrev": "PHI",
-        "round": 2,
-        "season": 2026
-      },
-      {
-        "abbrev": "DAL",
-        "originalAbbrev": "PHO",
+        "abbrev": "MIA",
+        "originalAbbrev": "GS",
+        "pick": 11,
         "round": 2,
         "season": 2026
       },
       {
         "abbrev": "SA",
         "originalAbbrev": "POR",
+        "pick": 12,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "BKN",
+        "originalAbbrev": "LAC",
+        "pick": 13,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "SA",
+        "originalAbbrev": "MIA",
+        "pick": 14,
         "round": 2,
         "season": 2026
       },
       {
         "abbrev": "SAC",
-        "originalAbbrev": "SAC",
+        "originalAbbrev": "CHA",
+        "pick": 15,
         "round": 2,
         "season": 2026
       },
       {
-        "abbrev": "SA",
-        "originalAbbrev": "SA",
+        "abbrev": "ORL",
+        "pick": 16,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "PHO",
+        "originalAbbrev": "PHI",
+        "pick": 17,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "DAL",
+        "originalAbbrev": "PHO",
+        "pick": 18,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "DEN",
+        "originalAbbrev": "ATL",
+        "pick": 19,
         "round": 2,
         "season": 2026
       },
       {
         "abbrev": "TOR",
-        "originalAbbrev": "TOR",
+        "pick": 20,
         "round": 2,
         "season": 2026
       },
       {
-        "abbrev": "SA",
-        "originalAbbrev": "UTA",
+        "abbrev": "WAS",
+        "originalAbbrev": "MIN",
+        "pick": 21,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "LAC",
+        "originalAbbrev": "CLE",
+        "pick": 22,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "HOU",
+        "pick": 23,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "GS",
+        "originalAbbrev": "LAL",
+        "pick": 24,
         "round": 2,
         "season": 2026
       },
       {
         "abbrev": "NYC",
-        "originalAbbrev": "WAS",
+        "pick": 25,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "CHI",
+        "originalAbbrev": "DEN",
+        "pick": 26,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "ATL",
+        "originalAbbrev": "BOS",
+        "pick": 27,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "NOL",
+        "originalAbbrev": "DET",
+        "pick": 28,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "MIN",
+        "originalAbbrev": "SA",
+        "pick": 29,
+        "round": 2,
+        "season": 2026
+      },
+      {
+        "abbrev": "WAS",
+        "originalAbbrev": "OKC",
+        "pick": 30,
         "round": 2,
         "season": 2026
       },
