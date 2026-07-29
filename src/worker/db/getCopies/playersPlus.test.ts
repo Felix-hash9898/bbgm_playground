@@ -1,5 +1,5 @@
 import { assert, beforeAll, test } from "vitest";
-import { PLAYER } from "../../../common/index.ts";
+import { PHASE, PLAYER } from "../../../common/index.ts";
 import { resetCache, resetG } from "../../../test/helpers.ts";
 import { player } from "../../core/index.ts";
 import { idb } from "../index.ts";
@@ -67,6 +67,52 @@ test("return requested info if tid/season match", async () => {
 	assert(!Object.hasOwn(pf, "careerStats"));
 	assert(!Object.hasOwn(pf, "careerStatsPlayoffs"));
 });
+
+test.each([
+	[PHASE.PRESEASON, ["past", "current", "future"]],
+	[PHASE.REGULAR_SEASON, ["past", "current", "future"]],
+	[PHASE.RESIGN_PLAYERS, ["past", "past", "current"]],
+	[PHASE.FREE_AGENCY, ["past", "past", "current"]],
+] as const)(
+	"salaries use display-only season types in phase %s without mutating the contract",
+	async (phase, types) => {
+		const p2 = helpers.deepCopy(p);
+		p2.salaries = [
+			{ amount: 1_000, season: 2011 },
+			{ amount: 2_000, season: 2012 },
+			{ amount: 3_000, season: 2013 },
+		];
+		p2.contract = {
+			amount: 3_000,
+			capHit: 2_500,
+			exception: "midLevel",
+			exp: 2013,
+			option: "player",
+			type: "twoWay",
+		};
+		const before = helpers.deepCopy(p2);
+		g.setWithoutSavingToDB("phase", phase);
+
+		const result = await idb.getCopy.playersPlus(p2, {
+			attrs: ["contract", "salaries", "salariesTotal"],
+		});
+
+		assert.deepEqual(
+			result?.salaries.map((row: any) => row.type),
+			types,
+		);
+		assert.deepEqual(
+			result?.salaries.map((row: any) => row.amount),
+			[1, 2, 3],
+		);
+		assert.strictEqual(result?.salariesTotal, 6);
+		assert.deepEqual(result?.contract, {
+			...before.contract,
+			amount: 3,
+		});
+		assert.deepEqual(p2, before);
+	},
+);
 
 test("return requested info if tid/season match for an array of player objects", async () => {
 	const pf = await idb.getCopies.playersPlus([p, p], {
@@ -164,6 +210,62 @@ test("return requested info if tid/season match, even when no stats requested", 
 	assert(!Object.hasOwn(pf, "stats"));
 	assert(!Object.hasOwn(pf, "careerStats"));
 	assert(!Object.hasOwn(pf, "careerStatsPlayoffs"));
+});
+
+test("does not traverse or return stats for career attrs-only and ratings-only queries", async () => {
+	const stats = new Proxy(p.stats, {
+		get(target, property, receiver) {
+			if (
+				property === Symbol.iterator ||
+				property === "map" ||
+				property === "filter"
+			) {
+				throw new Error("Stats should not be traversed");
+			}
+			return Reflect.get(target, property, receiver);
+		},
+	});
+	const playerWithGuardedStats = {
+		...p,
+		stats,
+	};
+
+	const attrsOnly = await idb.getCopy.playersPlus(playerWithGuardedStats, {
+		attrs: ["pid"],
+		season: undefined,
+		stats: [],
+	});
+	assert.strictEqual(attrsOnly?.pid, p.pid);
+	assert(!Object.hasOwn(attrsOnly!, "stats"));
+	assert(!Object.hasOwn(attrsOnly!, "careerStats"));
+
+	const ratingsOnly = await idb.getCopy.playersPlus(playerWithGuardedStats, {
+		ratings: ["season", "ovr"],
+		season: undefined,
+		stats: [],
+	});
+	assert.strictEqual(ratingsOnly?.ratings.length, p.ratings.length);
+	assert(!Object.hasOwn(ratingsOnly!, "stats"));
+	assert(!Object.hasOwn(ratingsOnly!, "careerStats"));
+});
+
+test("returns zero career stats when stats are requested for a player with no stats rows", async () => {
+	const playerWithNoStats = {
+		...p,
+		stats: [],
+	};
+	const pf = await idb.getCopy.playersPlus(playerWithNoStats, {
+		attrs: ["pid"],
+		season: undefined,
+		stats: ["gp", "pts"],
+	});
+
+	assert.deepEqual(pf?.stats, []);
+	assert.deepEqual(pf?.careerStats, {
+		gp: 0,
+		playoffs: undefined,
+		pts: 0,
+	});
 });
 
 test("return undefined if tid does not match any on record", async () => {
@@ -537,4 +639,174 @@ test("mergeStats totAndTeams results ", async () => {
 			tid: undefined,
 		},
 	]);
+});
+
+test("mergeStats totOnly ignores a later 0 GP row without returning it", async () => {
+	const p2 = helpers.deepCopy(p);
+	p2.stats[1].playoffs = false;
+	p2.stats[1].tid = 20;
+	p2.stats[1].gp = 0;
+	p2.stats[1].fg = 0;
+
+	const pf = await idb.getCopy.playersPlus(p2, {
+		stats: ["gp", "tid"],
+		season: p2.stats[1].season,
+		mergeStats: "totOnly",
+	});
+
+	assert.strictEqual(pf?.stats.gp, 5);
+	assert.strictEqual(pf?.stats.tid, 4);
+});
+
+test.each(["before", "after"] as const)(
+	"mergeStats ignores a 0 GP row %s the real regular-season row",
+	async (position) => {
+		const p2 = helpers.deepCopy(p);
+		const real = {
+			...p2.stats[0],
+			bpm: 5,
+			gp: 5,
+			min: 100,
+			tid: 4,
+			vorp: 2,
+		};
+		const noGames = {
+			...real,
+			bpm: 99,
+			gp: 0,
+			min: 0,
+			tid: 20,
+			vorp: 99,
+		};
+		p2.stats = position === "before" ? [noGames, real] : [real, noGames];
+
+		const pf = await idb.getCopy.playersPlus(p2, {
+			stats: ["gp", "tid", "bpm", "vorp"],
+			season: 2012,
+			mergeStats: "totOnly",
+		});
+		const baseline = await idb.getCopy.playersPlus(
+			{
+				...p2,
+				stats: [real],
+			},
+			{
+				stats: ["gp", "tid", "bpm", "vorp"],
+				season: 2012,
+				mergeStats: "totOnly",
+			},
+		);
+
+		assert.deepEqual(pf?.stats, baseline?.stats);
+		assert.strictEqual(pf?.stats.gp, 5);
+		assert.strictEqual(pf?.stats.tid, 4);
+		assert.strictEqual(pf?.stats.vorp, 2);
+	},
+);
+
+test("mergeStats handles 0 GP rows across playoffs, combined, and totAndTeams", async () => {
+	const p2 = helpers.deepCopy(p);
+	const regular = {
+		...p2.stats[0],
+		gp: 5,
+		playoffs: false,
+		tid: 4,
+	};
+	const playoffs = {
+		...p2.stats[1],
+		gp: 3,
+		playoffs: true,
+		tid: 4,
+	};
+	p2.stats = [
+		{ ...regular, gp: 0, tid: 20 },
+		regular,
+		playoffs,
+		{ ...playoffs, gp: 0, tid: 21 },
+	];
+
+	const playoffOnly = await idb.getCopy.playersPlus(p2, {
+		playoffs: true,
+		regularSeason: false,
+		stats: ["gp", "tid"],
+		season: 2012,
+		mergeStats: "totOnly",
+	});
+	assert.deepEqual(playoffOnly?.stats, {
+		gp: 3,
+		playoffs: true,
+		tid: 4,
+	});
+
+	const combined = await idb.getCopy.playersPlus(p2, {
+		combined: true,
+		regularSeason: false,
+		stats: ["gp", "tid"],
+		season: 2012,
+		mergeStats: "totOnly",
+	});
+	assert.deepEqual(combined?.stats, {
+		gp: 8,
+		playoffs: "combined",
+		tid: 4,
+	});
+
+	const totAndTeams = await idb.getCopy.playersPlus(p2, {
+		playoffs: true,
+		stats: ["gp", "season", "tid"],
+		mergeStats: "totAndTeams",
+	});
+	assert.deepEqual(
+		totAndTeams?.stats.map((row: any) => ({
+			gp: row.gp,
+			playoffs: row.playoffs,
+			tid: row.tid,
+		})),
+		[
+			{ gp: 5, playoffs: false, tid: 4 },
+			{ gp: 3, playoffs: true, tid: 4 },
+		],
+	);
+});
+
+test("all 0 GP rows remain distinguishable from a played season", async () => {
+	const p2 = helpers.deepCopy(p);
+	p2.stats = p2.stats
+		.filter((row: any) => row.season === 2012 && !row.playoffs)
+		.map((row: any, index: number) => ({
+			...row,
+			gp: 0,
+			tid: 4 + index,
+		}));
+
+	const hidden = await idb.getCopy.playersPlus(p2, {
+		stats: ["gp", "tid"],
+		season: 2012,
+		mergeStats: "totOnly",
+	});
+	assert.strictEqual(hidden?.stats.gp, 0);
+
+	const shown = await idb.getCopy.playersPlus(p2, {
+		showNoStats: true,
+		stats: ["gp", "tid"],
+		season: 2012,
+		mergeStats: "totOnly",
+	});
+	assert.strictEqual(shown?.stats.gp, 0);
+});
+
+test("careerStats is stable when a player has no stats rows", async () => {
+	const p2 = helpers.deepCopy(p);
+	p2.stats = [];
+
+	const pf = await idb.getCopy.playersPlus(p2, {
+		stats: ["gp", "playoffs", "bpm"],
+	});
+
+	assert.deepStrictEqual(pf?.stats, []);
+	assert.deepStrictEqual(pf?.careerStats, {
+		gp: 0,
+		playoffs: undefined,
+		bpm: 0,
+	});
 });

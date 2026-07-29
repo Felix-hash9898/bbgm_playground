@@ -53,7 +53,12 @@ const updateTeamInfo = async () => {
 		divs: g.get("divs"),
 		godMode: g.get("godMode"),
 		phase: g.get("phase"),
-		teams: orderBy(teams, ["region", "name", "tid"]),
+		teams: orderBy(teams, [
+			(t) => (t.disabled ? 1 : 0),
+			"region",
+			"name",
+			"tid",
+		]),
 	};
 };
 

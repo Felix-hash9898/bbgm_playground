@@ -22,6 +22,7 @@ import leagueFileUpload, {
 	parseJSON,
 } from "./leagueFileUpload.ts";
 import processInputs from "./processInputs.ts";
+import { getTradeReputationByTid } from "../core/player/getTradeReputation.ts";
 import {
 	allStar,
 	contractNegotiation,
@@ -92,6 +93,7 @@ import type {
 	View,
 	NonEmptyArray,
 } from "../../common/types.ts";
+import { deleteScheduledTeamInfoFields } from "./scheduledEventTeamInfo.ts";
 import {
 	addSimpleAndTeamAwardsToAwardsByPlayer,
 	type AwardsByPlayer,
@@ -155,6 +157,10 @@ import loadData from "../core/realRosters/loadData.basketball.ts";
 import formatPlayerFactory from "../core/realRosters/formatPlayerFactory.ts";
 import { applyRealPlayerPhotos } from "../core/league/processPlayerNewLeague.ts";
 import { actualPhase } from "../util/actualPhase.ts";
+import {
+	validateRealPlayerPhotos as validateRealPlayerPhotosData,
+	validateRealTeamInfo as validateRealTeamInfoData,
+} from "../../common/validateRealTeamInfo.ts";
 import getCol from "../../common/getCol.ts";
 import getCols from "../../common/getCols.ts";
 import { formatScheduleForEditor } from "../views/scheduleEditor.ts";
@@ -901,16 +907,10 @@ const deleteFromGameAttributesScheduledEvent = async (
 };
 
 const deleteFromTeamInfoScheduledEvent = async (
-	keys: (keyof ScheduledEventTeamInfo["info"])[],
 	event: ScheduledEventTeamInfo & { id: number },
+	mode: "confs" | "teamInfo",
 ) => {
-	let updated = false;
-	for (const key of keys) {
-		if (event.info[key] !== undefined) {
-			delete event.info[key];
-			updated = true;
-		}
-	}
+	const updated = deleteScheduledTeamInfoFields(event.info, mode);
 
 	const keys2 = Object.keys(event.info);
 	if (
@@ -923,7 +923,7 @@ const deleteFromTeamInfoScheduledEvent = async (
 	}
 };
 
-const deleteScheduledEvents = async (type: string) => {
+export const deleteScheduledEvents = async (type: string) => {
 	const scheduledEvents = await idb.getCopies.scheduledEvents(
 		undefined,
 		"noCopyCache",
@@ -956,24 +956,11 @@ const deleteScheduledEvents = async (type: string) => {
 			}
 		} else if (type === "teamInfo") {
 			if (event.type === "teamInfo") {
-				await deleteFromTeamInfoScheduledEvent(
-					[
-						"region",
-						"name",
-						"pop",
-						"abbrev",
-						"imgURL",
-						"imgURLSmall",
-						"colors",
-						"jersey",
-					],
-					event,
-				);
+				await deleteFromTeamInfoScheduledEvent(event, "teamInfo");
 			}
 		} else if (type === "confs") {
 			if (event.type === "teamInfo") {
-				// cid is legacy
-				await deleteFromTeamInfoScheduledEvent(["cid", "did"] as any, event);
+				await deleteFromTeamInfoScheduledEvent(event, "confs");
 			}
 
 			if (event.type === "gameAttributes") {
@@ -1397,6 +1384,7 @@ const exportPlayerAveragesCsv = async (season: number | "all") => {
 			ratings: ["pos", "ovr", "pot", ...ratings],
 			stats: ["abbrev", ...stats],
 			season: s,
+			mergeStats: "totOnly",
 		});
 
 		for (const p of players2) {
@@ -3072,9 +3060,10 @@ const relocateVote = (params: {
 const removeLastTeam = async () => {
 	const tid = g.get("numTeams") - 1;
 	const players = await idb.cache.players.indexGetAll("playersByTid", tid);
+	const tradeReputationByTid = await getTradeReputationByTid();
 
 	for (const p of players) {
-		player.addToFreeAgents(p);
+		await player.addToFreeAgents(p, tradeReputationByTid);
 		await idb.cache.players.put(p);
 	}
 
@@ -4083,6 +4072,7 @@ const updateOptions = async (
 				"Invalid data format in real player photos - input is not an object",
 			);
 		}
+		validateRealPlayerPhotosData(realPlayerPhotos);
 		for (const [key, value] of Object.entries(realPlayerPhotos)) {
 			if (typeof value !== "string") {
 				throw new Error(
@@ -4103,6 +4093,7 @@ const updateOptions = async (
 				"Invalid data format in real team info - input is not an object",
 			);
 		}
+		validateRealTeamInfoData(realTeamInfo);
 		for (const [abbrev, teamInfo] of Object.entries(realTeamInfo)) {
 			validateRealTeamInfo(abbrev, teamInfo);
 			if (typeof teamInfo !== "object" || teamInfo === null) {
@@ -5121,7 +5112,7 @@ const clearSavedTrades = async (hashes: string[]) => {
 };
 
 // Normally use season.setSchedule, but this skips various checks and saves exactly what the user has edited
-const setScheduleFromEditor = async ({
+export const setScheduleFromEditor = async ({
 	regenerated,
 	schedule,
 }: {

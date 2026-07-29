@@ -183,7 +183,10 @@ test("MLE cannot be used twice in the same season", async () => {
 		exp: g.get("season") + 1,
 		dryRun: true,
 	});
-	assert.strictEqual(error2, "You have already used your Mid-Level Exception this season.");
+	assert.strictEqual(
+		error2,
+		"You have already used your Mid-Level Exception this season.",
+	);
 });
 
 test("minimum exception does not consume MLE", async () => {
@@ -379,7 +382,9 @@ test("over-cap team can sign a veteran at the player-specific minimum", async ()
 
 	const signedPlayer = await idb.cache.players.get(pid);
 	assert.strictEqual(signedPlayer?.contract.amount, veteranMinimum);
-	assert(signedPlayer && getContractCapHit(signedPlayer.contract) < veteranMinimum);
+	assert(
+		signedPlayer && getContractCapHit(signedPlayer.contract) < veteranMinimum,
+	);
 });
 
 test("over-cap team cannot sign a veteran above the player-specific minimum", async () => {
@@ -501,7 +506,10 @@ test("first-round players cannot sign two-way contracts", async () => {
 		exp: g.get("season") + 1,
 		type: "twoWay",
 	});
-	assert.strictEqual(error2, "This player is not eligible for a two-way contract.");
+	assert.strictEqual(
+		error2,
+		"This player is not eligible for a two-way contract.",
+	);
 });
 
 test("normal rotation young players cannot sign two-way contracts", async () => {
@@ -533,7 +541,10 @@ test("normal rotation young players cannot sign two-way contracts", async () => 
 		exp: g.get("season") + 1,
 		type: "twoWay",
 	});
-	assert.strictEqual(error2, "This player is not eligible for a two-way contract.");
+	assert.strictEqual(
+		error2,
+		"This player is not eligible for a two-way contract.",
+	);
 });
 
 test("reject a fourth two-way contract", async () => {
@@ -578,4 +589,62 @@ test("reject a fourth two-way contract", async () => {
 		error2,
 		"Your team already has the maximum number of two-way contracts.",
 	);
+});
+
+test("concurrent accepts consume one negotiation and sign once", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+
+	const params = {
+		pid,
+		amount: g.get("minContract"),
+		exp: g.get("season") + 1,
+	};
+	const results = await Promise.all([
+		contractNegotiation.accept(params),
+		contractNegotiation.accept(params),
+	]);
+
+	assert.strictEqual(
+		results.filter((result) => result === undefined).length,
+		1,
+	);
+	assert.strictEqual(
+		results.filter((result) => typeof result === "string").length,
+		1,
+	);
+	assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
+	const signed = await idb.cache.players.get(pid);
+	assert.strictEqual(signed?.tid, g.get("userTid"));
+	assert.strictEqual(signed?.contract.amount, g.get("minContract"));
+	// This signing path records the contract on the player but does not append a
+	// transaction row; the negotiation deletion and final contract are the
+	// durable effects observable here.
+});
+
+test("concurrent dry runs do not use the accept submission lock", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+
+	const results = await Promise.all([
+		contractNegotiation.accept({
+			pid,
+			amount: g.get("minContract"),
+			exp: g.get("season") + 1,
+			dryRun: true,
+		}),
+		contractNegotiation.accept({
+			pid,
+			amount: g.get("minContract"),
+			exp: g.get("season") + 1,
+			dryRun: true,
+		}),
+	]);
+
+	assert.deepStrictEqual(results, [undefined, undefined]);
+	assert.isDefined(await idb.cache.negotiations.get(pid));
 });

@@ -17,6 +17,7 @@ const sign = async (
 		p.draft.tid === tid;
 
 	p.tid = tid;
+	delete p.tradeReputationByTid;
 	p.numDaysFreeAgent = 0;
 	p.gamesUntilTradable = isRookie ? 0 : Math.round(0.17 * g.get("numGames")); // 14 for basketball, 3 for football
 

@@ -4,6 +4,7 @@ import formatScheduledEvents from "./formatScheduledEvents.ts";
 import { orderBy, range } from "../../../common/utils.ts";
 import type {
 	GetLeagueOptions,
+	GetLeagueOptionsReal,
 	DraftPickWithoutKey,
 	DraftLotteryResult,
 	GameAttributesLeague,
@@ -37,7 +38,17 @@ import { averageSalary } from "./averageSalary.ts";
 const FREE_AGENTS_SEASON = 2020;
 
 // Set true after the lottery happens, then false again after the playoffs end
-const INCLUDE_LATEST_SEASON_DRAFT_LOTTERY_RESULTS = false;
+export const INCLUDE_LATEST_SEASON_DRAFT_LOTTERY_RESULTS = true;
+
+export const shouldIncludeRealizedDraftPicksThisSeason = (
+	options: Pick<GetLeagueOptionsReal, "phase" | "randomDebuts" | "season">,
+	includeLatestSeasonDraftLotteryResults = INCLUDE_LATEST_SEASON_DRAFT_LOTTERY_RESULTS,
+) =>
+	options.phase === PHASE.DRAFT ||
+	(!options.randomDebuts &&
+		options.phase === PHASE.PLAYOFFS &&
+		options.season === REAL_PLAYERS_INFO!.MAX_SEASON &&
+		includeLatestSeasonDraftLotteryResults);
 
 const getLeague = async (options: GetLeagueOptions) => {
 	if (!isSport("basketball")) {
@@ -384,10 +395,7 @@ const getLeague = async (options: GetLeagueOptions) => {
 			!options.randomDebuts &&
 			!!basketball.draftPicks[options.season];
 		const includeRealizedDraftPicksThisSeason =
-			options.phase === PHASE.DRAFT ||
-			(options.phase === PHASE.PLAYOFFS &&
-				options.season === REAL_PLAYERS_INFO!.MAX_SEASON &&
-				INCLUDE_LATEST_SEASON_DRAFT_LOTTERY_RESULTS);
+			shouldIncludeRealizedDraftPicksThisSeason(options);
 		if (includeDraftPicks2020AndFuture || includeRealizedDraftPicksThisSeason) {
 			draftPicks = basketball.draftPicks[options.season]!.filter((dp) => {
 				if (dp.round > 2) {
@@ -485,6 +493,18 @@ const getLeague = async (options: GetLeagueOptions) => {
 				season <= playoffSeriesRange[1];
 				season++
 			) {
+				// The latest lottery can be available before this repo imports the
+				// separate current-season playoff/team-season history update.
+				// Draft order does not depend on that history, so do not make the
+				// D51-only roster fail when those protected collections stop at the
+				// prior season.
+				if (
+					!basketball.playoffSeries[season] ||
+					!basketball.teamSeasons[season]
+				) {
+					continue;
+				}
+
 				const completeBracket =
 					season < options.season ||
 					(season === options.season && options.phase > PHASE.PLAYOFFS);
@@ -604,6 +624,9 @@ const getLeague = async (options: GetLeagueOptions) => {
 					}
 					t.seasons.push(teamSeason);
 				}
+			}
+			if (playoffSeries.length === 0) {
+				playoffSeries = undefined;
 			}
 		}
 

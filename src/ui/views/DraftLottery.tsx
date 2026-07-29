@@ -19,12 +19,12 @@ import useTitleBar from "../hooks/useTitleBar.tsx";
 import { getCols, helpers, toWorker, useLocal } from "../util/index.ts";
 import type {
 	DraftLotteryResultArray,
+	DraftLotteryResult,
 	View,
 	DraftType,
 	DraftPickWithoutKey,
 } from "../../common/types.ts";
 import useClickable from "../hooks/useClickable.tsx";
-import { getDraftLotteryProbs } from "../../common/draftLottery.ts";
 import useStickyXX from "../components/DataTable/useStickyXX.ts";
 import { range } from "../../common/utils.ts";
 import {
@@ -43,6 +43,8 @@ export const getDraftTypeDescription = (
 		nba2019: "Weighted lottery for the top 4 picks, like the NBA since 2019",
 		nba321:
 			"Weighted 16-team anti-tanking lottery based on the NBA's current 3-2-1 proposal, with all 16 lottery spots drawn and the three worst teams unable to fall below pick 12",
+		nba2027:
+			"Weighted NBA 2027 3-2-1 lottery with a floor for the three worst teams",
 		nba1994:
 			"Weighted lottery for the top 3 picks, like the NBA from 1994-2018",
 		nba1990:
@@ -121,6 +123,9 @@ type Props = View<"draftLottery">;
 type State = {
 	draftType: Props["draftType"];
 	result: Props["result"];
+	draftLotteryResult: DraftLotteryResult | undefined;
+	lotteryProbs: Props["lotteryProbs"];
+	lotteryProbsTooSlow: boolean;
 	season: Props["season"];
 	toReveal: number[];
 	// Values are indexes of props.result, starting with the 14th pick and ending with the 1st pick
@@ -131,7 +136,16 @@ type State = {
 type Action =
 	| {
 			type: "init";
-			props: Pick<Props, "result" | "season" | "draftType">;
+			// Probability data is computed by the worker view, never during render.
+			props: Pick<
+				Props,
+				| "result"
+				| "season"
+				| "draftType"
+				| "draftLotteryResult"
+				| "lotteryProbs"
+				| "lotteryProbsTooSlow"
+			>;
 	  }
 	| {
 			type: "startClicked";
@@ -140,6 +154,7 @@ type Action =
 			type: "start";
 			draftType: DraftType;
 			result: DraftLotteryResultArray;
+			draftLotteryResult: DraftLotteryResult;
 			toReveal: number[];
 			indRevealed: number;
 	  }
@@ -159,6 +174,9 @@ const reducer = (state: State, action: Action): State => {
 			return {
 				draftType: action.props.draftType,
 				result: action.props.result,
+				draftLotteryResult: action.props.draftLotteryResult,
+				lotteryProbs: action.props.lotteryProbs,
+				lotteryProbsTooSlow: action.props.lotteryProbsTooSlow,
 				toReveal: [],
 				indRevealed: -1,
 				revealState: "init",
@@ -174,6 +192,9 @@ const reducer = (state: State, action: Action): State => {
 				...state,
 				draftType: action.draftType,
 				result: action.result,
+				draftLotteryResult: action.draftLotteryResult,
+				lotteryProbs: state.lotteryProbs,
+				lotteryProbsTooSlow: state.lotteryProbsTooSlow,
 				toReveal: action.toReveal,
 				indRevealed: action.indRevealed,
 				revealState: "running",
@@ -223,7 +244,7 @@ const Row = ({
 	t: DraftLotteryResultArray[number];
 	indRevealed: State["indRevealed"];
 	toReveal: State["toReveal"];
-	probs: NonNullable<ReturnType<typeof getDraftLotteryProbs>["probs"]>;
+	probs: NonNullable<Props["lotteryProbs"]>;
 	spectator: boolean;
 	roundProbabilities: boolean;
 }) => {
@@ -510,6 +531,9 @@ const DraftLotteryTable = (props: Props) => {
 	const [state, dispatch] = useReducer(reducer, {
 		draftType: props.draftType,
 		result: props.result,
+		draftLotteryResult: props.draftLotteryResult,
+		lotteryProbs: props.lotteryProbs,
+		lotteryProbsTooSlow: props.lotteryProbsTooSlow,
 		toReveal: [],
 		indRevealed: -1,
 		revealState: "init",
@@ -567,7 +591,14 @@ const DraftLotteryTable = (props: Props) => {
 
 			revealState.current = "running";
 			numLeftToReveal.current = toReveal.length;
-			dispatch({ type: "start", draftType, result, toReveal, indRevealed: -1 });
+			dispatch({
+				type: "start",
+				draftType,
+				result,
+				draftLotteryResult,
+				toReveal,
+				indRevealed: -1,
+			});
 
 			revealPickAuto();
 		}
@@ -607,7 +638,8 @@ const DraftLotteryTable = (props: Props) => {
 		userTid,
 	} = props;
 	const { draftType, result } = state;
-	const { tooSlow, probs } = getDraftLotteryProbs(result, draftType, numToPick);
+	const tooSlow = state.lotteryProbsTooSlow;
+	const probs = state.lotteryProbs;
 	const NUM_PICKS = result !== undefined ? result.length : 14;
 
 	const [showAll, setShowAll] = useState(false);

@@ -29,7 +29,7 @@ const DRAFT_BY_TEAM_OVR = bySport({
 	hockey: true,
 });
 
-const LEAGUE_DATABASE_VERSION = 69;
+const LEAGUE_DATABASE_VERSION = 70;
 
 const NO_LOTTERY_DRAFT_TYPES: DraftType[] = [
 	"freeAgents",
@@ -75,7 +75,7 @@ const PLAYER = {
 	// THESE ARE OBSOLETE!
 	UNDRAFTED_2: -4, // Next year's draft class
 	UNDRAFTED_3: -5, // Next next year's draft class
-};
+} as const;
 
 const PHASE_TEXT = {
 	"-2": "expansion draft",

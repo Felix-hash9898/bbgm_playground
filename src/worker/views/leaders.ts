@@ -545,7 +545,21 @@ export class GamesPlayedCache {
 	}
 }
 
-export const iterateAllPlayers = async (
+export const getSeasonsWithStatsForIteration = (
+	p: Player<MinimalPlayerRatings>,
+	season: number | "all" | "career",
+) => {
+	const seasons = new Set(p.stats.map((row) => row.season));
+	if (season === "all") {
+		return Array.from(seasons);
+	}
+	if (season === "career") {
+		return p.stats.length > 0 ? [season] : [];
+	}
+	return seasons.has(season) ? [season] : [];
+};
+
+export const iterateAllPlayersWithStats = async (
 	season: number | "all" | "career",
 	cb: (
 		p: Player<MinimalPlayerRatings>,
@@ -557,13 +571,8 @@ export const iterateAllPlayers = async (
 	const cachePlayersByPid = groupByUnique(cachePlayers, "pid");
 
 	const applyCB = async (p: Player<MinimalPlayerRatings>) => {
-		if (season === "all") {
-			const seasons = new Set(p.stats.map((row) => row.season));
-			for (const season of seasons) {
-				await cb(p, season);
-			}
-		} else {
-			await cb(p, season);
+		for (const seasonWithStats of getSeasonsWithStatsForIteration(p, season)) {
+			await cb(p, seasonWithStats);
 		}
 	};
 
@@ -581,8 +590,8 @@ export const iterateAllPlayers = async (
 	let range;
 	const useRange = typeof season === "number";
 	if (useRange) {
-		// + 1 in upper range is because you don't accumulate stats until the year after the draft
-		range = IDBKeyRange.bound([-Infinity, season], [season + 1, Infinity]);
+		// Players drafted this year do not accumulate stats until next year.
+		range = IDBKeyRange.bound([-Infinity, season], [season - 1, Infinity]);
 	}
 
 	let cursor = await transaction.store
@@ -778,7 +787,7 @@ const updateLeaders = async (
 			);
 		}
 
-		await iterateAllPlayers(inputs.season, async (pRaw, season) => {
+		await iterateAllPlayersWithStats(inputs.season, async (pRaw, season) => {
 			const p = await idb.getCopy.playersPlus(pRaw, {
 				attrs: [
 					"pid",

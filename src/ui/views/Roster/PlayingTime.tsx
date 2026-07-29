@@ -56,11 +56,11 @@ const PlayingTime = ({
 	godMode?: boolean;
 }) => {
 	const ptModifiers = [
-		{ text: "0", ptModifier: "0" },
-		{ text: "-", ptModifier: "0.75" },
-		{ text: " ", ptModifier: "1" },
-		{ text: "+", ptModifier: "1.25" },
-		{ text: "++", ptModifier: "1.5" },
+		{ text: "0", ptModifier: "0", title: "No playing time" },
+		{ text: "-", ptModifier: "0.75", title: "Less playing time" },
+		{ text: " ", ptModifier: "1", title: "Normal playing time" },
+		{ text: "+", ptModifier: "1.25", title: "More playing time" },
+		{ text: "++", ptModifier: "1.5", title: "Even more playing time" },
 	];
 
 	const values = ptModifiers.map((x) => helpers.localeParseFloat(x.ptModifier));
@@ -134,10 +134,11 @@ const PlayingTime = ({
 					flexShrink: 0,
 				}}
 				disabled={p.tid !== userTid}
+				aria-label="Playing time modifier"
 			>
-				{ptModifiers.map(({ text, ptModifier }) => {
+				{ptModifiers.map(({ text, ptModifier, title }) => {
 					return (
-						<option key={ptModifier} value={ptModifier}>
+						<option key={ptModifier} value={ptModifier} aria-label={title}>
 							{text}
 						</option>
 					);

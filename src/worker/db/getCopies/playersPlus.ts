@@ -13,6 +13,9 @@ import type {
 } from "../../../common/types.ts";
 import type { StatSumsExtra } from "../../../common/processPlayerStats.basketball.ts";
 import { idb } from "../index.ts";
+import { actualPhase } from "../../util/actualPhase.ts";
+import { getSalarySeasonType } from "./getSalarySeasonType.ts";
+import { getLastSalary } from "./getLastSalary.ts";
 
 type PlayersPlusOptionsRequired = Required<
 	Omit<
@@ -53,7 +56,7 @@ const getLatestTransaction = (
 	}
 };
 
-class AbbrevsCache {
+export class AbbrevsCache {
 	// First key is season, second is tid, value is undefined (not loaded, either because tid/season not found or because load not yet called) or string (loaded abbrev)
 	private data = new Map<number, Map<number, string | undefined>>();
 	private state: "init" | "loading" | "loaded" = "init";
@@ -80,15 +83,20 @@ class AbbrevsCache {
 		abbrevsByTid.set(tid, undefined);
 	}
 
+	private getFallbackAbbrev(season: number, tid: number) {
+		if (season === g.get("season")) {
+			return g.get("teamInfoCache")[tid]?.abbrev ?? "???";
+		}
+		return "???";
+	}
+
 	private saveAbbrev(
+		season: number,
 		abbrevsByTid: Map<number, string | undefined>,
 		tid: number,
 		abbrev: string | undefined,
 	) {
-		abbrevsByTid.set(
-			tid,
-			abbrev ?? g.get("teamInfoCache")[tid]?.abbrev ?? "???",
-		);
+		abbrevsByTid.set(tid, abbrev ?? this.getFallbackAbbrev(season, tid));
 	}
 
 	async load() {
@@ -107,7 +115,7 @@ class AbbrevsCache {
 			if (bulkFetch) {
 				const rows = await idb.getCopies.teamSeasons({ season }, "noCopyCache");
 				for (const row of rows) {
-					this.saveAbbrev(abbrevsByTid, row.tid, row.abbrev);
+					this.saveAbbrev(seasonTemp, abbrevsByTid, row.tid, row.abbrev);
 				}
 			}
 
@@ -115,13 +123,13 @@ class AbbrevsCache {
 			for (const [tid, existingAbbrev] of abbrevsByTid) {
 				if (bulkFetch && existingAbbrev === undefined) {
 					// If teamSeason existed, it would have been found above
-					this.saveAbbrev(abbrevsByTid, tid, undefined);
+					this.saveAbbrev(seasonTemp, abbrevsByTid, tid, undefined);
 				} else {
 					const row = await idb.getCopy.teamSeasons(
 						{ season, tid },
 						"noCopyCache",
 					);
-					this.saveAbbrev(abbrevsByTid, tid, row?.abbrev);
+					this.saveAbbrev(seasonTemp, abbrevsByTid, tid, row?.abbrev);
 				}
 			}
 		}
@@ -138,12 +146,12 @@ class AbbrevsCache {
 			return helpers.getAbbrev(tid);
 		}
 
-		const abbrev = this.data.get(season)?.get(tid);
-		if (abbrev === undefined) {
-			console.log(this.data);
-			throw new Error("Invalid season/tid");
-		}
-		return abbrev;
+		// A trade or stats update can add a new season/tid while load() awaits
+		// IndexedDB. Such additions are current-season data, so the current
+		// team-info abbreviation is the safe fallback.
+		return (
+			this.data.get(season)?.get(tid) ?? this.getFallbackAbbrev(season, tid)
+		);
 	}
 }
 
@@ -256,11 +264,16 @@ const processAttrs = (
 			};
 		} else if (attr === "salary") {
 			output.salary = getSalary();
+		} else if (attr === "lastSalary") {
+			output.lastSalary = getLastSalary(p.salaries);
 		} else if (attr === "salaries") {
-			output.salaries = helpers.deepCopy(p.salaries).map((salary) => {
-				salary.amount /= 1000;
-				return salary;
-			});
+			const currentSeason = g.get("season");
+			const phase = actualPhase();
+			output.salaries = p.salaries.map((salary) => ({
+				amount: salary.amount / 1000,
+				season: salary.season,
+				type: getSalarySeasonType(salary.season, currentSeason, phase),
+			}));
 		} else if (attr === "salariesTotal") {
 			output.salariesTotal = output.salaries.reduce(
 				(memo: number, salary: { amount: number }) => memo + salary.amount,
@@ -756,22 +769,27 @@ const getPlayerStats = (
 	const seasonInfos: SeasonInfo[] = [];
 	const seasonInfosByKey: Record<string, SeasonInfo> = {};
 	for (const row of rows) {
-		if (row.gp === 0) {
-			// Ignore rows with 0 GP, hope that's safe!
-			continue;
-		}
+		// A 0 GP row must still make this enter the merge path, otherwise a
+		// later 0 GP row can be selected instead of an earlier real stats row.
+		// It must not, however, contribute to a TOT row.
+		const ignoreNoGamesPlayedRow = row.gp === 0;
 
 		if (regularSeason || playoffs) {
 			const key = seasonInfoKey(row);
 			if (seasonInfosByKey[key]) {
-				seasonInfosByKey[key].rows.push(row);
+				if (!ignoreNoGamesPlayedRow) {
+					seasonInfosByKey[key].rows.push(row);
+				}
 				thereAreRowsToMerge = true;
 			} else {
 				const seasonInfo: SeasonInfo = {
 					season: row.season,
 					seasonType: row.playoffs ? "playoffs" : "regularSeason",
-					rows: [row],
+					rows: [],
 				};
+				if (!ignoreNoGamesPlayedRow) {
+					seasonInfo.rows.push(row);
+				}
 				seasonInfos.push(seasonInfo);
 				seasonInfosByKey[key] = seasonInfo;
 			}
@@ -788,13 +806,18 @@ const getPlayerStats = (
 
 			const keyCombined = seasonInfoCombinedKey(combinedRow);
 			if (seasonInfosByKey[keyCombined]) {
-				seasonInfosByKey[keyCombined].rows.push(combinedRow);
+				if (!ignoreNoGamesPlayedRow) {
+					seasonInfosByKey[keyCombined].rows.push(combinedRow);
+				}
 			} else {
 				const seasonInfo: SeasonInfo = {
 					season: combinedRow.season,
 					seasonType: "combined",
-					rows: [combinedRow],
+					rows: [],
 				};
+				if (!ignoreNoGamesPlayedRow) {
+					seasonInfo.rows.push(combinedRow);
+				}
 				seasonInfos.push(seasonInfo);
 				seasonInfosByKey[keyCombined] = seasonInfo;
 			}
@@ -1241,13 +1264,17 @@ const processPlayer = (
 		}
 	}
 
+	// Career stats should be present even for a player with no stats rows, but
+	// only when the caller actually requested stats. Attrs-only and
+	// ratings-only queries must not pay for or expose the stats pipeline.
 	const keepWithNoStats =
+		(season === undefined && options.stats.length > 0) ||
 		(showRookies &&
 			p.draft.year >= g.get("season") &&
-			(season === g.get("season") || season === undefined)) ||
-		(showNoStats && (season === undefined || season > p.draft.year));
+			season === g.get("season")) ||
+		(showNoStats && season !== undefined && season > p.draft.year);
 
-	if (options.stats.length > 0 || keepWithNoStats) {
+	if (options.stats.length > 0) {
 		processStats(
 			output,
 			p,

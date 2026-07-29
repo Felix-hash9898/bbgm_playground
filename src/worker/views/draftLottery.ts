@@ -14,6 +14,20 @@ import type {
 } from "../../common/types.ts";
 import { getNumToPick } from "../core/draft/genOrder.ts";
 import { groupByUnique, orderBy } from "../../common/utils.ts";
+import { getDraftLotteryProbs } from "../../common/draftLottery.ts";
+
+export const lotteryProbabilityProps = (
+	draftLotteryResult: DraftLotteryResult | undefined,
+	draftType: DraftType | "dummy" | undefined,
+	numToPick: number,
+) => {
+	const { probs, tooSlow } = getDraftLotteryProbs(
+		draftLotteryResult,
+		draftType,
+		numToPick,
+	);
+	return { lotteryProbs: probs, lotteryProbsTooSlow: tooSlow };
+};
 
 const filterDraftPicks = (
 	draftPicks: DraftPickWithoutKey[],
@@ -53,6 +67,9 @@ const updateDraftLottery = async (
 			godMode: boolean;
 			numToPick: number;
 			result: DraftLotteryResultArray | undefined;
+			draftLotteryResult: DraftLotteryResult | undefined;
+			lotteryProbs?: (number | undefined)[][];
+			lotteryProbsTooSlow: boolean;
 			rigged: GameAttributesLeague["riggedLottery"];
 			season: number;
 			showExpansionTeamMessage: boolean;
@@ -201,11 +218,17 @@ const updateDraftLottery = async (
 				}
 
 				return {
+					...lotteryProbabilityProps(
+						draftLotteryResult,
+						draftType,
+						getNumToPick(draftType, result ? result.length : 14),
+					),
 					dpidsAvailableToTrade,
 					draftPicks,
 					draftType,
 					numToPick: getNumToPick(draftType, result ? result.length : 14),
 					result,
+					draftLotteryResult,
 					rigged,
 					season,
 					showExpansionTeamMessage,
@@ -226,11 +249,13 @@ const updateDraftLottery = async (
 			if (season < g.get("season")) {
 				// Maybe there was no draft lottery done, or it was deleted from the database
 				return {
+					...lotteryProbabilityProps(undefined, "noLottery", 0),
 					dpidsAvailableToTrade,
 					draftPicks: undefined,
 					draftType: "noLottery",
 					numToPick: 0,
 					result: undefined,
+					draftLotteryResult: undefined,
 					rigged: undefined,
 					season,
 					showExpansionTeamMessage,
@@ -300,6 +325,14 @@ const updateDraftLottery = async (
 		}
 
 		return {
+			...lotteryProbabilityProps(
+				draftLotteryResult,
+				draftType,
+				getNumToPick(
+					draftType,
+					draftLotteryResult ? draftLotteryResult.result.length : 14,
+				),
+			),
 			challengeWarning:
 				!draftLotteryResult &&
 				g.get("challengeNoDraftPicks") &&
@@ -316,6 +349,7 @@ const updateDraftLottery = async (
 				draftLotteryResult ? draftLotteryResult.result.length : 14,
 			),
 			result: draftLotteryResult?.result,
+			draftLotteryResult,
 			rigged: g.get("riggedLottery"),
 			season,
 			spectator: g.get("spectator"),

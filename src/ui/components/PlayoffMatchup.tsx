@@ -2,10 +2,12 @@ import clsx from "clsx";
 import type { ByConf, View } from "../../common/types.ts";
 import { helpers } from "../util/index.ts";
 import type { ReactNode } from "react";
+import { ChampionshipBanner } from "./ChampionshipBanner.tsx";
 
 type SeriesTeam = {
 	abbrev: string;
 	cid: number;
+	colors?: [string, string, string];
 	imgURL?: string;
 	imgURLSmall?: string;
 	pendingPlayIn?: true;
@@ -233,7 +235,8 @@ const Team = ({
 	);
 };
 
-const PlayoffMatchup = ({
+export const PlayoffMatchup = ({
+	bannerForWinner,
 	editing,
 	expandTeamNames = false,
 	extraHighlight,
@@ -242,6 +245,7 @@ const PlayoffMatchup = ({
 	series,
 	userTid,
 }: {
+	bannerForWinner?: boolean;
 	editing?: Editing;
 	expandTeamNames?: boolean;
 	extraHighlight?: boolean;
@@ -274,35 +278,56 @@ const PlayoffMatchup = ({
 	const gid =
 		series.gids && series.gids.length > 0 ? series.gids.at(-1) : undefined;
 
+	const bannerTeam = bannerForWinner
+		? homeWon
+			? series.home
+			: awayWon
+				? series.away
+				: undefined
+		: undefined;
+
 	return (
-		<ul className="playoff-matchup border-bottom">
-			<Team
-				expandTeamName={expandTeamNames}
-				extraHighlight={extraHighlight}
-				team={series.home}
-				season={season}
-				showPts={showPts}
-				showWon={showWon}
-				userTid={userTid}
-				won={homeWon}
-				lost={awayWon}
-				gid={gid}
-				editing={editing}
-			/>
-			<Team
-				expandTeamName={expandTeamNames}
-				extraHighlight={extraHighlight}
-				team={series.away}
-				season={season}
-				showPts={showPts}
-				showWon={showWon}
-				userTid={userTid}
-				won={awayWon}
-				lost={homeWon}
-				gid={gid}
-				editing={editing}
-			/>
-		</ul>
+		<div className="position-relative">
+			<ul className="playoff-matchup border-bottom">
+				<Team
+					expandTeamName={expandTeamNames}
+					extraHighlight={extraHighlight}
+					team={series.home}
+					season={season}
+					showPts={showPts}
+					showWon={showWon}
+					userTid={userTid}
+					won={homeWon}
+					lost={awayWon}
+					gid={gid}
+					editing={editing}
+				/>
+				<Team
+					expandTeamName={expandTeamNames}
+					extraHighlight={extraHighlight}
+					team={series.away}
+					season={season}
+					showPts={showPts}
+					showWon={showWon}
+					userTid={userTid}
+					won={awayWon}
+					lost={homeWon}
+					gid={gid}
+					editing={editing}
+				/>
+			</ul>
+			{bannerTeam ? (
+				<ChampionshipBanner
+					season={season}
+					style={{
+						position: "absolute",
+						top: "100%",
+						left: 0,
+					}}
+					t={bannerTeam}
+				/>
+			) : null}
+		</div>
 	);
 };
 

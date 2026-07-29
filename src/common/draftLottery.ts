@@ -1,5 +1,49 @@
 import isSport from "./isSport.ts";
-import type { DraftLotteryResultArray, DraftType } from "./types.ts";
+import type {
+	DraftLotteryResult,
+	DraftLotteryResultArray,
+	DraftType,
+} from "./types.ts";
+
+class PickIndexes {
+	indexes: number[] = [];
+	private pending1: number[] = [];
+	private pending5: number[] = [];
+	private restrictions: DraftLotteryResult["nba2027"];
+
+	constructor(restrictions: DraftLotteryResult["nba2027"]) {
+		this.restrictions = restrictions;
+	}
+
+	add(index: number, ignoreRestrictions = false) {
+		if (this.restrictions && !ignoreRestrictions && this.indexes.length < 5) {
+			if (this.restrictions.restricted5.includes(index)) {
+				this.pending5.push(index);
+				return;
+			}
+			if (
+				this.indexes.length < 1 &&
+				this.restrictions.restricted1.includes(index)
+			) {
+				this.pending1.push(index);
+				return;
+			}
+		}
+		this.indexes.push(index);
+		if (this.indexes.length === 1 && this.pending1.length > 0) {
+			this.indexes.push(...this.pending1);
+			this.pending1 = [];
+		}
+		if (this.indexes.length === 5 && this.pending5.length > 0) {
+			this.indexes.push(...this.pending5);
+			this.pending5 = [];
+		}
+	}
+
+	done() {
+		return this.pending1.length === 0 && this.pending5.length === 0;
+	}
+}
 
 class MultiDimensionalRange {
 	initial: boolean;
@@ -114,38 +158,94 @@ const NBA_321_PROBS = [
 	[...NBA_321_PROBS_PLAY_IN_7_8_LOSER_ROW],
 ];
 
-const simLottery = (chances: number[], numToPick: number) => {
+export const simLottery = (
+	draftType: DraftType,
+	chances: number[],
+	numToPick: number,
+	restrictions?: DraftLotteryResult["nba2027"],
+	riggedIndexes?: (number | undefined)[],
+	random = Math.random,
+): number[] => {
 	let teams = chances.map((chance, index) => ({
 		chances: chance,
 		index,
 	}));
 
-	const pickIndexes: number[] = [];
+	const pickIndexes = new PickIndexes(restrictions);
+	const rigged = new Set(
+		(riggedIndexes ?? []).filter((i): i is number => i !== undefined),
+	);
+	const guaranteed =
+		draftType === "nba2027"
+			? new Set(
+					teams
+						.slice(0, 3)
+						.map((t) => t.index)
+						.filter((i) => !rigged.has(i)),
+				)
+			: undefined;
 
 	for (let i = 0; i < numToPick; i++) {
+		const riggedIndex = riggedIndexes?.[pickIndexes.indexes.length];
+		if (riggedIndex !== undefined) {
+			const team = teams.find((t) => t.index === riggedIndex);
+			if (team) {
+				pickIndexes.add(team.index, true);
+				teams = teams.filter((t) => t !== team);
+				guaranteed?.delete(team.index);
+				continue;
+			}
+		}
+		const forceTop12 =
+			guaranteed !== undefined &&
+			guaranteed.size > 0 &&
+			i + guaranteed.size >= 12;
 		let sum = 0;
 		for (const t of teams) {
-			sum += t.chances;
+			if ((!forceTop12 || guaranteed!.has(t.index)) && !rigged.has(t.index)) {
+				sum += t.chances;
+			}
 		}
-		const rand = Math.random() * sum;
+		if (sum <= 0) {
+			for (const team of teams) {
+				pickIndexes.add(team.index, false);
+			}
+			break;
+		}
+		const rand = random() * sum;
 		let sum2 = 0;
 		for (const t of teams) {
-			sum2 += t.chances;
+			if ((!forceTop12 || guaranteed!.has(t.index)) && !rigged.has(t.index)) {
+				sum2 += t.chances;
+			}
 			if (rand < sum2) {
-				pickIndexes.push(t.index);
+				pickIndexes.add(t.index, false);
 				teams = teams.filter((t2) => t2 !== t);
+				guaranteed?.delete(t.index);
 
 				break;
 			}
 		}
 	}
 
-	pickIndexes.push(...teams.map((team) => team.index));
+	for (const team of teams) {
+		pickIndexes.add(team.index, false);
+	}
 
-	return pickIndexes;
+	if (!pickIndexes.done() && riggedIndexes && restrictions) {
+		return simLottery(
+			draftType,
+			chances,
+			numToPick,
+			undefined,
+			riggedIndexes,
+			random,
+		);
+	}
+	return pickIndexes.indexes;
 };
 
-const simNba321Lottery = (chances: number[]) => {
+const simNba321Lottery = (chances: number[], random = Math.random) => {
 	let teams = chances.map((chance, index) => ({
 		chances: chance,
 		index,
@@ -169,7 +269,11 @@ const simNba321Lottery = (chances: number[]) => {
 		for (const t of candidates) {
 			sum += t.chances;
 		}
-		const rand = Math.random() * sum;
+		if (sum <= 0) {
+			pickIndexes.push(...teams.map((team) => team.index));
+			break;
+		}
+		const rand = random() * sum;
 		let sum2 = 0;
 		for (const t of candidates) {
 			sum2 += t.chances;
@@ -190,18 +294,31 @@ const monteCarloLotteryProbs = (
 	result: DraftLotteryResultArray,
 	numToPick: number,
 	draftType: DraftType,
+	nba2027Restrictions?: DraftLotteryResult["nba2027"],
 ) => {
 	const ITERATIONS = 100000;
 
 	const probs: number[][] = [];
 
 	const chances = result.map((row) => row.chances);
+	let seed = 0x9e3779b9;
+	const random = () => {
+		seed = (Math.imul(seed ^ (seed >>> 16), 2246822507) + 3266489909) | 0;
+		return (seed >>> 0) / 4294967296;
+	};
 
 	for (let i = 0; i < ITERATIONS; i++) {
 		const result =
 			draftType === "nba321"
-				? simNba321Lottery(chances)
-				: simLottery(chances, numToPick);
+				? simNba321Lottery(chances, random)
+				: simLottery(
+						draftType,
+						chances,
+						numToPick,
+						nba2027Restrictions,
+						undefined,
+						random,
+					);
 		for (let j = 0; j < result.length; j++) {
 			const k = result[j]!;
 			if (!probs[k]) {
@@ -215,12 +332,162 @@ const monteCarloLotteryProbs = (
 			}
 		}
 	}
+	const restricted = nba2027Restrictions
+		? new Set([
+				...nba2027Restrictions.restricted1,
+				...nba2027Restrictions.restricted5,
+			])
+		: undefined;
+	const firstPickTotal = result.reduce(
+		(sum, row, index) =>
+			sum + (restricted?.has(index) ? 0 : Math.max(0, row.chances)),
+		0,
+	);
+	if (firstPickTotal > 0) {
+		for (const [index, row] of result.entries()) {
+			probs[index] ??= [];
+			probs[index]![0] = restricted?.has(index)
+				? 0
+				: Math.max(0, row.chances) / firstPickTotal;
+		}
+	}
 
 	return probs;
 };
 
+// Exact state enumeration for NBA 2027's deferred restrictions. A restricted
+// team is removed from the draw when selected, but is inserted into the final
+// order only after the relevant protected slot has been filled.
+const exactRestrictedProbs = (
+	result: DraftLotteryResultArray,
+	numToPick: number,
+	restrictions: NonNullable<DraftLotteryResult["nba2027"]>,
+) => {
+	const probs = result.map(() => new Array(result.length).fill(0));
+	const restricted1 = new Set(restrictions.restricted1);
+	const restricted5 = new Set(restrictions.restricted5);
+	const record = (order: number[], probability: number) => {
+		for (const [position, index] of order.entries()) {
+			probs[index]![position] += probability;
+		}
+	};
+	const finish = (
+		remaining: number[],
+		order: number[],
+		pending1: number[],
+		pending5: number[],
+		probability: number,
+	) => record([...order, ...pending1, ...pending5, ...remaining], probability);
+	const visit = (
+		remaining: number[],
+		order: number[],
+		pending1: number[],
+		pending5: number[],
+		draws: number,
+		probability: number,
+	) => {
+		if (draws >= numToPick || remaining.length === 0) {
+			finish(remaining, order, pending1, pending5, probability);
+			return;
+		}
+		const total = remaining.reduce(
+			(sum, index) => sum + result[index]!.chances,
+			0,
+		);
+		if (total <= 0) {
+			finish(remaining, order, pending1, pending5, probability);
+			return;
+		}
+		for (const index of remaining) {
+			const chance = result[index]!.chances;
+			if (chance <= 0) {
+				continue;
+			}
+			const nextRemaining = remaining.filter((i) => i !== index);
+			const nextOrder = [...order];
+			let nextPending1 = [...pending1];
+			let nextPending5 = [...pending5];
+			if (nextOrder.length < 5 && restricted5.has(index)) {
+				nextPending5.push(index);
+			} else if (nextOrder.length < 1 && restricted1.has(index)) {
+				nextPending1.push(index);
+			} else {
+				nextOrder.push(index);
+			}
+			if (nextOrder.length === 1 && nextPending1.length > 0) {
+				nextOrder.push(...nextPending1);
+				nextPending1 = [];
+			}
+			if (nextOrder.length === 5 && nextPending5.length > 0) {
+				nextOrder.push(...nextPending5);
+				nextPending5 = [];
+			}
+			visit(
+				nextRemaining,
+				nextOrder,
+				nextPending1,
+				nextPending5,
+				draws + 1,
+				(probability * chance) / total,
+			);
+		}
+	};
+	visit(
+		result.map((_row, index) => index),
+		[],
+		[],
+		[],
+		0,
+		1,
+	);
+	return probs;
+};
+
+const exactPositiveInsufficientProbs = (
+	result: DraftLotteryResultArray,
+	numToPick: number,
+) => {
+	const probs = result.map(() => new Array(result.length).fill(0));
+	const visit = (
+		remaining: number[],
+		order: number[],
+		draws: number,
+		probability: number,
+	) => {
+		const total = remaining.reduce(
+			(sum, index) => sum + Math.max(0, result[index]!.chances),
+			0,
+		);
+		if (draws >= numToPick || total <= 0) {
+			for (const [position, index] of [...order, ...remaining].entries()) {
+				probs[index]![position] += probability;
+			}
+			return;
+		}
+		for (const index of remaining) {
+			const chance = result[index]!.chances;
+			if (chance <= 0) {
+				continue;
+			}
+			visit(
+				remaining.filter((i) => i !== index),
+				[...order, index],
+				draws + 1,
+				(probability * chance) / total,
+			);
+		}
+	};
+	visit(
+		result.map((_row, index) => index),
+		[],
+		0,
+		1,
+	);
+	return probs;
+};
+
 export const getDraftLotteryProbs = (
-	result: DraftLotteryResultArray | undefined,
+	draftLotteryResult: DraftLotteryResult | DraftLotteryResultArray | undefined,
 	draftType: DraftType | "dummy" | undefined,
 	numToPick: number,
 ): {
@@ -228,7 +495,7 @@ export const getDraftLotteryProbs = (
 	probs?: (number | undefined)[][];
 } => {
 	if (
-		result === undefined ||
+		draftLotteryResult === undefined ||
 		draftType === undefined ||
 		draftType === "random" ||
 		draftType === "noLottery" ||
@@ -240,12 +507,29 @@ export const getDraftLotteryProbs = (
 			tooSlow: false,
 		};
 	}
+	const result = Array.isArray(draftLotteryResult)
+		? draftLotteryResult
+		: draftLotteryResult.result;
+	const nba2027Restrictions = Array.isArray(draftLotteryResult)
+		? undefined
+		: draftLotteryResult.nba2027;
 
 	const probs: number[][] = [];
 	const totalChances = result.reduce(
 		(total, { chances }) => total + chances,
 		0,
 	);
+
+	if (totalChances <= 0) {
+		return {
+			tooSlow: false,
+			// With no positive weights simLottery preserves the input order; the UI
+			// must show that deterministic fallback rather than a fictitious uniform draw.
+			probs: result.map((_row, i) =>
+				result.map((_row2, j) => (i === j ? 1 : 0)),
+			),
+		};
+	}
 
 	if (draftType === "randomLottery") {
 		for (let i = 0; i < result.length; i++) {
@@ -289,6 +573,21 @@ export const getDraftLotteryProbs = (
 	}
 
 	const tooSlow = draftLotteryProbsTooSlow(result.length, numToPick);
+	if (
+		!nba2027Restrictions &&
+		result.filter((row) => row.chances > 0).length < numToPick
+	) {
+		return {
+			tooSlow: false,
+			probs: exactPositiveInsufficientProbs(result, numToPick),
+		};
+	}
+	if (nba2027Restrictions && !tooSlow && result.length ** numToPick < 1e7) {
+		return {
+			tooSlow: false,
+			probs: exactRestrictedProbs(result, numToPick, nba2027Restrictions),
+		};
+	}
 
 	if (tooSlow) {
 		// Cache default baseball probs
@@ -555,7 +854,12 @@ export const getDraftLotteryProbs = (
 			// Estimate probs
 			return {
 				tooSlow,
-				probs: monteCarloLotteryProbs(result, numToPick, draftType),
+				probs: monteCarloLotteryProbs(
+					result,
+					numToPick,
+					draftType,
+					nba2027Restrictions,
+				),
 			};
 		}
 	}
@@ -585,10 +889,19 @@ export const getDraftLotteryProbs = (
 				? 1
 				: getProb(prevLotteryWinnerIndexes);
 
+		if (chancesLeft <= 0) {
+			return 0;
+		}
 		const prob = (priorProb * result[currentTeamIndex]!.chances) / chancesLeft;
 
 		return prob;
 	};
+	if (result.filter((row) => row.chances > 0).length < numToPick) {
+		return {
+			tooSlow: false,
+			probs: monteCarloLotteryProbs(result, numToPick, draftType),
+		};
+	}
 
 	for (let pickIndex = 0; pickIndex < numToPick; pickIndex += 1) {
 		const range = new MultiDimensionalRange(result.length, pickIndex + 1);
@@ -635,6 +948,21 @@ export const getDraftLotteryProbs = (
 				// @ts-expect-error
 				probs[i][i + j] = skipped[i][j];
 			}
+		}
+	}
+	if (nba2027Restrictions) {
+		const restricted = new Set([
+			...nba2027Restrictions.restricted1,
+			...nba2027Restrictions.restricted5,
+		]);
+		const firstPickTotal = result.reduce(
+			(sum, row, index) => sum + (restricted.has(index) ? 0 : row.chances),
+			0,
+		);
+		for (let i = 0; i < result.length; i++) {
+			probs[i]![0] = restricted.has(i)
+				? 0
+				: result[i]!.chances / firstPickTotal;
 		}
 	}
 

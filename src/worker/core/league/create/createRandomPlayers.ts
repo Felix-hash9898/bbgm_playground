@@ -8,6 +8,7 @@ import type {
 	Team,
 } from "../../../../common/types.ts";
 import { g, random } from "../../../util/index.ts";
+import { getTradeReputationByTid } from "../../player/getTradeReputation.ts";
 
 export const getNumPlayersPerTeam = () => {
 	// 13 for basketball
@@ -284,7 +285,8 @@ const createRandomPlayers = async ({
 		}
 	}
 
-	const addToFreeAgents = (
+	const tradeReputationByTid = await getTradeReputationByTid();
+	const addToFreeAgents = async (
 		p: PlayerWithoutKey<MinimalPlayerRatings> | undefined,
 	) => {
 		// TEMP DISABLE WITH ESLINT 9 UPGRADE eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
@@ -301,7 +303,7 @@ const createRandomPlayers = async ({
 				false,
 			);
 			p.contract.temp = true;
-			player.addToFreeAgents(p);
+			await player.addToFreeAgents(p, tradeReputationByTid);
 			players.push(p);
 		}
 	};
@@ -309,7 +311,7 @@ const createRandomPlayers = async ({
 	// Finally, free agents
 	if (Object.keys(POSITION_COUNTS).length === 0) {
 		for (let i = 0; i < maxNumFreeAgents; i++) {
-			addToFreeAgents(keptPlayers[i]);
+			await addToFreeAgents(keptPlayers[i]);
 		}
 	} else {
 		// POSITION_COUNTS exists, so use it to keep a balanced list of free agents
@@ -326,7 +328,7 @@ const createRandomPlayers = async ({
 			);
 
 			for (let i = 0; i < limit; i++) {
-				addToFreeAgents(groupedPlayers[pos]![i]);
+				await addToFreeAgents(groupedPlayers[pos]![i]);
 			}
 		}
 	}

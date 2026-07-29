@@ -17,8 +17,7 @@ import Info from "./Info.tsx";
 import Row from "./Row.tsx";
 import Pagination from "./Pagination.tsx";
 import PerPage from "./PerPage.tsx";
-import getSearchVal from "./getSearchVal.tsx";
-import getSortVal from "./getSortVal.tsx";
+import getExportValue from "./getExportValue.tsx";
 import ResponsiveTableWrapper from "../ResponsiveTableWrapper.tsx";
 import { downloadFile, helpers, safeLocalStorage } from "../../util/index.ts";
 import type { SortOrder, SortType } from "../../../common/types.ts";
@@ -88,6 +87,7 @@ export type DataTableRow = {
 		| {
 				classNames?: ClassValue;
 				value: ReactNode;
+				exportValue?: string | number;
 				searchValue?: string | number;
 				sortValue?: string | number;
 				header?: boolean;
@@ -257,13 +257,7 @@ const DataTable = ({
 			rows,
 			state,
 		}).map((row) =>
-			row.data.map((val, i) => {
-				const sortType = columns[i]!.sortType;
-				if (sortType === "number") {
-					return getSortVal(val, sortType, true);
-				}
-				return getSearchVal(val, false);
-			}),
+			row.data.map((value, i) => getExportValue(value, columns[i]!.sortType)),
 		);
 		const output = csvFormatRows([colNames, ...processedRows]);
 		downloadFile(`${name}.csv`, output, "text/csv");

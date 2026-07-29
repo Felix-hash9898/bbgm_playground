@@ -5,6 +5,7 @@ import type { MoodComponents, Player } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { defaultGameAttributes, g, helpers, local } from "../../util/index.ts";
 import { getNegotiationPids } from "../../views/negotiationList.ts";
+import { getTradeReputation } from "./getTradeReputation.ts";
 
 const getMinFractionDiff = async (pid: number, tid: number) => {
 	if (!isSport("basketball")) {
@@ -288,21 +289,13 @@ const moodComponents = async (
 
 	{
 		// TRADES
-		let numPlayersTradedAwayNormalized = 0;
-		for (const teamSeason of teamSeasons) {
-			if (teamSeason.season === season - 2) {
-				numPlayersTradedAwayNormalized +=
-					teamSeason.numPlayersTradedAway * 0.25;
-			} else if (teamSeason.season === season - 1) {
-				numPlayersTradedAwayNormalized += teamSeason.numPlayersTradedAway * 0.5;
-			} else if (teamSeason.season === season) {
-				numPlayersTradedAwayNormalized +=
-					teamSeason.numPlayersTradedAway * 0.75;
-			}
-		}
+		const numPlayersTradedAwayNormalized =
+			p.tid === PLAYER.FREE_AGENT ? p.tradeReputationByTid?.[tid] : undefined;
+		const currentTradeReputation =
+			numPlayersTradedAwayNormalized ?? getTradeReputation(teamSeasons, season);
 
 		components.trades = helpers.bound(
-			-(numPlayersTradedAwayNormalized - 5) / 4,
+			-(currentTradeReputation - 5) / 4,
 			-Infinity,
 			0,
 		);

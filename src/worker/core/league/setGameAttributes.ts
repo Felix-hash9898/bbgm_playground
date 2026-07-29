@@ -18,6 +18,7 @@ import updateMeta from "./updateMeta.ts";
 import { initDefaults } from "../../util/loadNames.ts";
 import { gameAttributesKeysOtherSports } from "../../../common/defaultGameAttributes.ts";
 import { disableCola, initializeCola } from "../draft/cola.ts";
+import { disableNba2027, initializeNba2027 } from "../draft/nba2027.ts";
 
 const updateMetaDifficulty = async (difficulty: number) => {
 	await updateMeta({
@@ -175,6 +176,11 @@ const setGameAttributes = async (
 			await initializeCola();
 		} else {
 			await disableCola();
+		}
+		if (updatedGameAttributes.draftType === "nba2027") {
+			await initializeNba2027();
+		} else {
+			await disableNba2027();
 		}
 	}
 

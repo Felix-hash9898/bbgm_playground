@@ -6,6 +6,7 @@ import RetiredJerseyNumbers from "./RetiredJerseyNumbers.tsx";
 import Seasons from "./Seasons.tsx";
 import { MoreLinks } from "../../components/index.tsx";
 import HideableSection from "../../components/HideableSection.tsx";
+import { Championships } from "./Championships.tsx";
 
 const TeamHistory = ({
 	abbrev,
@@ -68,6 +69,9 @@ const TeamHistory = ({
 						tid={tid}
 						userTid={userTid}
 					/>
+					<HideableSection title="Championships">
+						<Championships history={history} />
+					</HideableSection>
 					<HideableSection title="Players">
 						<Players
 							godMode={godMode}

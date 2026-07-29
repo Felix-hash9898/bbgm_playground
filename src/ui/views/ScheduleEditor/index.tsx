@@ -1,9 +1,18 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useReducer,
+	useRef,
+	useState,
+	type ChangeEvent,
+} from "react";
 import useTitleBar from "../../hooks/useTitleBar.tsx";
 import {
 	confirm,
+	downloadFile,
 	helpers,
 	logEvent,
+	resetFileInput,
 	toWorker,
 	useLocalPartial,
 } from "../../util/index.ts";
@@ -17,6 +26,11 @@ import { Dropdown } from "react-bootstrap";
 import { RegenerateScheduleModal } from "./RegenerateScheduleModal.tsx";
 import clsx from "clsx";
 import { useBlocker } from "../../hooks/useBlocker.ts";
+import { IMPORT_FILE_STYLE } from "../Settings/RowsEditor.tsx";
+import {
+	getScheduleCSVText,
+	getScheduleAfterCSVImport,
+} from "./scheduleCSV.ts";
 
 type Schedule = View<"scheduleEditor">["schedule"];
 
@@ -429,6 +443,69 @@ const ScheduleEditor = ({
 	const [showRegenerateScheduleModal, setShowRegenerateScheduleModal] =
 		useState(false);
 	const [regenerated, setRegenerated] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const handleFileUpload = useCallback(
+		(event: ChangeEvent<HTMLInputElement>) => {
+			const file = event.target.files?.[0];
+			if (!file) {
+				return;
+			}
+
+			const reader = new FileReader();
+			reader.readAsText(file);
+			reader.onload = (loadEvent) => {
+				try {
+					const imported = getScheduleAfterCSVImport({
+						context: {
+							allStarGame,
+							allStarGameAlreadyHappened,
+							maxDayAlreadyPlayed,
+							phase,
+							tradeDeadline,
+						},
+						csvText: String(loadEvent.target?.result ?? ""),
+						schedule,
+						teams,
+					});
+					setRegenerated(imported.regenerated);
+					dispatch({
+						type: "resetSchedule",
+						schedule: imported.schedule,
+						dirty: true,
+					});
+					logEvent({
+						type: "success",
+						text: `Successfully imported ${imported.uploadedCount} schedule entries from CSV. Click Save to apply them.`,
+						saveToDb: false,
+					});
+				} catch (error) {
+					logEvent({
+						type: "error",
+						text: error instanceof Error ? error.message : String(error),
+						saveToDb: false,
+					});
+				}
+			};
+			reader.onerror = () => {
+				logEvent({
+					type: "error",
+					text: "Failed to read CSV file",
+					saveToDb: false,
+				});
+			};
+		},
+		[
+			allStarGame,
+			allStarGameAlreadyHappened,
+			dispatch,
+			maxDayAlreadyPlayed,
+			phase,
+			schedule,
+			teams,
+			tradeDeadline,
+		],
+	);
 
 	if (phase !== PHASE.REGULAR_SEASON && phase !== PHASE.AFTER_TRADE_DEADLINE) {
 		return <p>You can only edit the schedule during the regular season.</p>;
@@ -936,6 +1013,33 @@ const ScheduleEditor = ({
 								}}
 							>
 								Clear schedule
+							</Dropdown.Item>
+							<Dropdown.Divider />
+							<Dropdown.Item
+								onClick={() => {
+									downloadFile(
+										"schedule.csv",
+										getScheduleCSVText(schedule, teams),
+										"text/csv",
+									);
+								}}
+							>
+								Export schedule to CSV
+							</Dropdown.Item>
+							<Dropdown.Item
+								as="div"
+								style={{ position: "relative", overflow: "hidden" }}
+							>
+								Import schedule from CSV
+								<input
+									ref={fileInputRef}
+									className="cursor-pointer"
+									type="file"
+									accept=".csv,text/csv"
+									style={IMPORT_FILE_STYLE}
+									onClick={resetFileInput}
+									onChange={handleFileUpload}
+								/>
 							</Dropdown.Item>
 						</Dropdown.Menu>
 					</Dropdown>

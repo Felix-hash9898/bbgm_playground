@@ -80,6 +80,7 @@ const retire = async (
 	}
 
 	p.tid = PLAYER.RETIRED;
+	delete p.tradeReputationByTid;
 	p.retiredYear = g.get("season");
 	p.injury = {
 		type: "Healthy",

@@ -10,6 +10,7 @@ import type {
 type SeriesTeam = {
 	abbrev: string;
 	cid: number;
+	colors: [string, string, string];
 	imgURL?: string;
 	imgURLSmall?: string;
 	pendingPlayIn?: true;

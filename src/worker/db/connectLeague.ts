@@ -1640,6 +1640,56 @@ const migrate = async ({
 			}
 		}
 	}
+
+	if (oldVersion < 70) {
+		// Backfill the FA reputation snapshot for old saves. The value is captured
+		// from the current season's team history and is intentionally idempotent.
+		const playersStore = transaction.objectStore("players");
+		const teamSeasons = [];
+		for await (const cursor of transaction
+			.objectStore("teamSeasons")
+			.iterate()) {
+			teamSeasons.push(cursor.value);
+		}
+		const teams = [];
+		for await (const cursor of transaction.objectStore("teams").iterate()) {
+			teams.push(cursor.value);
+		}
+		const season = (
+			await transaction.objectStore("gameAttributes").get("season")
+		)?.value;
+		if (typeof season === "number") {
+			for await (const cursor of playersStore
+				.index("tid")
+				.iterate(PLAYER.FREE_AGENT)) {
+				const p = cursor.value;
+				if (p.tradeReputationByTid === undefined) {
+					const snapshot: Record<number, number> = {};
+					for (const t of teams) {
+						if (t.disabled) {
+							continue;
+						}
+						let value = 0;
+						for (const ts of teamSeasons) {
+							if (ts.tid !== t.tid) {
+								continue;
+							}
+							if (ts.season === season - 2) {
+								value += ts.numPlayersTradedAway * 0.25;
+							} else if (ts.season === season - 1) {
+								value += ts.numPlayersTradedAway * 0.5;
+							} else if (ts.season === season) {
+								value += ts.numPlayersTradedAway * 0.75;
+							}
+						}
+						snapshot[t.tid] = value;
+					}
+					p.tradeReputationByTid = snapshot;
+					await cursor.update(p);
+				}
+			}
+		}
+	}
 };
 
 const connectLeague = (lid: number) =>

@@ -1,5 +1,9 @@
 export * from "./constants.ts";
 export { default as applyRealTeamInfo } from "./applyRealTeamInfo.ts";
+export {
+	validateRealPlayerPhotos,
+	validateRealTeamInfo,
+} from "./validateRealTeamInfo.ts";
 export { default as bySport } from "./bySport.ts";
 export { default as createLogger } from "./createLogger.ts";
 export { default as fetchWrapper } from "./fetchWrapper.ts";

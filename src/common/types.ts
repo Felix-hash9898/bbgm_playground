@@ -194,6 +194,10 @@ export type DraftLotteryResult = {
 		| "dummy";
 	rigged?: GameAttributesLeague["riggedLottery"];
 	result: DraftLotteryResultArray;
+	nba2027?: {
+		restricted1: number[];
+		restricted5: number[];
+	};
 };
 
 export type DraftPickSeason = number | "fantasy" | "expansion";
@@ -217,6 +221,7 @@ export type DraftType =
 	| "nba1994"
 	| "nba2019"
 	| "nba321"
+	| "nba2027"
 	| "noLottery"
 	| "noLotteryReverse"
 	| "random"
@@ -398,6 +403,7 @@ export type ScheduledEventTeamInfo = {
 	phase: Phase;
 	info: {
 		tid: number;
+		cid?: number;
 		region?: string;
 		srID?: string;
 		name?: string;
@@ -408,6 +414,7 @@ export type ScheduledEventTeamInfo = {
 		imgURLSmall?: string;
 		colors?: [string, string, string];
 		jersey?: string;
+		stadiumCapacity?: number;
 	};
 };
 
@@ -1265,6 +1272,8 @@ export type PlayerWithoutKey<PlayerRatings = any> = {
 	midRangeTendency?: number;
 	threePointTendency?: number;
 	usageBias?: number;
+	/** Trade reputation snapshot captured when the player entered free agency. */
+	tradeReputationByTid?: Record<number, number>;
 	ratings: NonEmptyArray<PlayerRatings>;
 	real?: boolean;
 	relatives: Relative[];
@@ -1472,6 +1481,7 @@ export type Local = {
 export type PlayoffSeriesTeam = {
 	abbrev?: string;
 	cid: number;
+	colors?: [string, string, string];
 	imgURL?: string;
 	imgURLSmall?: string;
 	pendingPlayIn?: true;
@@ -1576,6 +1586,11 @@ export type SortType =
 
 export type Team = {
 	tid: number;
+	draftLottery?: {
+		type: "nba2027";
+		restricted1?: true;
+		restricted5?: 1 | 2;
+	};
 	cid: number;
 	did: number;
 	region: string;

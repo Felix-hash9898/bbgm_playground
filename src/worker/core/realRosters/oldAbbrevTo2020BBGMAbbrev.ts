@@ -97,6 +97,10 @@ const oldAbbrevTo2020BBGMAbbrev = (abbrev: string) => {
 		NYB: "BKN",
 		PHV: "GS",
 		SDA: "HOU",
+		LV: "LV",
+		SET: "SET",
+		_LV: "LV",
+		_SET: "SET",
 	};
 
 	if (Object.hasOwn(abbrevs, abbrev)) {

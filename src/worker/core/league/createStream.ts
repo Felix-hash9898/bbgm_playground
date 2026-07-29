@@ -56,6 +56,7 @@ import { getAutoTicketPriceByTid } from "../game/attendance.ts";
 import addRelatives from "../realRosters/addRelatives.ts";
 import loadDataBasketball from "../realRosters/loadData.basketball.ts";
 import addDraftProspects from "./create/addDraftProspects.ts";
+import backfillImportedFreeAgentTradeReputation from "./create/backfillImportedFreeAgentTradeReputation.ts";
 import createRandomPlayers from "./create/createRandomPlayers.ts";
 import getRealTeamPlayerData from "./create/getRealTeamPlayerData.ts";
 import createGameAttributes from "./createGameAttributes.ts";
@@ -67,6 +68,10 @@ import { TOO_MANY_TEAMS_TOO_SLOW } from "../season/getInitialNumGamesConfDivSett
 import { DEFAULT_LEVEL, amountToLevel } from "../../../common/budgetLevels.ts";
 import { upgradeGamesVersion65 } from "../../db/connectLeague.ts";
 import type { NewLeagueSettings } from "../../views/newLeague.ts";
+import {
+	assertUniqueTeamSeasons,
+	deleteGeneratedPrimaryKey,
+} from "./importIntegrity.ts";
 
 export type TeamInfo = TeamBasic & {
 	disabled?: boolean;
@@ -213,6 +218,8 @@ const preProcess = async (
 		version,
 	}: PreProcessParams,
 ) => {
+	deleteGeneratedPrimaryKey(key, x);
+
 	if (key === "draftPicks") {
 		if (typeof x.pick !== "number") {
 			x.pick = 0;
@@ -990,6 +997,8 @@ const processTeamInfos = async ({
 		}
 	}
 
+	assertUniqueTeamSeasons(teamSeasons);
+
 	if (scoutingLevel === undefined) {
 		throw new Error("scoutingLevel should be defined");
 	}
@@ -1597,6 +1606,10 @@ const afterDBStream = async ({
 	delete gameAttributesToUpdate.teamInfoCache;
 
 	// Need this before calling setGameAttributes, so the "cola" draftType can see recent top draft picks
+	await backfillImportedFreeAgentTradeReputation(
+		activePlayers,
+		gameAttributes.season,
+	);
 	for (const p of activePlayers) {
 		await idb.cache.players.put(p);
 	}

@@ -409,6 +409,12 @@ table {
 	max-width: 36px;
 	min-width: 36px;
 	width: 36px;
+
+	button:focus-visible {
+		outline: none;
+		box-shadow: inset 0 0 0 var(--bs-focus-ring-width)
+			var(--bs-focus-ring-color);
+	}
 }
 
 .game-log-list {

@@ -4,9 +4,8 @@ import {
 	useRef,
 	useState,
 	type ChangeEvent,
-	type MouseEvent,
 } from "react";
-import { ProgressBarText } from "./index.tsx";
+import ProgressBarText from "./ProgressBarText.tsx";
 import {
 	LEAGUE_DATABASE_VERSION,
 	GAME_NAME,
@@ -118,6 +117,7 @@ const LeagueFileUpload = ({
 	const [url, setURL] = useState("");
 	const [state, dispatch] = useReducer(reducer, initialState);
 	const isMounted = useRef(true);
+	const urlLoadInFlight = useRef(false);
 	useEffect(() => {
 		return () => {
 			isMounted.current = false;
@@ -209,8 +209,16 @@ const LeagueFileUpload = ({
 		}
 	};
 
-	const handleFileURL = async (event: MouseEvent) => {
-		event.preventDefault();
+	const handleFileURL = async () => {
+		if (
+			disabled ||
+			state.status === "checking" ||
+			url.trim() === "" ||
+			urlLoadInFlight.current
+		) {
+			return;
+		}
+		urlLoadInFlight.current = true;
 
 		beforeFile();
 
@@ -247,8 +255,8 @@ const LeagueFileUpload = ({
 				});
 				onDone(error);
 			}
-
-			return;
+		} finally {
+			urlLoadInFlight.current = false;
 		}
 	};
 
@@ -308,11 +316,22 @@ const LeagueFileUpload = ({
 						onChange={(event) => {
 							setURL(event.target.value);
 						}}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") {
+								event.preventDefault();
+								void handleFileURL();
+							}
+						}}
 					/>
 					<button
 						className="btn btn-secondary ml-2"
-						onClick={handleFileURL}
-						disabled={disabled || state.status === "checking"}
+						onClick={(event) => {
+							event.preventDefault();
+							handleFileURL();
+						}}
+						disabled={
+							disabled || state.status === "checking" || url.trim() === ""
+						}
 					>
 						Load
 					</button>
@@ -320,6 +339,7 @@ const LeagueFileUpload = ({
 			) : (
 				<input
 					type="file"
+					accept=".json,.gz,application/json,application/gzip"
 					onClick={resetFileInput}
 					onChange={handleFileUpload}
 					disabled={disabled || state.status === "checking"}

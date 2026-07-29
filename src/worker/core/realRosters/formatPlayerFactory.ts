@@ -11,6 +11,7 @@ import getOnlyRatings, { type OnlyRatings } from "./getOnlyRatings.ts";
 import type { Basketball, Ratings } from "./loadData.basketball.ts";
 import nerfDraftProspect from "./nerfDraftProspect.ts";
 import oldAbbrevTo2020BBGMAbbrev from "./oldAbbrevTo2020BBGMAbbrev.ts";
+import { resolveRealRosterTid } from "./retirementMarker.ts";
 import setDraftProspectRatingsBasedOnDraftPosition from "./setDraftProspectRatingsBasedOnDraftPosition.ts";
 import { getEWA } from "../../util/advStats.basketball.ts";
 import { averageSalary } from "./averageSalary.ts";
@@ -179,7 +180,7 @@ const formatPlayerFactory = async (
 				});
 				tid = team ? team.tid : PLAYER.FREE_AGENT;
 			} else {
-				const newTid = getTidNormal(abbrev);
+				const newTid = resolveRealRosterTid(abbrev, getTidNormal);
 				if (newTid !== undefined) {
 					tid = newTid;
 				}
