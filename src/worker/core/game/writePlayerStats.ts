@@ -16,10 +16,84 @@ import statsRowIsCurrent from "../player/statsRowIsCurrent.ts";
 import { maxBy } from "../../../common/utils.ts";
 import getWinner from "../../../common/getWinner.ts";
 import reachesStopOnInjuryThreshold from "../../../common/reachesStopOnInjuryThreshold.ts";
+import getBasketballPermanentInjuryRatingLoss, {
+	basketballPermanentInjuryRollout,
+} from "./getBasketballPermanentInjuryRatingLoss.ts";
 
 export const P_FATIGUE_DAILY_REDUCTION = 20;
 
 const gameOrWeek = bySport({ default: "game", football: "week" });
+
+// Decide which permanent-loss mechanism applies and compute the losses.
+// Basketball injuries inside the studied rollout set use the new profile
+// mechanism. Everything else (unstudied basketball injuries and all
+// non-basketball sports) uses the pre-existing duration-based logic exactly.
+export const getPermanentInjuryRatingsLoss = ({
+	isBasketball,
+	injuryType,
+	isReaggravation,
+	ratingsLocked,
+	gamesRemaining,
+	randomUniform = Math.random,
+	randomInt = (a: number, b: number) => random.randInt(a, b),
+}: {
+	isBasketball: boolean;
+	injuryType: string;
+	isReaggravation: boolean;
+	ratingsLocked: boolean;
+	gamesRemaining: number;
+	randomUniform?: () => number;
+	randomInt?: (a: number, b: number) => number;
+}): Array<[rating: string, amount: number]> | undefined => {
+	if (isBasketball && basketballPermanentInjuryRollout.has(injuryType)) {
+		const losses = getBasketballPermanentInjuryRatingLoss({
+			injuryType,
+			isReaggravation,
+			ratingsLocked,
+			random: randomUniform,
+		});
+		return losses ? Object.entries(losses) : undefined;
+	}
+
+	const gamesRemainingNormalized = bySport({
+		baseball: gamesRemaining / 2,
+		basketball: gamesRemaining,
+		football: gamesRemaining * 3,
+		hockey: gamesRemaining,
+	});
+
+	// These injuries should not cause permanent rating drops
+	const noRatingDropInjuries = ["Torn Meniscus", "Fractured Foot"];
+
+	if (
+		gamesRemainingNormalized > 25 &&
+		randomUniform() < gamesRemainingNormalized / 82 &&
+		!ratingsLocked &&
+		!noRatingDropInjuries.includes(injuryType)
+	) {
+		// Modern medicine reduces long-term impact of these injuries
+		const reducedImpactInjuries = [
+			"Torn ACL",
+			"Torn Achilles Tendon",
+			"Torn MCL",
+		];
+		const isReducedImpact = reducedImpactInjuries.includes(injuryType);
+		const biggestRatingsLoss = isReducedImpact ? 10 : 20;
+
+		const ratingsToNerf = bySport({
+			baseball: ["spd", "endu", "hpw", "thr", "ppw"],
+			basketball: ["spd", "endu", "jmp"],
+			football: ["spd", "endu", "thp"],
+			hockey: ["spd", "endu"],
+		});
+		return ratingsToNerf.map((rating) => [
+			rating,
+			randomInt(1, biggestRatingsLoss),
+		]);
+	}
+
+	return;
+};
 
 const doInjury = async (
 	p: any,
@@ -198,49 +272,24 @@ const doInjury = async (
 		conditions,
 	);
 
-	// Some chance of a loss of athleticism from serious injuries
-	// 100 game injury: 67% chance of losing between 0 and 10 of spd, jmp, endu
-	// 50 game injury: 33% chance of losing between 0 and 5 of spd, jmp, endu
-
-	let ratingsLoss = false;
-	const gamesRemainingNormalized = bySport({
-		baseball: p2.injury.gamesRemaining / 2,
-		basketball: p2.injury.gamesRemaining,
-		football: p2.injury.gamesRemaining * 3,
-		hockey: p2.injury.gamesRemaining,
+	const ratingsLosses = getPermanentInjuryRatingsLoss({
+		isBasketball: isSport("basketball"),
+		injuryType: p2.injury.type,
+		isReaggravation: reaggravateExtraDays !== undefined,
+		ratingsLocked: p2.ratings.at(-1).locked,
+		gamesRemaining: p2.injury.gamesRemaining,
 	});
 
-	// These injuries should not cause permanent rating drops
-	const noRatingDropInjuries = ["Torn Meniscus", "Fractured Foot"];
-
-	if (
-		gamesRemainingNormalized > 25 &&
-		Math.random() < gamesRemainingNormalized / 82 &&
-		!p2.ratings.at(-1).locked &&
-		!noRatingDropInjuries.includes(p2.injury.type)
-	) {
+	let ratingsLoss = false;
+	if (ratingsLosses && ratingsLosses.length > 0) {
 		ratingsLoss = true;
-		// Modern medicine reduces long-term impact of these injuries
-		const reducedImpactInjuries = [
-			"Torn ACL",
-			"Torn Achilles Tendon",
-			"Torn MCL",
-		];
-		const isReducedImpact = reducedImpactInjuries.includes(p2.injury.type);
-		let biggestRatingsLoss = isReducedImpact ? 10 : 20;
 
 		player.addRatingsRow(p2, undefined, p2.injuries.length - 1);
 		const r = p2.ratings.length - 1; // New ratings row
 
-		const ratingsToNerf = bySport({
-			baseball: ["spd", "endu", "hpw", "thr", "ppw"],
-			basketball: ["spd", "endu", "jmp"],
-			football: ["spd", "endu", "thp"],
-			hockey: ["spd", "endu"],
-		});
-		for (const rating of ratingsToNerf) {
+		for (const [rating, amount] of ratingsLosses) {
 			p2.ratings[r][rating] = player.limitRating(
-				p2.ratings[r][rating] - random.randInt(1, biggestRatingsLoss),
+				p2.ratings[r][rating] - amount,
 			);
 		}
 
