@@ -19,6 +19,9 @@ describe("BPMI Box Score sorting", () => {
 		expect(BOX_SCORE_STATS).toEqual([
 			"min",
 			"fg",
+			"fgAtRim",
+			"fgLowPost",
+			"fgMidRange",
 			"tp",
 			"ft",
 			"orb",

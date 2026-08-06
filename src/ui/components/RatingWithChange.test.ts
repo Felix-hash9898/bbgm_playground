@@ -1,6 +1,10 @@
+import { createElement } from "react";
+import type { ComponentType } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, expect, test } from "vitest";
 
 let wrappedRatingWithChange: typeof import("./RatingWithChange.tsx").wrappedRatingWithChange;
+let RatingWithChange: typeof import("./RatingWithChange.tsx").default;
 
 beforeAll(async () => {
 	Object.defineProperty(window, "localStorage", {
@@ -11,8 +15,29 @@ beforeAll(async () => {
 			setItem: () => {},
 		},
 	});
-	wrappedRatingWithChange = (await import("./RatingWithChange.tsx"))
-		.wrappedRatingWithChange;
+	const module = await import("./RatingWithChange.tsx");
+	RatingWithChange = module.default;
+	wrappedRatingWithChange = module.wrappedRatingWithChange;
+});
+
+test("keeps colors by default and can disable only the change color", () => {
+	const Component = RatingWithChange as ComponentType<{
+		change: number;
+		colorize?: boolean;
+	}>;
+	const defaultMarkup = renderToStaticMarkup(
+		createElement(Component, { change: 2 }, 63),
+	);
+	expect(defaultMarkup).toContain('class="text-success"');
+	expect(defaultMarkup).toContain("63<span");
+	expect(defaultMarkup).toContain("(+2)");
+
+	const neutralMarkup = renderToStaticMarkup(
+		createElement(Component, { change: -2, colorize: false }, 63),
+	);
+	expect(neutralMarkup).toContain("(-2)");
+	expect(neutralMarkup).not.toContain("text-success");
+	expect(neutralMarkup).not.toContain("text-danger");
 });
 
 test("keeps display, search, sort, and CSV rating semantics separate", () => {

@@ -8,6 +8,31 @@ import updateSortBys from "./DataTable/updateSortBys.ts";
 import getBPMImpactSortValue from "../../common/getBPMImpactSortValue.ts";
 import BOX_SCORE_STATS from "../../common/boxScoreStats.basketball.ts";
 
+const shotAttemptStat = {
+	fg: "fga",
+	fgAtRim: "fgaAtRim",
+	fgLowPost: "fgaLowPost",
+	fgMidRange: "fgaMidRange",
+	ft: "fta",
+	tp: "tpa",
+} as const;
+
+type ShotStat = keyof typeof shotAttemptStat;
+
+const formatMadeAttempts = (row: any, stat: ShotStat) => {
+	const attempts = row[shotAttemptStat[stat]];
+	return typeof row[stat] === "number" && typeof attempts === "number"
+		? `${row[stat]}-${attempts}`
+		: undefined;
+};
+
+const formatPercentage = (row: any, stat: ShotStat, percentageStat: string) => {
+	const attempts = row[shotAttemptStat[stat]];
+	return typeof row[stat] === "number" && typeof attempts === "number"
+		? `${helpers.roundStat((100 * row[stat]) / attempts, percentageStat)}%`
+		: undefined;
+};
+
 const StatsTable = ({
 	Row,
 	exhibition,
@@ -62,8 +87,20 @@ const StatsTable = ({
 			"stat:fg": {
 				desc: "Field Goals",
 			},
+			"stat:fgAtRim": {
+				desc: "At Rim Field Goals (Made-Attempted)",
+				title: "Rim",
+			},
+			"stat:fgLowPost": {
+				desc: "Low Post Field Goals (Made-Attempted)",
+				title: "Post",
+			},
+			"stat:fgMidRange": {
+				desc: "Mid-Range Field Goals (Made-Attempted)",
+				title: "Mid",
+			},
 			"stat:tp": {
-				desc: "Three Pointers",
+				desc: "Three Pointers (Made-Attempted)",
 			},
 			"stat:ft": {
 				desc: "Free Throws",
@@ -74,12 +111,15 @@ const StatsTable = ({
 		},
 	);
 	const footerValues: Partial<
-		Record<(typeof BOX_SCORE_STATS)[number], number | string>
+		Record<(typeof BOX_SCORE_STATS)[number], number | string | undefined>
 	> = {
 		min: Number.isInteger(t.min) ? t.min : t.min.toFixed(1),
-		fg: `${t.fg}-${t.fga}`,
-		tp: `${t.tp}-${t.tpa}`,
-		ft: `${t.ft}-${t.fta}`,
+		fg: formatMadeAttempts(t, "fg"),
+		ft: formatMadeAttempts(t, "ft"),
+		fgAtRim: formatMadeAttempts(t, "fgAtRim"),
+		fgLowPost: formatMadeAttempts(t, "fgLowPost"),
+		fgMidRange: formatMadeAttempts(t, "fgMidRange"),
+		tp: formatMadeAttempts(t, "tp"),
 		orb: t.orb,
 		trb: t.drb + t.orb,
 		ast: t.ast,
@@ -91,11 +131,14 @@ const StatsTable = ({
 		pts: t.pts,
 	};
 	const percentageValues: Partial<
-		Record<(typeof BOX_SCORE_STATS)[number], string>
+		Record<(typeof BOX_SCORE_STATS)[number], string | undefined>
 	> = {
-		fg: `${helpers.roundStat((100 * t.fg) / t.fga, "fgp")}%`,
-		tp: `${helpers.roundStat((100 * t.tp) / t.tpa, "tpp")}%`,
-		ft: `${helpers.roundStat((100 * t.ft) / t.fta, "ftp")}%`,
+		fg: formatPercentage(t, "fg", "fgp"),
+		ft: formatPercentage(t, "ft", "ftp"),
+		fgAtRim: formatPercentage(t, "fgAtRim", "fgpAtRim"),
+		fgLowPost: formatPercentage(t, "fgLowPost", "fgpLowPost"),
+		fgMidRange: formatPercentage(t, "fgMidRange", "fgpMidRange"),
+		tp: formatPercentage(t, "tp", "tpp"),
 	};
 
 	// This is used for two purposes - keeping injured/DNP at the bottom while sorting, and also sorting in general for live sim (was too hard to account for this stuff in default sort from backend)
@@ -133,12 +176,18 @@ const StatsTable = ({
 					return getBPMImpactSortValue(p);
 				}
 
-				if (stat === "fg" || stat === "ft" || stat === "tp") {
+				if (Object.hasOwn(shotAttemptStat, stat)) {
+					const shotStat = stat as ShotStat;
+					const attempts = p[shotAttemptStat[shotStat]];
+					if (typeof p[shotStat] !== "number" || typeof attempts !== "number") {
+						return -Infinity;
+					}
+
 					// Sort by FGM, FGM/FGA (+1 for divide by 0 and so 100% doesn't roll over), and # attempts (lower is better)
 					return (
-						p[stat] +
-						p[stat] / (p[`${stat}a`] + 1) +
-						(1000 - p[`${stat}a`]) / 1000
+						p[shotStat] +
+						p[shotStat] / (attempts + 1) +
+						(1000 - attempts) / 1000
 					);
 				}
 

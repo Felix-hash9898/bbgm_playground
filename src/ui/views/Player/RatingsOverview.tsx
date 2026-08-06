@@ -1,9 +1,6 @@
 import { bySport } from "../../../common/index.ts";
 import RatingWithChange from "../../components/RatingWithChange.tsx";
-import { gradientStyleFactory } from "../../util/index.ts";
 import type { ReactNode } from "react";
-
-const gradientStyle = gradientStyleFactory(25, 45, 55, 75);
 
 const RatingsOverview = ({
 	ratings,
@@ -473,13 +470,19 @@ const RatingsOverview = ({
 			<div className="d-flex justify-content-between">
 				<h2 className="me-3">
 					Overall:{" "}
-					<RatingWithChange change={currentSeason.ovr - lastSeason.ovr}>
+					<RatingWithChange
+						change={currentSeason.ovr - lastSeason.ovr}
+						colorize={false}
+					>
 						{currentSeason.ovr}
 					</RatingWithChange>
 				</h2>
 				<h2>
 					Potential:{" "}
-					<RatingWithChange change={currentSeason.pot - lastSeason.pot}>
+					<RatingWithChange
+						change={currentSeason.pot - lastSeason.pot}
+						colorize={false}
+					>
 						{currentSeason.pot}
 					</RatingWithChange>
 				</h2>
@@ -506,11 +509,11 @@ const RatingsOverview = ({
 											return (
 												<tr key={j}>
 													<td className="p-0">{label}:</td>
-													<td
-														className="p-0 ps-1"
-														style={gradientStyle(displayCur)}
-													>
-														<RatingWithChange change={displayChange}>
+													<td className="p-0 ps-1">
+														<RatingWithChange
+															change={displayChange}
+															colorize={false}
+														>
 															{displayCur}
 														</RatingWithChange>
 													</td>

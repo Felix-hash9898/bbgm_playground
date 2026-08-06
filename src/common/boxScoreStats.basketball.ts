@@ -1,6 +1,9 @@
 const BOX_SCORE_STATS = [
 	"min",
 	"fg",
+	"fgAtRim",
+	"fgLowPost",
+	"fgMidRange",
 	"tp",
 	"ft",
 	"orb",

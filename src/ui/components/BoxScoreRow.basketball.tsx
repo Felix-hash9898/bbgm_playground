@@ -5,6 +5,11 @@ import { helpers } from "../util/index.ts";
 import BOX_SCORE_STATS from "../../common/boxScoreStats.basketball.ts";
 import type { BasketballBoxScoreStat } from "../../common/boxScoreStats.basketball.ts";
 
+const formatMadeAttempts = (made: unknown, attempts: unknown) =>
+	typeof made === "number" && typeof attempts === "number"
+		? `${made}-${attempts}`
+		: "";
+
 const BoxScoreRow = ({
 	className,
 	exhibition,
@@ -47,15 +52,12 @@ const BoxScoreRow = ({
 	) : (
 		<>
 			<td>{helpers.formatNumber(p.min, "minutes")}</td>
-			<td>
-				{p.fg}-{p.fga}
-			</td>
-			<td>
-				{p.tp}-{p.tpa}
-			</td>
-			<td>
-				{p.ft}-{p.fta}
-			</td>
+			<td>{formatMadeAttempts(p.fg, p.fga)}</td>
+			<td>{formatMadeAttempts(p.fgAtRim, p.fgaAtRim)}</td>
+			<td>{formatMadeAttempts(p.fgLowPost, p.fgaLowPost)}</td>
+			<td>{formatMadeAttempts(p.fgMidRange, p.fgaMidRange)}</td>
+			<td>{formatMadeAttempts(p.tp, p.tpa)}</td>
+			<td>{formatMadeAttempts(p.ft, p.fta)}</td>
 			<td>{p.orb}</td>
 			<td>{p.drb + p.orb}</td>
 			<td>{p.ast}</td>
@@ -68,9 +70,18 @@ const BoxScoreRow = ({
 			<td>{helpers.gameScore(p).toFixed(1)}</td>
 			{showBPMI ? (
 				<td>
-					{typeof p.bpmImpact === "number"
-						? helpers.plusMinus(p.bpmImpact, 2)
-						: ""}
+					{typeof p.bpmImpact === "number" ? (
+						<span
+							className={clsx({
+								"text-danger": p.bpmImpact < 0,
+								"text-success": p.bpmImpact > 0,
+							})}
+						>
+							{helpers.plusMinus(p.bpmImpact, 2)}
+						</span>
+					) : (
+						""
+					)}
 				</td>
 			) : null}
 			<td className={formColor(p.form ?? 0, 1)}>{(p.form ?? 0).toFixed(1)}</td>
