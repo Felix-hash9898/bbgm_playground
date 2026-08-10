@@ -328,48 +328,51 @@ const allStarDraftSetPlayers = async (
 };
 
 const allStarGameNow = async () => {
-	const currentPhase = g.get("phase");
-	if (
-		currentPhase != PHASE.REGULAR_SEASON &&
-		currentPhase !== PHASE.AFTER_TRADE_DEADLINE
-	) {
-		return;
-	}
+	const cache = idb.cache;
+	return enqueueScheduleMutation(cache, async () => {
+		const currentPhase = g.get("phase");
+		if (
+			currentPhase != PHASE.REGULAR_SEASON &&
+			currentPhase !== PHASE.AFTER_TRADE_DEADLINE
+		) {
+			return;
+		}
 
-	let schedule = (await season.getSchedule()).map((game) => {
-		const newGame: ScheduleGameWithoutKey = {
-			...game,
-		};
-		// Delete gid, so ASG added to beginning will be in order
-		delete newGame.gid;
-		return newGame;
+		let schedule = (await season.getSchedule()).map((game) => {
+			const newGame: ScheduleGameWithoutKey = {
+				...game,
+			};
+			// Delete gid, so ASG added to beginning will be in order
+			delete newGame.gid;
+			return newGame;
+		});
+
+		// Does ASG exist in schedule? If so, delete it.
+		schedule = schedule.filter(
+			(game) => game.awayTid !== -2 || game.homeTid !== -1,
+		);
+
+		// Add 1 to each day, so we can fit in ASG
+		for (const game of schedule) {
+			game.day += 1;
+		}
+
+		// Add new ASG to front of schedule, and adjust days
+		schedule.unshift({
+			awayTid: -2,
+			homeTid: -1,
+			day: schedule[0] ? schedule[0].day - 1 : 0,
+		});
+
+		await cache.schedule.clear();
+		for (const game of schedule) {
+			await cache.schedule.add(game);
+		}
+
+		await initUILocalGames();
+		await updatePlayMenu();
+		await toUI("realtimeUpdate", [["gameSim"]]);
 	});
-
-	// Does ASG exist in schedule? If so, delete it.
-	schedule = schedule.filter(
-		(game) => game.awayTid !== -2 || game.homeTid !== -1,
-	);
-
-	// Add 1 to each day, so we can fit in ASG
-	for (const game of schedule) {
-		game.day += 1;
-	}
-
-	// Add new ASG to front of schedule, and adjust days
-	schedule.unshift({
-		awayTid: -2,
-		homeTid: -1,
-		day: schedule[0] ? schedule[0].day - 1 : 0,
-	});
-
-	await idb.cache.schedule.clear();
-	for (const game of schedule) {
-		await idb.cache.schedule.add(game);
-	}
-
-	await initUILocalGames();
-	await updatePlayMenu();
-	await toUI("realtimeUpdate", [["gameSim"]]);
 };
 
 const autoSortRoster = async ({
@@ -3474,13 +3477,16 @@ const setForceWin = async ({
 	gid: number;
 	tidOrTie?: number | "tie";
 }) => {
-	const game = await idb.cache.schedule.get(gid);
-	if (!game) {
-		throw new Error("Game not found");
-	}
+	const cache = idb.cache;
+	return enqueueScheduleMutation(cache, async () => {
+		const game = await cache.schedule.get(gid);
+		if (!game) {
+			throw new Error("Game not found");
+		}
 
-	game.forceWin = tidOrTie;
-	await idb.cache.schedule.put(game);
+		game.forceWin = tidOrTie;
+		await cache.schedule.put(game);
+	});
 };
 
 const setForceWinAll = async ({
@@ -3490,26 +3496,29 @@ const setForceWinAll = async ({
 	tid: number;
 	type: "none" | "win" | "lose" | "tie";
 }) => {
-	const games = await idb.cache.schedule.getAll();
-	for (const game of games) {
-		if (game.homeTid !== tid && game.awayTid !== tid) {
-			continue;
+	const cache = idb.cache;
+	return enqueueScheduleMutation(cache, async () => {
+		const games = await cache.schedule.getAll();
+		for (const game of games) {
+			if (game.homeTid !== tid && game.awayTid !== tid) {
+				continue;
+			}
+
+			if (type === "win") {
+				game.forceWin = tid;
+			} else if (type === "lose") {
+				game.forceWin = game.homeTid === tid ? game.awayTid : game.homeTid;
+			} else if (type === "tie") {
+				game.forceWin = "tie";
+			} else {
+				delete game.forceWin;
+			}
+
+			await cache.schedule.put(game);
 		}
 
-		if (type === "win") {
-			game.forceWin = tid;
-		} else if (type === "lose") {
-			game.forceWin = game.homeTid === tid ? game.awayTid : game.homeTid;
-		} else if (type === "tie") {
-			game.forceWin = "tie";
-		} else {
-			delete game.forceWin;
-		}
-
-		await idb.cache.schedule.put(game);
-	}
-
-	await toUI("realtimeUpdate", [["gameSim"]]);
+		await toUI("realtimeUpdate", [["gameSim"]]);
+	});
 };
 
 const setGOATFormula = async ({
@@ -5002,32 +5011,34 @@ const toggleColaOptOut = async () => {
 };
 
 const toggleTradeDeadline = async () => {
-	const currentPhase = g.get("phase");
-	if (currentPhase === PHASE.AFTER_TRADE_DEADLINE) {
-		await league.setGameAttributes({
-			phase: PHASE.REGULAR_SEASON,
-		});
+	return enqueueScheduleMutation(idb.cache, async () => {
+		const currentPhase = g.get("phase");
+		if (currentPhase === PHASE.AFTER_TRADE_DEADLINE) {
+			await league.setGameAttributes({
+				phase: PHASE.REGULAR_SEASON,
+			});
 
-		await updatePlayMenu();
-		await toUI("realtimeUpdate", [["newPhase"]]);
-	} else if (currentPhase === PHASE.REGULAR_SEASON) {
-		await league.setGameAttributes({
-			phase: PHASE.AFTER_TRADE_DEADLINE,
-		});
+			await updatePlayMenu();
+			await toUI("realtimeUpdate", [["newPhase"]]);
+		} else if (currentPhase === PHASE.REGULAR_SEASON) {
+			await league.setGameAttributes({
+				phase: PHASE.AFTER_TRADE_DEADLINE,
+			});
 
-		// Delete scheduled trade deadline
-		const schedule = await season.getSchedule();
-		const tradeDeadline = schedule.find(
-			(game) => game.homeTid === -3 && game.awayTid === -3,
-		);
-		if (tradeDeadline) {
-			await idb.cache.schedule.delete(tradeDeadline.gid);
-			await toUI("deleteGames", [[tradeDeadline.gid]]);
+			// Delete scheduled trade deadline
+			const schedule = await season.getSchedule();
+			const tradeDeadline = schedule.find(
+				(game) => game.homeTid === -3 && game.awayTid === -3,
+			);
+			if (tradeDeadline) {
+				await idb.cache.schedule.delete(tradeDeadline.gid);
+				await toUI("deleteGames", [[tradeDeadline.gid]]);
+			}
+
+			await updatePlayMenu();
+			await toUI("realtimeUpdate", [["newPhase"]]);
 		}
-
-		await updatePlayMenu();
-		await toUI("realtimeUpdate", [["newPhase"]]);
-	}
+	});
 };
 
 const tradeCounterOffer = async () => {
@@ -5112,56 +5123,295 @@ const clearSavedTrades = async (hashes: string[]) => {
 };
 
 // Normally use season.setSchedule, but this skips various checks and saves exactly what the user has edited
+type ScheduleEditorSchedule = View<"scheduleEditor">["schedule"];
+type ScheduleEditorSettingKey = "numGames" | "divs" | "confs";
+
+const SCHEDULE_EDITOR_SETTING_KEYS: ScheduleEditorSettingKey[] = [
+	"numGames",
+	"divs",
+	"confs",
+];
+
+type CapturedScheduleContext = {
+	cache: typeof idb.cache;
+	leagueDB: typeof idb.league;
+	lid: number;
+	season: number;
+	rawSettings: Record<ScheduleEditorSettingKey, any>;
+};
+
+const scheduleMutationQueues = new WeakMap<typeof idb.cache, Promise<void>>();
+
+const validateScheduleForSave = (
+	schedule: ScheduleEditorSchedule,
+	teamIDs?: Set<number>,
+	maxDayAlreadyPlayed = -1,
+) => {
+	if (!Array.isArray(schedule)) {
+		throw new Error("Schedule must be an array");
+	}
+
+	let previousDay = -Infinity;
+	const entryTypeByDay = new Map<number, string>();
+	const teamsByDay = new Map<number, Set<number>>();
+	const specialTypes = new Set<string>();
+	let hasPlaceholder = false;
+
+	for (const entry of schedule) {
+		if (!Number.isSafeInteger(entry.day) || entry.day < 0) {
+			throw new Error(`Invalid schedule day: ${entry.day}`);
+		}
+		if (entry.day < previousDay) {
+			throw new Error("Schedule is not sorted by day");
+		}
+		previousDay = entry.day;
+
+		if (entry.type === "placeholder") {
+			if (hasPlaceholder || schedule.length !== 1) {
+				throw new Error("A placeholder must be the only schedule entry");
+			}
+			hasPlaceholder = true;
+			continue;
+		}
+
+		if (entry.type === "allStarGame" || entry.type === "tradeDeadline") {
+			if (entryTypeByDay.has(entry.day)) {
+				throw new Error(
+					`${entry.type} must be the only schedule entry on day ${entry.day}`,
+				);
+			}
+			if (specialTypes.has(entry.type)) {
+				throw new Error(`Duplicate ${entry.type}`);
+			}
+			entryTypeByDay.set(entry.day, entry.type);
+			specialTypes.add(entry.type);
+			continue;
+		}
+
+		const entryType = (entry as { type: string }).type;
+		if (entryType !== "game" && entryType !== "completed") {
+			throw new Error(`Unknown schedule entry type: ${entryType}`);
+		}
+		if (
+			teamIDs &&
+			(!teamIDs.has(entry.homeTid) || !teamIDs.has(entry.awayTid))
+		) {
+			throw new Error("Schedule references an unknown team");
+		}
+		if (entry.homeTid === entry.awayTid) {
+			throw new Error("A team cannot play itself");
+		}
+		if (entry.type !== "completed" && entry.day <= maxDayAlreadyPlayed) {
+			throw new Error(
+				`Cannot edit a schedule entry on or before day ${maxDayAlreadyPlayed}`,
+			);
+		}
+		const existingEntryType = entryTypeByDay.get(entry.day);
+		if (existingEntryType !== undefined && existingEntryType !== "game") {
+			throw new Error(`A game cannot share a day with ${existingEntryType}`);
+		}
+
+		let teamsOnDay = teamsByDay.get(entry.day);
+		if (!teamsOnDay) {
+			teamsOnDay = new Set();
+			teamsByDay.set(entry.day, teamsOnDay);
+		}
+		if (teamsOnDay.has(entry.homeTid) || teamsOnDay.has(entry.awayTid)) {
+			throw new Error(`A team has multiple games on day ${entry.day}`);
+		}
+		teamsOnDay.add(entry.homeTid);
+		teamsOnDay.add(entry.awayTid);
+		entryTypeByDay.set(entry.day, "game");
+	}
+};
+
+const enqueueScheduleMutation = async <T>(
+	cache: typeof idb.cache,
+	operation: () => Promise<T>,
+) => {
+	const previous = scheduleMutationQueues.get(cache) ?? Promise.resolve();
+	const current = previous.catch(() => {}).then(operation);
+	const queued = current.then(
+		() => {},
+		() => {},
+	);
+	scheduleMutationQueues.set(cache, queued);
+	try {
+		return await current;
+	} finally {
+		if (scheduleMutationQueues.get(cache) === queued) {
+			scheduleMutationQueues.delete(cache);
+		}
+	}
+};
+
+const isCapturedScheduleContextActive = (context: CapturedScheduleContext) => {
+	return (
+		idb.cache === context.cache &&
+		idb.league === context.leagueDB &&
+		g.get("lid") === context.lid
+	);
+};
+
+const saveScheduleToCapturedContext = async ({
+	context,
+	regenerated,
+	schedule,
+}: {
+	context: CapturedScheduleContext;
+	regenerated: boolean;
+	schedule: ScheduleEditorSchedule;
+}) => {
+	let releaseAutoFlush: (() => void) | undefined;
+	let oldSchedule: Awaited<ReturnType<typeof context.cache.schedule.getAll>> =
+		[];
+	const oldSettings = new Map<ScheduleEditorSettingKey, any | undefined>();
+	let settingsToSave = new Map<ScheduleEditorSettingKey, any>();
+	let mutationStarted = false;
+
+	try {
+		const teams = await context.cache.teams.getAll();
+		const games = await context.cache.games.getAll();
+		validateScheduleForSave(
+			schedule,
+			new Set(teams.map((team) => team.tid)),
+			games.length > 0 ? Math.max(...games.map((game) => game.day ?? -1)) : -1,
+		);
+
+		releaseAutoFlush = context.cache.pauseAutoFlush();
+		oldSchedule = await context.cache.schedule.getAll();
+		for (const key of SCHEDULE_EDITOR_SETTING_KEYS) {
+			oldSettings.set(key, await context.cache.gameAttributes.get(key));
+		}
+
+		if (regenerated) {
+			settingsToSave = new Map();
+			for (const key of SCHEDULE_EDITOR_SETTING_KEYS) {
+				const oldValue =
+					oldSettings.get(key)?.value ?? context.rawSettings[key];
+				if (!Array.isArray(oldValue) || oldValue.length <= 1) {
+					continue;
+				}
+
+				const updated = helpers.deepCopy(oldValue);
+				const lastValue = updated.at(-1)!;
+				if (lastValue.start !== context.season + 1) {
+					continue;
+				}
+
+				const secondLastValue = updated.at(-2)!;
+				if (secondLastValue.start === context.season) {
+					updated.pop();
+					secondLastValue.value = lastValue.value;
+				} else {
+					lastValue.start = context.season;
+				}
+				settingsToSave.set(key, updated);
+			}
+		}
+
+		if (regenerated) {
+			mutationStarted = true;
+			for (const [key, value] of settingsToSave) {
+				await context.cache.gameAttributes.put({ key, value });
+			}
+		}
+
+		mutationStarted = true;
+		await context.cache.schedule.clear();
+		for (const game of schedule) {
+			if (game.type === "placeholder" || game.type === "completed") {
+				continue;
+			}
+			await context.cache.schedule.add(omit(game, ["gid", "type"]));
+		}
+
+		await context.cache.flush(["schedule", "gameAttributes"], {
+			league: context.leagueDB,
+			updateLastPlayed: false,
+		});
+
+		if (isCapturedScheduleContextActive(context)) {
+			for (const [key, value] of settingsToSave) {
+				g.setWithoutSavingToDB(key, value);
+			}
+			await initUILocalGames();
+		}
+	} catch (error) {
+		if (!mutationStarted) {
+			throw error;
+		}
+
+		let rollbackError: unknown;
+		try {
+			await context.cache.schedule.clear();
+			for (const game of oldSchedule ?? []) {
+				await context.cache.schedule.put(game);
+			}
+			for (const key of settingsToSave.keys()) {
+				const oldValue = oldSettings.get(key);
+				if (oldValue === undefined) {
+					await context.cache.gameAttributes.delete(key);
+				} else {
+					await context.cache.gameAttributes.put(oldValue);
+				}
+			}
+			await context.cache.flush(["schedule", "gameAttributes"], {
+				league: context.leagueDB,
+				updateLastPlayed: false,
+			});
+
+			if (isCapturedScheduleContextActive(context)) {
+				for (const key of settingsToSave.keys()) {
+					const oldValue = oldSettings.get(key);
+					g.setWithoutSavingToDB(
+						key,
+						oldValue?.value ?? context.rawSettings[key],
+					);
+				}
+			}
+		} catch (error_) {
+			rollbackError = error_;
+		}
+
+		if (rollbackError !== undefined) {
+			const combined = new Error("Schedule save failed and rollback failed", {
+				cause: error,
+			});
+			(combined as any).originalError = error;
+			(combined as any).rollbackError = rollbackError;
+			throw combined;
+		}
+		throw error;
+	} finally {
+		releaseAutoFlush?.();
+	}
+};
+
 export const setScheduleFromEditor = async ({
 	regenerated,
 	schedule,
 }: {
 	regenerated: boolean;
-	schedule: View<"scheduleEditor">["schedule"];
+	schedule: ScheduleEditorSchedule;
 }) => {
-	if (regenerated) {
-		// It's the regular season with 0 games played and we're allowed to regenerate the schedule (see canRegenerateSchedule). In that case, season.newSchedule uses the latest settings for numGames/numGamesConf/numGamesDiv/divs, both because that's what the user would want (tweaking schedule settings) and because numGamesConf/numGamesDiv are currently not wrapped. So if we know numGames or divs has changed for next season, we need to update the setting for those (and also confs for consistency) to apply to this season.
-		// Originally I added this so updateClinchedPlayoffs would work correctly, but now updateClinchedPlayoffs uses the actual upcoming schedule rather than (numGames - GP) so this shouldn't affect that now. TBH I'm not sure if this matters for other things, but probably it does for something at least!
-		const season = g.get("season");
-		const toAdjust = ["numGames", "divs", "confs"] as const;
-		for (const key of toAdjust) {
-			const value = g.getRaw(key);
-			if (value.length > 1) {
-				const updated = helpers.deepCopy(value);
+	validateScheduleForSave(schedule);
+	const context: CapturedScheduleContext = {
+		cache: idb.cache,
+		leagueDB: idb.league,
+		lid: g.get("lid"),
+		season: g.get("season"),
+		rawSettings: Object.fromEntries(
+			SCHEDULE_EDITOR_SETTING_KEYS.map((key) => [
+				key,
+				helpers.deepCopy(g.getRaw(key)),
+			]),
+		) as Record<ScheduleEditorSettingKey, any>,
+	};
 
-				const lastValue = updated.at(-1)!;
-				if (lastValue.start === season + 1) {
-					// We need to update! Either change last entry to current season, or delete 2nd-last entry and overwrite 2nd-last one with current value (if 2nd-last entry was only for this season).
-
-					const secondLastValue = updated.at(-2)!;
-					if (secondLastValue.start === season) {
-						updated.pop();
-						secondLastValue.value = lastValue.value;
-					} else {
-						lastValue.start = season;
-					}
-
-					await idb.cache.gameAttributes.put({
-						key,
-						value: updated,
-					});
-					g.setWithoutSavingToDB(key, updated);
-				}
-			}
-		}
-	}
-
-	await idb.cache.schedule.clear();
-
-	for (const game of schedule) {
-		if (game.type === "placeholder" || game.type === "completed") {
-			continue;
-		}
-		await idb.cache.schedule.add(omit(game, ["gid", "type"]));
-	}
-
-	// This is needed in case the upcoming game was edited/deleted
-	await initUILocalGames();
+	return enqueueScheduleMutation(context.cache, () =>
+		saveScheduleToCapturedContext({ context, regenerated, schedule }),
+	);
 };
 
 export default {

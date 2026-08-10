@@ -20,10 +20,9 @@ beforeAll(async () => {
 	wrappedRatingWithChange = module.wrappedRatingWithChange;
 });
 
-test("keeps colors by default and can disable only the change color", () => {
+test("uses the official positive and negative change colors", () => {
 	const Component = RatingWithChange as ComponentType<{
 		change: number;
-		colorize?: boolean;
 	}>;
 	const defaultMarkup = renderToStaticMarkup(
 		createElement(Component, { change: 2 }, 63),
@@ -32,12 +31,11 @@ test("keeps colors by default and can disable only the change color", () => {
 	expect(defaultMarkup).toContain("63<span");
 	expect(defaultMarkup).toContain("(+2)");
 
-	const neutralMarkup = renderToStaticMarkup(
-		createElement(Component, { change: -2, colorize: false }, 63),
+	const decreasedMarkup = renderToStaticMarkup(
+		createElement(Component, { change: -2 }, 63),
 	);
-	expect(neutralMarkup).toContain("(-2)");
-	expect(neutralMarkup).not.toContain("text-success");
-	expect(neutralMarkup).not.toContain("text-danger");
+	expect(decreasedMarkup).toContain("(-2)");
+	expect(decreasedMarkup).toContain('class="text-danger"');
 });
 
 test("keeps display, search, sort, and CSV rating semantics separate", () => {

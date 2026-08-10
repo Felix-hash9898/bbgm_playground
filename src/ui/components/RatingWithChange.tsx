@@ -3,11 +3,9 @@ import clsx from "clsx";
 const RatingWithChange = ({
 	change,
 	children,
-	colorize = true,
 }: {
 	change: number;
 	children: number;
-	colorize?: boolean;
 }) => {
 	return (
 		<>
@@ -15,8 +13,8 @@ const RatingWithChange = ({
 			{change !== 0 ? (
 				<span
 					className={clsx({
-						"text-success": colorize && change > 0,
-						"text-danger": colorize && change < 0,
+						"text-success": change > 0,
+						"text-danger": change < 0,
 					})}
 				>
 					{" "}

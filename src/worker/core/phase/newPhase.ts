@@ -21,6 +21,7 @@ import {
 	toUI,
 } from "../../util/index.ts";
 import type { Conditions, Phase } from "../../../common/types.ts";
+import { idb } from "../../db/index.ts";
 
 /**
  * Set a new phase of the game.
@@ -88,6 +89,9 @@ const newPhase = async (phase: Phase, conditions: Conditions, extra?: any) => {
 			conditions,
 		);
 	} else {
+		const cache = idb.cache;
+		const releaseAutoFlush = cache.pauseAutoFlush();
+		const checkpoint = cache.beginMutationCheckpoint();
 		try {
 			await lock.set("newPhase", true);
 
@@ -132,10 +136,12 @@ const newPhase = async (phase: Phase, conditions: Conditions, extra?: any) => {
 				} else {
 					await finalize(phase, conditions, result);
 				}
+				checkpoint.commit();
 			} else {
 				throw new Error(`Unknown phase number ${phase}`);
 			}
 		} catch (error) {
+			checkpoint.rollback();
 			await lock.set("newPhase", false);
 			await updatePlayMenu();
 			logEvent(
@@ -148,6 +154,8 @@ const newPhase = async (phase: Phase, conditions: Conditions, extra?: any) => {
 				conditions,
 			);
 			throw error;
+		} finally {
+			releaseAutoFlush();
 		}
 	}
 };

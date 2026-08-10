@@ -31,6 +31,7 @@ import {
 	getScheduleCSVText,
 	getScheduleAfterCSVImport,
 } from "./scheduleCSV.ts";
+import { saveScheduleEditor } from "./saveScheduleEditor.ts";
 
 type Schedule = View<"scheduleEditor">["schedule"];
 
@@ -1047,30 +1048,29 @@ const ScheduleEditor = ({
 						className="btn btn-primary ms-auto"
 						disabled={saving}
 						onClick={async () => {
-							setSaving(true);
-
-							try {
-								await toWorker("main", "setScheduleFromEditor", {
-									regenerated,
-									schedule,
-								});
-							} catch (error) {
-								logEvent({
-									type: "error",
-									text: `Error saving schedule: ${error.message}`,
-									saveToDb: false,
-								});
-								throw error;
-							}
-
-							logEvent({
-								type: "success",
-								text: "Saved schedule",
-								saveToDb: false,
+							await saveScheduleEditor({
+								save: () =>
+									toWorker("main", "setScheduleFromEditor", {
+										regenerated,
+										schedule,
+									}),
+								setDirty,
+								setSaving,
+								onSuccess: () => {
+									logEvent({
+										type: "success",
+										text: "Saved schedule",
+										saveToDb: false,
+									});
+								},
+								onError: (error) => {
+									logEvent({
+										type: "error",
+										text: `Error saving schedule: ${error instanceof Error ? error.message : String(error)}`,
+										saveToDb: false,
+									});
+								},
 							});
-
-							setDirty(false);
-							setSaving(false);
 						}}
 					>
 						Save schedule

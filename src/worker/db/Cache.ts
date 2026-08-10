@@ -72,6 +72,28 @@ export type Store =
 	| "teamStats"
 	| "teams"
 	| "trade";
+
+export type FlushRecordScope = Partial<
+	Record<Store, readonly (number | string)[]>
+>;
+type MutationCheckpointRecord = {
+	deleted: boolean;
+	dirty: boolean;
+	existed: boolean;
+	ownedToken?: number;
+	token?: number;
+	value?: any;
+};
+type MutationCheckpointState = {
+	active: boolean;
+	lid: number | undefined;
+	records: Map<Store, Map<number | string, MutationCheckpointRecord>>;
+};
+
+export type CacheMutationCheckpoint = {
+	commit: () => void;
+	rollback: () => void;
+};
 type Index =
 	| "draftPicksBySeason"
 	| "draftPicksByTid"
@@ -227,6 +249,22 @@ class Cache {
 
 	_stopAutoFlush: boolean;
 
+	_autoFlushTimer: number | undefined;
+
+	_autoFlushPauseCount: number;
+
+	_dirtyTokens: Record<Store, Map<number | string, number>>;
+
+	_mutationCounters: Record<Store, number>;
+
+	_autoFlushGeneration: number;
+
+	_flushPromise: Promise<void> | undefined;
+
+	_metaUpdatePending: boolean;
+
+	_mutationCheckpoint: MutationCheckpointState | undefined;
+
 	storeInfos: Record<
 		Store,
 		{
@@ -317,6 +355,18 @@ class Cache {
 		this._requestQueue = new Map();
 		this._requestInd = 0;
 		this._stopAutoFlush = false;
+		this._autoFlushTimer = undefined;
+		this._autoFlushPauseCount = 0;
+		this._autoFlushGeneration = 0;
+		this._flushPromise = undefined;
+		this._metaUpdatePending = false;
+		this._mutationCheckpoint = undefined;
+		this._dirtyTokens = {} as Record<Store, Map<number | string, number>>;
+		this._mutationCounters = {} as Record<Store, number>;
+		for (const store of STORES) {
+			this._dirtyTokens[store] = new Map();
+			this._mutationCounters[store] = 0;
+		}
 		this.storeInfos = {
 			allStars: {
 				pk: "season",
@@ -700,6 +750,8 @@ class Cache {
 		if (!append) {
 			this._deletes[store] = new Set();
 			this._dirtyRecords[store] = new Set();
+			this._dirtyTokens[store] = new Map();
+			this._mutationCounters[store] = 0;
 		}
 
 		{
@@ -794,7 +846,12 @@ class Cache {
 	}
 
 	// Take current contents in database and write to disk
-	async flush(storesToCheck = STORES) {
+	async _flushOnce(
+		storesToCheck: Store[],
+		leagueDB = idb.league,
+		updateLastPlayed = true,
+		recordScope?: FlushRecordScope,
+	) {
 		if (!local.autoSave) {
 			return;
 		}
@@ -802,92 +859,426 @@ class Cache {
 		this._validateStatus("full");
 
 		// Only open transaction on stores with dirty records - code below does nothing unless this._deletes or this._dirtyRecords has something in it
-		const stores = storesToCheck.filter(
-			(store) =>
-				this._deletes[store].size > 0 || this._dirtyRecords[store].size > 0,
-		);
+		const allowedKeys = (store: Store) =>
+			recordScope === undefined ? undefined : new Set(recordScope[store] ?? []);
+		const stores = storesToCheck.filter((store) => {
+			const allowed = allowedKeys(store);
+			return (
+				[...this._deletes[store]].some(
+					(id) => allowed === undefined || allowed.has(id),
+				) ||
+				[...this._dirtyRecords[store]].some(
+					(id) => allowed === undefined || allowed.has(id),
+				)
+			);
+		});
 		if (stores.length === 0) {
-			// Not sure if this is needed - prior to this short circuit, if this._dirty was somehow true it would have been set false at the bottom of this function. So put it here just in case.
-			this._dirty = false;
-
+			this._recomputeDirty();
+			if (!this._dirty && this._metaUpdatePending && updateLastPlayed) {
+				await this._updateLastPlayed();
+			}
 			// Skip making any transaction if possible
 			return;
 		}
 
-		const transaction = idb.league.transaction(stores, "readwrite");
+		const transaction = leagueDB.transaction(stores, "readwrite");
 
+		const captured = new Map<
+			Store,
+			{
+				deletes: Set<number | string>;
+				records: Set<number | string>;
+				tokens: Map<number | string, number>;
+			}
+		>();
 		for (const store of stores) {
-			for (const id of this._deletes[store]) {
+			const allowed = allowedKeys(store);
+			const deletes = new Set(
+				[...this._deletes[store]].filter(
+					(id) => allowed === undefined || allowed.has(id),
+				),
+			);
+			const records = new Set(
+				[...this._dirtyRecords[store]].filter(
+					(id) => allowed === undefined || allowed.has(id),
+				),
+			);
+			const tokens = new Map<number | string, number>();
+			for (const id of [...deletes, ...records]) {
+				tokens.set(id, this._getDirtyTokenMap(store).get(id) ?? 0);
+			}
+			captured.set(store, { deletes, records, tokens });
+			for (const id of deletes) {
 				// This is synchronous to prevent any race condition
-				transaction.objectStore(store).delete(id);
+				void transaction
+					.objectStore(store)
+					.delete(id)
+					.catch(() => {});
 			}
 
-			this._deletes[store].clear();
-
-			for (const id of this._dirtyRecords[store]) {
+			for (const id of records) {
 				const record = this._data[store][id];
 
 				// If record was deleted after being marked as dirty, it will be undefined here
 				if (record !== undefined) {
 					// This is synchronous to prevent any race condition
-					transaction.objectStore(store).put(record);
+					void transaction
+						.objectStore(store)
+						.put(record)
+						.catch(() => {});
 				}
 			}
-
-			this._dirtyRecords[store].clear();
 		}
 
-		await transaction.done;
+		try {
+			await transaction.done;
+		} catch (error) {
+			// Keep all captured dirty state so the next flush can retry the failed transaction.
+			this._recomputeDirty();
+			throw error;
+		}
 
-		if (this._dirty) {
-			this._dirty = false;
+		for (const store of stores) {
+			const state = captured.get(store)!;
+			for (const id of new Set([...state.deletes, ...state.records])) {
+				if (
+					(this._getDirtyTokenMap(store).get(id) ?? 0) === state.tokens.get(id)
+				) {
+					this._deletes[store].delete(id);
+					this._dirtyRecords[store].delete(id);
+					this._getDirtyTokenMap(store).delete(id);
+					// A checkpoint can outlive this durable transaction (for example,
+					// phase finalization processes scheduled events afterward). Its
+					// rollback baseline must advance with the successful flush.
+					this._rebaseCheckpointRecord(store, id);
+				}
+			}
+		}
+		this._recomputeDirty();
 
-			// Update lastPlayed
-			await league.updateMeta({
-				lastPlayed: new Date(),
-			});
+		if (!this._dirty && updateLastPlayed) {
+			await this._updateLastPlayed();
 		}
 	}
 
-	async _autoFlush() {
-		if (this._stopAutoFlush) {
+	async flush(
+		storesToCheck = STORES,
+		options?: {
+			league?: typeof idb.league;
+			updateLastPlayed?: boolean;
+			records?: FlushRecordScope;
+		},
+	) {
+		// A flush scoped to a captured league database must never use the global
+		// league metadata context. Callers that pass `league` must explicitly opt
+		// out of metadata updates; otherwise a later league switch could update the
+		// wrong lid through league.updateMeta().
+		if (options?.league !== undefined && options.updateLastPlayed !== false) {
+			throw new Error("Scoped Cache.flush requires updateLastPlayed:false");
+		}
+		const leagueDB = options?.league ?? idb.league;
+		const updateLastPlayed = options?.updateLastPlayed ?? true;
+		const recordScope = options?.records;
+		while (true) {
+			if (this._flushPromise) {
+				await this._flushPromise;
+				continue;
+			}
+
+			const promise = this._flushOnce(
+				storesToCheck,
+				leagueDB,
+				updateLastPlayed,
+				recordScope,
+			);
+			this._flushPromise = promise;
+			try {
+				await promise;
+				return;
+			} finally {
+				if (this._flushPromise === promise) {
+					this._flushPromise = undefined;
+				}
+			}
+		}
+	}
+
+	async _updateLastPlayed() {
+		try {
+			await league.updateMeta({
+				lastPlayed: new Date(),
+			});
+			this._metaUpdatePending = false;
+		} catch (error) {
+			// The main data transaction already committed. Keep this separate pending
+			// state so a later flush retries metadata without rewriting main data.
+			this._metaUpdatePending = true;
+			console.error(
+				"Failed to update league metadata after cache flush",
+				error,
+			);
+		}
+	}
+
+	async _autoFlush(generation = this._autoFlushGeneration) {
+		if (
+			generation !== this._autoFlushGeneration ||
+			this._stopAutoFlush ||
+			this._autoFlushPauseCount > 0
+		) {
 			return;
 		}
 
-		// Only flush if cache is dirty and nothing is going on
-		if (this._dirty) {
-			const skipFlush =
-				lock.get("gameSim") || lock.get("newPhase") || !!local.autoPlayUntil;
+		try {
+			// Only flush if cache is dirty and nothing is going on
+			if (this._dirty) {
+				const skipFlush =
+					lock.get("gameSim") || lock.get("newPhase") || !!local.autoPlayUntil;
 
-			if (!skipFlush) {
-				await this.flush();
+				if (!skipFlush) {
+					await this.flush();
+				}
+			}
+		} catch (error) {
+			// Background flushes must keep a retry timer after a transaction failure.
+			console.error("Auto-flush failed; will retry", error);
+		} finally {
+			if (
+				generation === this._autoFlushGeneration &&
+				!this._stopAutoFlush &&
+				this._autoFlushPauseCount === 0
+			) {
+				this._scheduleAutoFlush();
 			}
 		}
-
-		setTimeout(() => {
-			this._autoFlush();
-		}, AUTO_FLUSH_INTERVAL);
 	}
 
 	startAutoFlush() {
 		this._stopAutoFlush = false;
-		setTimeout(() => {
-			this._autoFlush();
-		}, AUTO_FLUSH_INTERVAL);
+		this._autoFlushGeneration += 1;
+		this._cancelAutoFlushTimer();
+		this._scheduleAutoFlush();
 	}
 
 	stopAutoFlush() {
 		this._stopAutoFlush = true;
+		this._autoFlushGeneration += 1;
+		this._cancelAutoFlushTimer();
+	}
+
+	pauseAutoFlush() {
+		this._autoFlushPauseCount += 1;
+		this._autoFlushGeneration += 1;
+		this._cancelAutoFlushTimer();
+		let released = false;
+		return () => {
+			if (released) {
+				return;
+			}
+			released = true;
+			this._autoFlushPauseCount -= 1;
+			if (this._autoFlushPauseCount === 0 && !this._stopAutoFlush) {
+				this._autoFlushGeneration += 1;
+				this._scheduleAutoFlush();
+			}
+		};
+	}
+
+	_cancelAutoFlushTimer() {
+		if (this._autoFlushTimer !== undefined) {
+			clearTimeout(this._autoFlushTimer);
+			this._autoFlushTimer = undefined;
+		}
+	}
+
+	_scheduleAutoFlush() {
+		if (this._stopAutoFlush || this._autoFlushPauseCount > 0) {
+			return;
+		}
+
+		this._cancelAutoFlushTimer();
+		const generation = this._autoFlushGeneration;
+		const timer = setTimeout(() => {
+			if (this._autoFlushTimer !== timer) {
+				return;
+			}
+			this._autoFlushTimer = undefined;
+			void this._autoFlush(generation);
+		}, AUTO_FLUSH_INTERVAL) as unknown as number;
+		this._autoFlushTimer = timer;
+	}
+
+	_recomputeDirty() {
+		this._dirty = STORES.some(
+			(store) =>
+				this._deletes[store]?.size > 0 || this._dirtyRecords[store]?.size > 0,
+		);
+	}
+
+	_rebaseCheckpointRecord(store: Store, id: number | string) {
+		const checkpointRecord = this._mutationCheckpoint?.records
+			.get(store)
+			?.get(id);
+		if (!checkpointRecord) {
+			return;
+		}
+
+		const existed = Object.hasOwn(this._data[store], id);
+		checkpointRecord.deleted = this._deletes[store].has(id);
+		checkpointRecord.dirty = this._dirtyRecords[store].has(id);
+		checkpointRecord.existed = existed;
+		checkpointRecord.token = this._getDirtyTokenMap(store).get(id);
+		checkpointRecord.ownedToken = undefined;
+		checkpointRecord.value = existed
+			? helpers.deepCopy(this._data[store][id])
+			: undefined;
+	}
+
+	beginMutationCheckpoint(): CacheMutationCheckpoint {
+		if (this._mutationCheckpoint?.active) {
+			throw new Error("Cache mutation checkpoints cannot be nested");
+		}
+
+		const checkpoint: MutationCheckpointState = {
+			active: true,
+			lid: (g as any).lid,
+			records: new Map(),
+		};
+		this._mutationCheckpoint = checkpoint;
+		let completed = false;
+
+		const finish = () => {
+			if (this._mutationCheckpoint === checkpoint) {
+				this._mutationCheckpoint = undefined;
+			}
+			checkpoint.active = false;
+			completed = true;
+		};
+
+		return {
+			commit: () => {
+				if (!completed) {
+					finish();
+				}
+			},
+			rollback: () => {
+				if (completed) {
+					return;
+				}
+				// Stop journaling before restoring the journal itself.
+				finish();
+				for (const [store, records] of checkpoint.records) {
+					for (const [id, old] of records) {
+						if (
+							old.ownedToken === undefined ||
+							this._getDirtyTokenMap(store).get(id) !== old.ownedToken
+						) {
+							// A newer mutation owns this key, so rollback must not overwrite it.
+							continue;
+						}
+
+						if (old.existed) {
+							this._data[store][id] = helpers.deepCopy(old.value);
+						} else {
+							delete this._data[store][id];
+						}
+						if (old.deleted) {
+							this._deletes[store].add(id);
+						} else {
+							this._deletes[store].delete(id);
+						}
+						if (old.dirty) {
+							this._dirtyRecords[store].add(id);
+						} else {
+							this._dirtyRecords[store].delete(id);
+						}
+						if (old.token === undefined) {
+							this._getDirtyTokenMap(store).delete(id);
+						} else {
+							this._getDirtyTokenMap(store).set(id, old.token);
+						}
+						this._markDirtyIndexes(store);
+
+						if (
+							store === "gameAttributes" &&
+							(g as any).lid === checkpoint.lid
+						) {
+							if (old.existed) {
+								g.setWithoutSavingToDB(
+									id as any,
+									helpers.deepCopy(old.value.value),
+								);
+							} else {
+								delete (g as any)[id];
+							}
+						}
+					}
+				}
+				this._recomputeDirty();
+			},
+		};
+	}
+
+	_captureCheckpointRecord(store: Store, id: number | string) {
+		const checkpoint = this._mutationCheckpoint;
+		if (!checkpoint?.active) {
+			return;
+		}
+		let records = checkpoint.records.get(store);
+		if (!records) {
+			records = new Map();
+			checkpoint.records.set(store, records);
+		}
+		if (records.has(id)) {
+			return;
+		}
+		const existed = Object.hasOwn(this._data[store], id);
+		records.set(id, {
+			deleted: this._deletes[store].has(id),
+			dirty: this._dirtyRecords[store].has(id),
+			existed,
+			token: this._getDirtyTokenMap(store).get(id),
+			value: existed ? helpers.deepCopy(this._data[store][id]) : undefined,
+		});
+	}
+
+	_captureCheckpointRows(store: Store, rows: any[]) {
+		const pk = this.storeInfos[store].pk;
+		for (const row of rows) {
+			this._captureCheckpointRecord(store, row[pk]);
+		}
+	}
+
+	_getDirtyTokenMap(store: Store) {
+		if (!this._dirtyTokens[store]) {
+			this._dirtyTokens[store] = new Map();
+		}
+		return this._dirtyTokens[store];
+	}
+
+	_recordMutation(store: Store, id: number | string) {
+		const nextToken = (this._mutationCounters[store] ?? 0) + 1;
+		this._mutationCounters[store] = nextToken;
+		this._getDirtyTokenMap(store).set(id, nextToken);
+		const checkpointRecord = this._mutationCheckpoint?.records
+			.get(store)
+			?.get(id);
+		if (checkpointRecord) {
+			checkpointRecord.ownedToken = nextToken;
+		}
 	}
 
 	async _get(store: Store, id: number | string): Promise<any> {
 		await this._waitForStatus("full");
+		this._captureCheckpointRecord(store, id);
 		return this._data[store][id];
 	}
 
 	async _getAll(store: Store): Promise<any[]> {
 		await this._waitForStatus("full");
-		return Object.values(this._data[store]);
+		const rows = Object.values(this._data[store]);
+		this._captureCheckpointRows(store, rows);
+		return rows;
 	}
 
 	_checkIndexFreshness(index: Index) {
@@ -911,7 +1302,11 @@ class Cache {
 		const val = this._indexes[index][actualKey];
 
 		if (Array.isArray(val)) {
+			this._captureCheckpointRows(this._index2store[index], val);
 			return val[0];
+		}
+		if (val !== undefined) {
+			this._captureCheckpointRows(this._index2store[index], [val]);
 		}
 
 		return val;
@@ -931,9 +1326,11 @@ class Cache {
 				const val = this._indexes[index][key];
 
 				if (!Array.isArray(val)) {
+					this._captureCheckpointRows(this._index2store[index], [val]);
 					return [val];
 				}
 
+				this._captureCheckpointRows(this._index2store[index], val);
 				return val;
 			}
 
@@ -965,6 +1362,7 @@ class Cache {
 				output = output.concat(this._indexes[index][keyString]);
 			}
 		}
+		this._captureCheckpointRows(this._index2store[index], output);
 
 		return output;
 	}
@@ -1003,15 +1401,16 @@ class Cache {
 			obj[pk] = this._maxIds[store];
 		}
 
-		this._data[store][obj[pk]] = obj;
-
 		// Need to have the correct type here for IndexedDB
 		const idParsed =
 			this.storeInfos[store].pkType === "number"
 				? Number.parseInt(obj[pk])
 				: obj[pk];
+		this._captureCheckpointRecord(store, idParsed);
+		this._data[store][obj[pk]] = obj;
 
 		this._dirtyRecords[store].add(idParsed);
+		this._recordMutation(store, idParsed);
 
 		this._dirty = true;
 
@@ -1031,17 +1430,19 @@ class Cache {
 	async _delete(store: Store, id: number | string) {
 		await this._waitForStatus("full");
 
-		if (Object.hasOwn(this._data[store], id)) {
-			delete this._data[store][id];
-		}
-
 		// Need to have the correct type here for IndexedDB
 		const idParsed =
 			this.storeInfos[store].pkType === "number" && typeof id === "string"
 				? Number.parseInt(id)
 				: id;
+		this._captureCheckpointRecord(store, idParsed);
+
+		if (Object.hasOwn(this._data[store], id)) {
+			delete this._data[store][id];
+		}
 
 		this._deletes[store].add(idParsed);
+		this._recordMutation(store, idParsed);
 
 		this._dirty = true;
 
@@ -1052,13 +1453,14 @@ class Cache {
 		await this._waitForStatus("full");
 
 		for (const id of Object.keys(this._data[store])) {
-			delete this._data[store][id];
-
 			// Need to have the correct type here for IndexedDB
 			const idParsed =
 				this.storeInfos[store].pkType === "number" ? Number.parseInt(id) : id;
+			this._captureCheckpointRecord(store, idParsed);
+			delete this._data[store][id];
 
 			this._deletes[store].add(idParsed);
+			this._recordMutation(store, idParsed);
 		}
 
 		this._dirty = true;

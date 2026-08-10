@@ -470,19 +470,13 @@ const RatingsOverview = ({
 			<div className="d-flex justify-content-between">
 				<h2 className="me-3">
 					Overall:{" "}
-					<RatingWithChange
-						change={currentSeason.ovr - lastSeason.ovr}
-						colorize={false}
-					>
+					<RatingWithChange change={currentSeason.ovr - lastSeason.ovr}>
 						{currentSeason.ovr}
 					</RatingWithChange>
 				</h2>
 				<h2>
 					Potential:{" "}
-					<RatingWithChange
-						change={currentSeason.pot - lastSeason.pot}
-						colorize={false}
-					>
+					<RatingWithChange change={currentSeason.pot - lastSeason.pot}>
 						{currentSeason.pot}
 					</RatingWithChange>
 				</h2>
@@ -510,10 +504,7 @@ const RatingsOverview = ({
 												<tr key={j}>
 													<td className="p-0">{label}:</td>
 													<td className="p-0 ps-1">
-														<RatingWithChange
-															change={displayChange}
-															colorize={false}
-														>
+														<RatingWithChange change={displayChange}>
 															{displayCur}
 														</RatingWithChange>
 													</td>
