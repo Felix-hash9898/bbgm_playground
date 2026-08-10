@@ -1,6 +1,7 @@
 import type { TeamSeasonWithoutKey } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
+import type Cache from "../../db/Cache.ts";
 
 export const getTradeReputation = (
 	teamSeasons: TeamSeasonWithoutKey[],
@@ -19,17 +20,29 @@ export const getTradeReputation = (
 	return value;
 };
 
-export const getTradeReputationByTid = async (season = g.get("season")) => {
-	const teamSeasons = await idb.cache.teamSeasons.indexGetAll(
+export const getTradeReputationByTidFromData = (
+	tids: number[],
+	teamSeasons: TeamSeasonWithoutKey[],
+	season: number,
+) => {
+	const byTid = Object.groupBy(teamSeasons, (row) => row.tid);
+	const result: Record<number, number> = {};
+	for (const tid of tids) {
+		result[tid] = getTradeReputation(byTid[tid] ?? [], season);
+	}
+	return result;
+};
+
+export const getTradeReputationByTid = async (
+	season = g.get("season"),
+	cache: Cache = idb.cache,
+) => {
+	const teamSeasons = await cache.teamSeasons.indexGetAll(
 		"teamSeasonsBySeasonTid",
 		[[season - 2], [season, "Z"]],
 	);
-	const byTid = Object.groupBy(teamSeasons, (row) => row.tid);
-	const result: Record<number, number> = {};
-	for (const team of await idb.cache.teams.getAll()) {
-		if (!team.disabled) {
-			result[team.tid] = getTradeReputation(byTid[team.tid] ?? [], season);
-		}
-	}
-	return result;
+	const tids = (await cache.teams.getAll())
+		.filter((team) => !team.disabled)
+		.map((team) => team.tid);
+	return getTradeReputationByTidFromData(tids, teamSeasons, season);
 };

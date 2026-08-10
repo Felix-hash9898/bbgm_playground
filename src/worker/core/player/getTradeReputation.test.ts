@@ -1,10 +1,11 @@
 import { afterEach, assert, test } from "vitest";
 import { mockIDBLeague, resetCache, resetG } from "../../../test/helpers.ts";
-import { idb } from "../../db/index.ts";
+import { Cache, idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import {
 	getTradeReputation,
 	getTradeReputationByTid,
+	getTradeReputationByTidFromData,
 } from "./getTradeReputation.ts";
 import addToFreeAgents from "./addToFreeAgents.ts";
 
@@ -26,6 +27,27 @@ test("trade reputation uses the three-season weighted snapshot", () => {
 			2026,
 		),
 		8,
+	);
+});
+
+test("new-league data snapshot does not require an initialized Cache", () => {
+	resetG();
+	// Model createStream before its Cache is initialized. The data-only path must
+	// remain synchronous and independent of the empty global idb.cache.
+	idb.cache = new Cache();
+	assert.strictEqual((idb.cache as any)._status, "empty");
+
+	assert.deepStrictEqual(
+		getTradeReputationByTidFromData(
+			[0, 1],
+			[
+				{ tid: 0, season: 2024, numPlayersTradedAway: 4 },
+				{ tid: 0, season: 2025, numPlayersTradedAway: 2 },
+				{ tid: 0, season: 2026, numPlayersTradedAway: 8 },
+			] as any,
+			2026,
+		),
+		{ 0: 8, 1: 0 },
 	);
 });
 

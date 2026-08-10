@@ -27,6 +27,7 @@ const printQuartiles = async (age?: number) => {
 		onlyFreeAgents: false,
 		scoutingLevel: DEFAULT_LEVEL,
 		teams: range(30).map((tid) => ({ tid })),
+		teamSeasons: [],
 	});
 
 	const ovrs = (players as any[])

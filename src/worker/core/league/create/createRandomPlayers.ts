@@ -6,9 +6,10 @@ import type {
 	MinimalPlayerRatings,
 	PlayerContract,
 	Team,
+	TeamSeasonWithoutKey,
 } from "../../../../common/types.ts";
 import { g, random } from "../../../util/index.ts";
-import { getTradeReputationByTid } from "../../player/getTradeReputation.ts";
+import { getTradeReputationByTidFromData } from "../../player/getTradeReputation.ts";
 
 export const getNumPlayersPerTeam = () => {
 	// 13 for basketball
@@ -20,11 +21,13 @@ const createRandomPlayers = async ({
 	onlyFreeAgents,
 	scoutingLevel,
 	teams,
+	teamSeasons,
 }: {
 	activeTids: number[];
 	onlyFreeAgents: boolean;
 	scoutingLevel: number;
 	teams: Pick<Team, "tid" | "retiredJerseyNumbers">[];
+	teamSeasons: TeamSeasonWithoutKey[];
 }) => {
 	const players: PlayerWithoutKey[] = [];
 
@@ -285,7 +288,14 @@ const createRandomPlayers = async ({
 		}
 	}
 
-	const tradeReputationByTid = await getTradeReputationByTid();
+	// Random-player league creation happens before the new league Cache exists.
+	// Use the team-season data already assembled by createStream rather than the
+	// previous/empty global Cache.
+	const tradeReputationByTid = getTradeReputationByTidFromData(
+		activeTids,
+		teamSeasons,
+		g.get("season"),
+	);
 	const addToFreeAgents = async (
 		p: PlayerWithoutKey<MinimalPlayerRatings> | undefined,
 	) => {

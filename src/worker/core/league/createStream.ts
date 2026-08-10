@@ -1425,6 +1425,7 @@ const afterDBStream = async ({
 				onlyFreeAgents: randomDebuts,
 				scoutingLevel,
 				teams,
+				teamSeasons,
 			});
 
 	// If players are specified for some team on import (from CustomizeTeams), replace the randomly generated players
