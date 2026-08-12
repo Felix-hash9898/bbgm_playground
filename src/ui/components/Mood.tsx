@@ -8,6 +8,9 @@ import type {
 } from "../../common/types.ts";
 import { helpers, useLocalPartial } from "../util/index.ts"; // Link to an abbrev either as "ATL" or "ATL (from BOS)" if a pick was traded.
 import ResponsivePopover from "./ResponsivePopover.tsx";
+import { getMoodProbabilityClassName } from "./moodProbability.ts";
+
+export { getMoodProbabilityClassName } from "./moodProbability.ts";
 
 const componentText = (
 	component: keyof MoodComponents,
@@ -292,7 +295,8 @@ const Mood = ({ className, defaultType, maxWidth, p, compact }: Props) => {
 	const roundedProbWilling = roundProbWilling(initialMood.probWilling);
 	const renderTarget = ({ onClick }: { onClick?: () => void }) => {
 		if (compact) {
-			const traitsStr = initialMood.traits.length > 0 ? ` ${initialMood.traits.join(" ")}` : "";
+			const traitsStr =
+				initialMood.traits.length > 0 ? ` ${initialMood.traits.join(" ")}` : "";
 			return (
 				<button
 					className={clsx(
@@ -309,7 +313,11 @@ const Mood = ({ className, defaultType, maxWidth, p, compact }: Props) => {
 					title={`${plusMinus(sum)}${traitsStr} (${roundedProbWilling}%)`}
 				>
 					<span
-						className={highlightColor(sum)}
+						className={
+							showProbWilling
+								? getMoodProbabilityClassName(initialMood.probWilling)
+								: highlightColor(sum)
+						}
 						data-no-row-highlight="true"
 					>
 						{showProbWilling ? `${roundedProbWilling}%` : plusMinus(sum)}

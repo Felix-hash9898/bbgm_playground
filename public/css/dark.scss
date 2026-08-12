@@ -202,6 +202,10 @@ $list-group-item-bg-scale: 70%;
 	color: $white !important;
 }
 
+.text-orange {
+	color: lighten(#fd7e14, 10) !important;
+}
+
 .notification,
 .notification-close-all {
 	box-shadow: #444 0 0 12px;

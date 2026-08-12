@@ -3081,6 +3081,9 @@ const cols: {
 		sortSequence: ["desc", "asc"],
 		sortType: "number",
 	},
+	Terms: {
+		sortType: "string",
+	},
 	Count: {
 		sortSequence: ["desc", "asc"],
 		sortType: "number",

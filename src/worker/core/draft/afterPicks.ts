@@ -14,6 +14,7 @@ import {
 } from "../../util/index.ts";
 import type { Conditions } from "../../../common/types.ts";
 import expansionDraft from "../expansionDraft/index.ts";
+import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
 
 const afterPicks = async (draftOver: boolean, conditions: Conditions = {}) => {
 	if (draftOver) {
@@ -94,6 +95,7 @@ const afterPicks = async (draftOver: boolean, conditions: Conditions = {}) => {
 
 				await expansionDraft.finalize();
 			}
+			await reconcileBasketballRotation(g.get("userTids"));
 		} finally {
 			await lock.set("newPhase", false);
 

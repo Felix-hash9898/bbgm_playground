@@ -31,6 +31,7 @@ import type {
 	TeamSeason,
 } from "../../../common/types.ts";
 import { groupByUnique, maxBy } from "../../../common/utils.ts";
+import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
 
 const newPhasePreseason = async (
 	conditions: Conditions,
@@ -511,6 +512,7 @@ const newPhasePreseason = async (
 	for (const p of players) {
 		await idb.cache.players.put(p);
 	}
+	await reconcileBasketballRotation(g.get("userTids"));
 
 	await realRosters.checkDisableForceHistoricalRosters(
 		newSeason,

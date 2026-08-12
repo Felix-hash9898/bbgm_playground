@@ -1,4 +1,5 @@
 import type { View } from "../../../common/types.ts";
+import { isSport } from "../../../common/index.ts";
 import { toWorker } from "../../util/index.ts";
 
 const handleAutoSort = async () => {
@@ -33,12 +34,14 @@ const InstructionsAndSortButtons = ({
 								>
 									Auto sort roster
 								</button>
-								<button
-									className="btn btn-light-bordered"
-									onClick={handleResetPT}
-								>
-									Reset playing time
-								</button>
+								{!isSport("basketball") ? (
+									<button
+										className="btn btn-light-bordered"
+										onClick={handleResetPT}
+									>
+										Reset playing time
+									</button>
+								) : null}
 								<button
 									className="btn btn-light-bordered"
 									onClick={handleResetUsage}

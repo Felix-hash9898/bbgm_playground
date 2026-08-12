@@ -1,4 +1,4 @@
-import { PHASE, PLAYER } from "../../../common/index.ts";
+import { PHASE, PLAYER, isSport } from "../../../common/index.ts";
 import { contractNegotiation, draft, league } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g, local } from "../../util/index.ts";
@@ -15,6 +15,12 @@ const newPhaseFantasyDraft = async (
 		nextPhase: g.get("phase"),
 	});
 	await idb.cache.releasedPlayers.clear();
+	if (isSport("basketball")) {
+		for (const t of await idb.cache.teams.getAll()) {
+			t.basketballRotation = { version: 1, mode: "auto" };
+			await idb.cache.teams.put(t);
+		}
+	}
 
 	// Protect draft prospects from being included in this
 	const playersUndrafted = await idb.cache.players.indexGetAll(

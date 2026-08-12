@@ -1378,6 +1378,11 @@ const afterDBStream = async ({
 		| "teams"
 	>) => {
 	if (shuffleRosters) {
+		if (isSport("basketball")) {
+			for (const t of teams) {
+				t.basketballRotation = { version: 1, mode: "auto" };
+			}
+		}
 		// Assign the team ID of all players to the 'playerTids' array.
 		// Check tid to prevent draft prospects from being swapped with established players
 		const numPlayersToShuffle = extraFromStream.activePlayers.filter(
@@ -1493,6 +1498,13 @@ const afterDBStream = async ({
 		}
 	}
 	if (replaceTids.size > 0) {
+		if (isSport("basketball")) {
+			for (const t of teams) {
+				if (replaceTids.has(t.tid)) {
+					t.basketballRotation = { version: 1, mode: "auto" };
+				}
+			}
+		}
 		activePlayers = activePlayers.filter((p) => !replaceTids.has(p.tid));
 		activePlayers.push(...extraActivePlayers);
 	}

@@ -168,6 +168,8 @@ import type { KeyboardShortcutsLocal } from "../../ui/util/keyboardShortcuts.ts"
 import { getNumPlayoffTeamsRaw } from "../core/season/getNumPlayoffTeams.ts";
 import type { NewLeagueSettings } from "../views/newLeague.ts";
 import { decideUserTeamOption } from "../core/contracts/contractOptionDecisions.ts";
+import { validateBasketballMinutes } from "../core/team/basketballMinutes.ts";
+import reconcileBasketballRotation from "../core/team/reconcileBasketballRotation.ts";
 
 const acceptContractNegotiation = async ({
 	pid,
@@ -182,7 +184,17 @@ const acceptContractNegotiation = async ({
 	type?: "standard" | "twoWay";
 	option?: "player" | "team";
 }) => {
-	return contractNegotiation.accept({ pid, amount, exp, type, option });
+	const result = await contractNegotiation.accept({
+		pid,
+		amount,
+		exp,
+		type,
+		option,
+	});
+	if (!result) {
+		await reconcileBasketballRotation(g.get("userTids"));
+	}
+	return result;
 };
 
 const addTeam = async () => {
@@ -1171,6 +1183,7 @@ const takeControlTeam = async (userTid: number) => {
 			userTids: [userTid],
 		});
 	}
+	await reconcileBasketballRotation([userTid]);
 
 	await toUI("realtimeUpdate", [["gameAttributes"]]);
 };
@@ -3033,6 +3046,7 @@ const releasePlayer = async ({ pids }: { pids: number[] }) => {
 
 		await player.release(p, justDrafted);
 	}
+	await reconcileBasketballRotation([g.get("userTid")]);
 
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 	await recomputeLocalUITeamOvrs();
@@ -3252,6 +3266,23 @@ const reorderRosterDrag = async (sortedPids: number[]) => {
 
 const resetPlayingTime = async (tids: number[] | undefined) => {
 	const tids2 = tids ?? [g.get("userTid")];
+	if (isSport("basketball")) {
+		if (
+			g.get("spectator") ||
+			tids2.some((tid) => !g.get("userTids").includes(tid))
+		) {
+			throw new Error("You are not allowed to reset this basketball plan");
+		}
+		for (const tid of tids2) {
+			const t = await idb.cache.teams.get(tid);
+			if (t) {
+				t.basketballRotation = { version: 1, mode: "auto" };
+				await idb.cache.teams.put(t);
+			}
+		}
+		await toUI("realtimeUpdate", [["playerMovement", "team"]]);
+		return;
+	}
 
 	const players = await idb.cache.players.indexGetAll("playersByTid", [
 		0,
@@ -3654,6 +3685,7 @@ const sign = async ({
 	if (errorMsg !== undefined && errorMsg) {
 		return errorMsg;
 	}
+	await reconcileBasketballRotation(g.get("userTids"));
 };
 
 const reSignAll = async (players: any[]) => {
@@ -3677,6 +3709,7 @@ const reSignAll = async (players: any[]) => {
 			}
 		}
 	}
+	await reconcileBasketballRotation([userTid]);
 };
 
 const updateExpansionDraftSetup = async (changes: {
@@ -3877,7 +3910,13 @@ const updateDefaultSettingsOverrides = async (
 const updateGameAttributes = async (
 	gameAttributes: Partial<GameAttributesLeague>,
 ) => {
+	const courtSizeChanged =
+		gameAttributes.numPlayersOnCourt !== undefined &&
+		gameAttributes.numPlayersOnCourt !== g.get("numPlayersOnCourt");
 	await league.setGameAttributes(gameAttributes);
+	if (courtSizeChanged) {
+		await reconcileBasketballRotation(g.get("userTids"));
+	}
 	await toUI("realtimeUpdate", [["gameAttributes"]]);
 };
 const updateGameAttributesGodMode = async (
@@ -3934,8 +3973,15 @@ const updateGameAttributesGodMode = async (
 
 	const currentRpdPot = g.get("rpdPot");
 	const currentRealPlayerDeterminism = g.get("realPlayerDeterminism");
+	const currentNumPlayersOnCourt = g.get("numPlayersOnCourt");
 
 	await league.setGameAttributes(gameAttributes);
+	if (
+		gameAttributes.numPlayersOnCourt !== undefined &&
+		gameAttributes.numPlayersOnCourt !== currentNumPlayersOnCourt
+	) {
+		await reconcileBasketballRotation(g.get("userTids"));
+	}
 
 	if (repeatSeason !== currentRepeatSeasonType) {
 		await league.setRepeatSeason(repeatSeason);
@@ -4006,6 +4052,7 @@ const updateMultiTeamMode = async (gameAttributes: {
 	userTid?: number;
 }) => {
 	await league.setGameAttributes(gameAttributes);
+	await reconcileBasketballRotation(gameAttributes.userTids);
 
 	await league.updateMeta();
 
@@ -4278,6 +4325,11 @@ const updatePlayingTime = async (args: {
 	ptModifier?: number;
 	targetMinutes?: number | null;
 }) => {
+	// Basketball now has one team-level Dynamic minutes plan. Keep this legacy
+	// API for the other sports, but make old basketball callers inert.
+	if (isSport("basketball")) {
+		return;
+	}
 	const p = await idb.cache.players.get(args.pid);
 	if (!p) {
 		throw new Error("Invalid pid");
@@ -4295,6 +4347,48 @@ const updatePlayingTime = async (args: {
 	}
 	await idb.cache.players.put(p);
 	await toUI("realtimeUpdate", [["playerMovement"]]);
+};
+
+const updateBasketballMinutes = async ({
+	tid,
+	minutesByPid,
+}: {
+	tid: number;
+	minutesByPid: Record<number, number>;
+}) => {
+	if (
+		!isSport("basketball") ||
+		g.get("spectator") ||
+		!g.get("userTids").includes(tid)
+	) {
+		throw new Error("You are not allowed to update this basketball plan");
+	}
+	const [t, players] = await Promise.all([
+		idb.cache.teams.get(tid),
+		idb.cache.players.indexGetAll("playersByTid", tid),
+	]);
+	if (!t) {
+		throw new Error("Invalid tid");
+	}
+	const error = validateBasketballMinutes({
+		players,
+		minutesByPid,
+		numPlayersOnCourt: g.get("numPlayersOnCourt"),
+	});
+	if (error) {
+		throw new Error(error);
+	}
+
+	t.basketballRotation = {
+		version: 1,
+		mode: "custom",
+		minutesByPid: Object.fromEntries(
+			players.map((p) => [p.pid, minutesByPid[p.pid]!]),
+		),
+		numPlayersOnCourtAtSave: g.get("numPlayersOnCourt"),
+	};
+	await idb.cache.teams.put(t);
+	await toUI("realtimeUpdate", [["playerMovement", "team"]]);
 };
 
 const updateUsageBias = async ({
@@ -5542,6 +5636,7 @@ export default {
 		tradeCounterOffer,
 		onLiveSimOver,
 		updateAwards,
+		updateBasketballMinutes,
 		updateBudget,
 		updateConfsDivs,
 		updateDefaultSettingsOverrides,

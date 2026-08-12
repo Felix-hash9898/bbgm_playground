@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
 import { helpers, toWorker } from "../../util/index.ts";
 import type { View } from "../../../common/types.ts";
+import { rosterCompactControlStyle } from "./compactControlStyle.ts";
 
 type Player = View<"roster">["players"][number];
 
@@ -66,7 +67,18 @@ const UsageBias = ({ p, userTid }: { p: Player; userTid: number }) => {
 			className="form-select pt-modifier-select"
 			value={value}
 			onChange={(event) => handleUsageBiasChange(p, userTid, event)}
-			style={(usageBiasStyles as any)[String(value)]}
+			style={{
+				...rosterCompactControlStyle,
+				...(usageBiasStyles as any)[String(value)],
+				width: "70px",
+				minWidth: "70px",
+				textAlign: "center",
+				textAlignLast: "center",
+				paddingLeft: "0.5rem",
+				paddingRight: "0.5rem",
+				backgroundPosition: "right 0.1rem center",
+				backgroundSize: "8px 6px",
+			}}
 		>
 			{usageBiases.map(({ text, usageBias }) => {
 				return (

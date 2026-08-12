@@ -11,6 +11,7 @@ import type {
 import { addMood } from "./freeAgents.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
 import { getActualPlayThroughInjuries } from "../core/game/loadTeams.ts";
+import { getBasketballRotationMinutes } from "../core/team/basketballMinutes.ts";
 
 const sortByPos = (p: {
 	ratings: {
@@ -153,6 +154,7 @@ const updateRoster = async (
 					"name",
 					"keepRosterSorted",
 					"playThroughInjuries",
+					"basketballRotation",
 				],
 				seasonAttrs,
 				stats: ["pts", "oppPts", "gp"],
@@ -193,7 +195,16 @@ const updateRoster = async (
 			"form",
 		]; // tid and draft are used for checking if a player can be released without paying his salary
 
-		const ratings = ["ovr", "pot", "dovr", "dpot", "skills", "pos", "ovrs"];
+		const ratings = [
+			"ovr",
+			"pot",
+			"dovr",
+			"dpot",
+			"skills",
+			"pos",
+			"ovrs",
+			"endu",
+		];
 		const stats2 = [...stats, "yearsWithTeam", "jerseyNumber", "min", "gp"];
 
 		let players: any[];
@@ -339,6 +350,40 @@ const updateRoster = async (
 		};
 		t2.seasonAttrs.avgAge = t2.seasonAttrs.avgAge ?? team.avgAge(players);
 
+		const basketballMinutes =
+			isSport("basketball") &&
+			inputs.season === g.get("season") &&
+			inputs.tid === g.get("userTid") &&
+			!g.get("spectator")
+				? {
+						...getBasketballRotationMinutes({
+							rotation: t.basketballRotation,
+							players: players.map((p) => ({
+								pid: p.pid,
+								rosterOrder: p.rosterOrder,
+								endurance: g.get("challengeNoRatings")
+									? 0.5
+									: p.ratings.endu / 100,
+							})),
+							numPlayersOnCourt: g.get("numPlayersOnCourt"),
+							playoffs: g.get("phase") === PHASE.PLAYOFFS,
+						}),
+						autoMinutesByPid: getBasketballRotationMinutes({
+							rotation: undefined,
+							players: players.map((p) => ({
+								pid: p.pid,
+								rosterOrder: p.rosterOrder,
+								endurance: g.get("challengeNoRatings")
+									? 0.5
+									: p.ratings.endu / 100,
+							})),
+							numPlayersOnCourt: g.get("numPlayersOnCourt"),
+							playoffs: g.get("phase") === PHASE.PLAYOFFS,
+						}).minutesByPid,
+						required: 48 * g.get("numPlayersOnCourt"),
+					}
+				: undefined;
+
 		for (const p of players) {
 			p.awards = p.awards.filter(
 				(award: Player["awards"][number]) => award.season === inputs.season,
@@ -348,6 +393,7 @@ const updateRoster = async (
 		return {
 			abbrev: inputs.abbrev,
 			budget: g.get("budget"),
+			basketballMinutes,
 			challengeNoRatings: g.get("challengeNoRatings"),
 			currentSeason: g.get("season"),
 			editable,

@@ -2,10 +2,9 @@ import { g, helpers, random } from "../../util/index.ts";
 import { PHASE, STARTING_NUM_TIMEOUTS } from "../../../common/index.ts";
 import jumpBallWinnerStartsThisPeriodWithPossession from "./jumpBallWinnerStartsThisPeriodWithPossession.ts";
 import getInjuryRate, { getInjuryOverloadFactor } from "./getInjuryRate.ts";
-import getMinutesLimitFactor, {
-	getAutoMinutesSoftCap,
-} from "./getMinutesLimitFactor.ts";
-import getTargetMinutesModifier from "./getTargetMinutesModifier.ts";
+import getDynamicMinutesMultiplier, {
+	getPlanAwareCourtTimer,
+} from "./dynamicMinutes.ts";
 import type {
 	GameAttributesLeague,
 	PlayerInjury,
@@ -106,6 +105,7 @@ type PlayerGameSim = {
 	};
 	ptModifier: number;
 	targetMinutes?: number;
+	plannedMinutes: number;
 	usageBias: number;
 	gameForm: number; // Within-game random form factor (-5 to +5)
 	pendingPostGameInjury?: boolean;
@@ -122,6 +122,19 @@ type TeamGameSim = {
 		off: number;
 		reb: number;
 	};
+};
+
+type DynamicMinutesState = {
+	abandonedPlan: boolean;
+	zeroTargetOpeningStarters: Set<number>;
+	zeroTargetLocked: Set<number>;
+	positiveTargetAppeared: Set<number>;
+	positiveTargetCompletedStint: Set<number>;
+};
+
+type PlanAwareCourtTimerState = {
+	onCourt: boolean;
+	lastElapsed: number;
 };
 
 type PossessionOutcome =
@@ -232,6 +245,21 @@ class GameSim extends GameSimBase {
 	possessionLength = 0;
 	lastOrbPlayer: PlayerGameSim | undefined;
 
+	dynamicMinutesState: [DynamicMinutesState, DynamicMinutesState] = [0, 1].map(
+		() => ({
+			abandonedPlan: false,
+			zeroTargetOpeningStarters: new Set(),
+			zeroTargetLocked: new Set(),
+			positiveTargetAppeared: new Set(),
+			positiveTargetCompletedStint: new Set(),
+		}),
+	) as [DynamicMinutesState, DynamicMinutesState];
+
+	planAwareCourtTimerState: [
+		Map<number, PlanAwareCourtTimerState>,
+		Map<number, PlanAwareCourtTimerState>,
+	] = [new Map(), new Map()];
+
 	/**
 	 * Initialize the two teams that are playing this game.
 	 *
@@ -266,6 +294,9 @@ class GameSim extends GameSimBase {
 		this.playByPlay = new PlayByPlayLogger(doPlayByPlay);
 
 		this.team = teams; // If a team plays twice in a day, this needs to be a deep copy
+		this.t = g.get("quarterLength") * 60; // Game clock, in seconds
+		this.numPeriods = g.get("numPeriods");
+		this.gender = g.get("gender");
 
 		// Starting lineups, which will be reset by updatePlayersOnCourt. This must be done because of injured players in the top 5.
 		this.numPlayersOnCourt = g.get("numPlayersOnCourt");
@@ -278,10 +309,6 @@ class GameSim extends GameSimBase {
 			recordStarters: true,
 		});
 		this.updateSynergy();
-
-		this.t = g.get("quarterLength") * 60; // Game clock, in seconds
-		this.numPeriods = g.get("numPeriods");
-		this.gender = g.get("gender");
 
 		this.paceFactor = g.get("pace") / 100;
 		this.paceFactor +=
@@ -421,6 +448,9 @@ class GameSim extends GameSimBase {
 
 				// @ts-expect-error
 				delete p.ptModifier;
+				delete p.targetMinutes;
+				// @ts-expect-error
+				delete p.plannedMinutes;
 				delete p.stat.benchTime;
 				delete p.stat.courtTime;
 				delete p.stat.energy;
@@ -1000,7 +1030,6 @@ class GameSim extends GameSimBase {
 		let substitutions = false;
 		let blowout = false;
 		const lateGame = this.isLateGame();
-
 		const foulsNeededToFoulOut = g.get("foulsNeededToFoulOut");
 
 		if (this.o !== undefined && this.d !== undefined) {
@@ -1025,215 +1054,337 @@ class GameSim extends GameSimBase {
 		}
 
 		const foulLimit = this.getFoulTroubleLimit();
-		const playoffs = g.get("phase") === PHASE.PLAYOFFS;
 		const regulationMinutes = g.get("quarterLength") * g.get("numPeriods");
+		const period = this.team[0].stat.ptsQtrs.length;
+		const elapsed =
+			period > this.numPeriods
+				? regulationMinutes
+				: helpers.bound(
+						(period - 1) * g.get("quarterLength") +
+							(g.get("quarterLength") * 60 - this.t) / 60,
+						0,
+						regulationMinutes,
+					);
 
 		for (const t of teamNums) {
-			const availablePlayers = this.team[t].player.filter(
-				(p) => !p.injured,
+			const state = this.dynamicMinutesState[t];
+			if (blowout) {
+				state.abandonedPlan = true;
+			}
+			if (!recordStarters) {
+				const onCourt = new Set(this.playersOnCourt[t].map((p) => p.id));
+				for (const pid of state.zeroTargetOpeningStarters) {
+					if (!onCourt.has(pid)) {
+						state.zeroTargetLocked.add(pid);
+					}
+				}
+			}
+
+			const before = new Set(this.playersOnCourt[t].map((p) => p.id));
+			const controllerActive = this.overtimes === 0 && !state.abandonedPlan;
+			const savedPlayerOrder = [...this.team[t].player];
+			if (controllerActive && !recordStarters) {
+				this.team[t].player.sort(
+					(a, b) =>
+						b.plannedMinutes - a.plannedMinutes ||
+						b.valueNoPot - a.valueNoPot ||
+						a.id - b.id,
+				);
+			}
+
+			const availablePositive = this.team[t].player.filter(
+				(p) =>
+					!p.injured &&
+					(foulsNeededToFoulOut <= 0 || p.stat.pf < foulsNeededToFoulOut) &&
+					p.plannedMinutes > 0,
 			).length;
+			const emergency = availablePositive < this.numPlayersOnCourt;
 
-			const getOvrs = (includeFouledOut: boolean) => {
-				// Overall values scaled by fatigue, etc
-				const ovrs: Record<number, number> = {};
-
-				for (const [i, p] of this.team[t].player.entries()) {
-					// Injured or fouled out players can't play
+			// A plan equal to the regulation length means that the player has no
+			// planned regulation rest. In normal regulation, protect that player
+			// from ordinary fatigue/value removal by keeping the legacy on-court
+			// eligibility gate closed. Injury, foul trouble/foul-out, emergency,
+			// blowout abandonment, and overtime remain eligible to override this.
+			if (controllerActive && !recordStarters && !emergency) {
+				for (const p of this.playersOnCourt[t]) {
 					if (
 						p.injured ||
-						(!includeFouledOut &&
-							foulsNeededToFoulOut > 0 &&
-							p.stat.pf >= foulsNeededToFoulOut)
+						Math.abs(p.plannedMinutes - regulationMinutes) > 1e-7
 					) {
-						ovrs[p.id] = -Infinity;
-					} else {
-						ovrs[p.id] =
+						continue;
+					}
+					const foulTrouble =
+						(foulsNeededToFoulOut > 0 && p.stat.pf >= foulsNeededToFoulOut) ||
+						this.getFoulTroubleFactor(p, foulLimit) < 1;
+					if (foulTrouble) {
+						continue;
+					}
+					p.stat.courtTime = Math.min(p.stat.courtTime ?? 0, 2);
+				}
+			}
+
+			const runPass = (relaxPositions: boolean) => {
+				let passSubstitutions = false;
+				const getOvrs = (includeFouledOut: boolean) => {
+					const ovrs: Record<number, number> = {};
+					for (const [i, p] of this.team[t].player.entries()) {
+						if (
+							p.injured ||
+							(!includeFouledOut &&
+								foulsNeededToFoulOut > 0 &&
+								p.stat.pf >= foulsNeededToFoulOut)
+						) {
+							ovrs[p.id] = -Infinity;
+							continue;
+						}
+
+						let value =
 							p.valueNoPot *
 							this.fatigue(p.stat.energy) *
 							(!lateGame ? random.uniform(0.9, 1.1) : 1);
-
-						if (!this.allStarGame) {
-							ovrs[p.id]! *= p.ptModifier;
-
-							// Static targetMinutes modifier: nudges priority toward user's target
-							ovrs[p.id]! *= getTargetMinutesModifier({
-								targetMinutes: p.targetMinutes,
-								autoSoftCap: getAutoMinutesSoftCap({
-									availablePlayers,
-									endurance: p.compositeRating.endurance,
-									playoffs,
-									ptModifier: p.ptModifier,
-									regulationMinutes,
-									rosterIndex: i,
-								}),
+						if (controllerActive) {
+							if (
+								p.plannedMinutes <= 0 &&
+								!emergency &&
+								state.zeroTargetLocked.has(p.id)
+							) {
+								ovrs[p.id] = -Infinity;
+								continue;
+							}
+							value *= getDynamicMinutesMultiplier({
+								targetMinutes: p.plannedMinutes,
 								regulationMinutes,
+								elapsed,
+								playedMinutes: p.stat.min ?? 0,
+								energy: p.stat.energy,
+								onCourt: this.playersOnCourt[t].includes(p),
+								continuousStintMinutes: Math.max(0, p.stat.courtTime),
+								completedPositiveStint: state.positiveTargetCompletedStint.has(
+									p.id,
+								),
 							});
 						}
 
-						ovrs[p.id]! *= getMinutesLimitFactor({
-							availablePlayers,
-							endurance: p.compositeRating.endurance,
-							lateGame,
-							minutes: p.stat.min ?? 0,
-							playoffs,
-							ptModifier: p.ptModifier,
-							regulationMinutes,
-							rosterIndex: i,
-							targetMinutes: p.targetMinutes,
-						});
-
-						// Also scale based on margin late in games, so stars play less in blowouts (this doesn't really work that well, but better than nothing)
 						if (blowout) {
-							ovrs[p.id]! *= (i + 1) / 10;
+							value *= (i + 1) / 10;
 						} else {
-							// If it's not a blowout, worry about foul trouble
-							const foulTroubleFactor = this.getFoulTroubleFactor(p, foulLimit);
-							ovrs[p.id]! *= foulTroubleFactor;
+							value *= this.getFoulTroubleFactor(p, foulLimit);
 						}
+						ovrs[p.id] = value;
 					}
+					return ovrs;
+				};
+
+				let ovrs = getOvrs(false);
+				if (
+					Object.values(ovrs).filter((ovr) => ovr > -Infinity).length <
+					this.numPlayersOnCourt
+				) {
+					ovrs = getOvrs(true);
 				}
 
-				return ovrs;
-			};
-
-			const numEligiblePlayers = (ovrs: Record<number, number>) => {
-				let count = 0;
-				for (const ovr of Object.values(ovrs)) {
-					if (ovr > -Infinity) {
-						count += 1;
-					}
-				}
-
-				return count;
-			};
-
-			let ovrs = getOvrs(false);
-
-			// What if too many players fouled out? Play them. Ideally would force non fouled out players to play first, but whatever. Without this, it would only play bottom of the roster guys (tied at -Infinity)
-			if (numEligiblePlayers(ovrs) < this.numPlayersOnCourt) {
-				ovrs = getOvrs(true);
-			}
-
-			const ovrsOnCourt = this.playersOnCourt[t].map((p) => ovrs[p.id]!);
-
-			const pids = [];
-			const pidsOff = [];
-
-			// Sub off the lowest ovr guy first
-			for (const pp of getSortedIndexes(ovrsOnCourt)) {
-				const p = this.playersOnCourt[t][pp]!;
-				const onCourtIsIneligible = ovrs[p.id] === -Infinity;
-				this.playersOnCourt[t][pp]! = p; // Don't sub out guy shooting FTs!
-
-				if (t === this.o && p === shooter) {
-					continue;
-				}
-
-				// Loop through bench players (in order of current roster position) to see if any should be subbed in)
-				for (const b of this.team[t].player) {
-					if (this.playersOnCourt[t].includes(b)) {
+				const ovrsOnCourt = this.playersOnCourt[t].map((p) => ovrs[p.id]!);
+				const pids: number[] = [];
+				const pidsOff: number[] = [];
+				for (const pp of getSortedIndexes(ovrsOnCourt)) {
+					const p = this.playersOnCourt[t][pp]!;
+					const onCourtIsIneligible = ovrs[p.id] === -Infinity;
+					if (t === this.o && p === shooter) {
 						continue;
 					}
 
-					const benchIsValidAndBetter =
-						p.stat.courtTime > 2 &&
-						b.stat.benchTime > 2 &&
-						ovrs[b.id]! > ovrs[p.id]!;
-					const benchIsEligible = ovrs[b.id] !== -Infinity;
-
-					if (
-						benchIsValidAndBetter ||
-						(onCourtIsIneligible && benchIsEligible)
-					) {
-						// Check if position of substitute makes for a valid lineup
-						const pos: string[] = [];
-
-						for (let j = 0; j < this.playersOnCourt[t].length; j++) {
-							if (j !== pp) {
-								pos.push(this.playersOnCourt[t][j]!.pos);
-							}
+					for (const b of this.team[t].player) {
+						if (this.playersOnCourt[t].includes(b)) {
+							continue;
 						}
-
-						pos.push(b.pos);
-
-						// Requre 2 Gs (or 1 PG) and 2 Fs (or 1 C)
-						let numG = 0;
-						let numPG = 0;
-						let numF = 0;
-						let numC = 0;
-
-						for (const pos2 of pos) {
-							if (pos2.includes("G")) {
-								numG += 1;
-							}
-
-							if (pos2 === "PG") {
-								numPG += 1;
-							}
-
-							if (pos2.includes("F")) {
-								numF += 1;
-							}
-
-							if (pos2 === "C") {
-								numC += 1;
-							}
-						}
-
-						const cutoff =
-							this.numPlayersOnCourt >= 5
-								? 2
-								: this.numPlayersOnCourt >= 3
-									? 1
-									: 0;
 						if (
-							(numG < cutoff && numPG === 0) ||
-							(numF < cutoff && numC === 0)
+							controllerActive &&
+							!emergency &&
+							b.plannedMinutes <= 0 &&
+							state.zeroTargetLocked.has(b.id)
 						) {
-							if (this.fatigue(p.stat.energy) > 0.728 && !onCourtIsIneligible) {
-								// Exception for ridiculously tired players, so really unbalanced teams won't play starters whole game
+							continue;
+						}
+						const benchIsValidAndBetter =
+							p.stat.courtTime > 2 &&
+							b.stat.benchTime > 2 &&
+							ovrs[b.id]! > ovrs[p.id]!;
+						const benchIsEligible = ovrs[b.id] !== -Infinity;
+						if (
+							!benchIsValidAndBetter &&
+							!(onCourtIsIneligible && benchIsEligible)
+						) {
+							continue;
+						}
+
+						if (!relaxPositions) {
+							const pos = this.playersOnCourt[t]
+								.filter((_, j) => j !== pp)
+								.map((p2) => p2.pos);
+							pos.push(b.pos);
+							let numG = 0;
+							let numPG = 0;
+							let numF = 0;
+							let numC = 0;
+							for (const pos2 of pos) {
+								if (pos2.includes("G")) {
+									numG += 1;
+								}
+								if (pos2 === "PG") {
+									numPG += 1;
+								}
+								if (pos2.includes("F")) {
+									numF += 1;
+								}
+								if (pos2 === "C") {
+									numC += 1;
+								}
+							}
+							const cutoff =
+								this.numPlayersOnCourt >= 5
+									? 2
+									: this.numPlayersOnCourt >= 3
+										? 1
+										: 0;
+							if (
+								((numG < cutoff && numPG === 0) ||
+									(numF < cutoff && numC === 0)) &&
+								this.fatigue(p.stat.energy) > 0.728 &&
+								!onCourtIsIneligible
+							) {
 								continue;
 							}
 						}
 
-						substitutions = true;
-
-						// Substitute player
 						this.playersOnCourt[t][pp] = b;
+						if (
+							controllerActive &&
+							p.plannedMinutes <= 0 &&
+							state.zeroTargetOpeningStarters.has(p.id)
+						) {
+							state.zeroTargetLocked.add(p.id);
+						}
+						passSubstitutions = true;
 						b.stat.courtTime = random.uniform(-2, 2);
 						b.stat.benchTime = random.uniform(-2, 2);
 						p.stat.courtTime = random.uniform(-2, 2);
 						p.stat.benchTime = random.uniform(-2, 2);
-
-						/*// Keep track of deviations from the normal starting lineup for the play-by-play
-						if (this.playByPlay !== undefined) {
-							this.playByPlay.push({
-								type: "sub",
-								t,
-								on: b.id,
-								off: p.id,
-							});
-						}*/
-
-						// It's only a "substitution" if it's not the starting lineup
 						if (!recordStarters) {
 							pids.push(b.id);
 							pidsOff.push(p.id);
 						}
-
 						break;
 					}
 				}
+
+				if (pids.length > 0) {
+					this.playByPlay.logEvent({
+						type: "sub",
+						t,
+						pids,
+						pidsOff,
+						clock: this.t,
+					});
+				}
+				return passSubstitutions;
+			};
+
+			let teamSubstitutions = false;
+			try {
+				teamSubstitutions = runPass(false);
+				if (!teamSubstitutions && !recordStarters && controllerActive) {
+					teamSubstitutions = runPass(true);
+				}
+			} finally {
+				this.team[t].player.splice(
+					0,
+					this.team[t].player.length,
+					...savedPlayerOrder,
+				);
+			}
+			if (teamSubstitutions) {
+				substitutions = true;
 			}
 
-			if (pids.length > 0) {
-				this.playByPlay.logEvent({
-					type: "sub",
-					t,
-					pids,
-					pidsOff,
-					clock: this.t,
-				});
+			const after = new Set(this.playersOnCourt[t].map((p) => p.id));
+			const courtTimerState = this.planAwareCourtTimerState[t];
+			if (recordStarters) {
+				for (const p of this.team[t].player) {
+					courtTimerState.set(p.id, {
+						onCourt: after.has(p.id),
+						lastElapsed: 0,
+					});
+				}
+			} else {
+				for (const p of this.team[t].player) {
+					const wasOnCourt = before.has(p.id);
+					const isOnCourt = after.has(p.id);
+					const previous = courtTimerState.get(p.id) ?? {
+						onCourt: wasOnCourt,
+						lastElapsed: 0,
+					};
+
+					if (
+						!wasOnCourt &&
+						isOnCourt &&
+						controllerActive &&
+						this.overtimes === 0 &&
+						p.plannedMinutes > 0
+					) {
+						const legacyRequiredWait = Math.max(0, 2 - (p.stat.courtTime ?? 0));
+						const remainingGame = Math.max(0, regulationMinutes - elapsed);
+						const remainingNeed = Math.max(
+							0,
+							p.plannedMinutes - (p.stat.min ?? 0),
+						);
+						const restShare = Math.max(0, regulationMinutes - p.plannedMinutes);
+						const completedBench = Math.max(0, elapsed - previous.lastElapsed);
+						p.stat.courtTime = getPlanAwareCourtTimer({
+							legacyRequiredWait,
+							remainingGame,
+							remainingNeed,
+							restShare,
+							completedBench,
+							plannedMinutes: p.plannedMinutes,
+						}).courtTime;
+						previous.lastElapsed = elapsed;
+					}
+
+					if (wasOnCourt && !isOnCourt) {
+						previous.lastElapsed = elapsed;
+					}
+					previous.onCourt = isOnCourt;
+					courtTimerState.set(p.id, previous);
+				}
+			}
+			if (recordStarters) {
+				for (const p of this.team[t].player) {
+					if (p.plannedMinutes > 0) {
+						if (after.has(p.id)) {
+							state.positiveTargetAppeared.add(p.id);
+						}
+					} else if (after.has(p.id)) {
+						state.zeroTargetOpeningStarters.add(p.id);
+					} else {
+						state.zeroTargetLocked.add(p.id);
+					}
+				}
+			} else {
+				for (const p of this.team[t].player) {
+					if (p.plannedMinutes <= 0) {
+						continue;
+					}
+					if (after.has(p.id)) {
+						state.positiveTargetAppeared.add(p.id);
+					}
+					if (
+						before.has(p.id) &&
+						!after.has(p.id) &&
+						state.positiveTargetAppeared.has(p.id)
+					) {
+						state.positiveTargetCompletedStint.add(p.id);
+					}
+				}
 			}
 		}
 

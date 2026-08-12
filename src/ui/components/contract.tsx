@@ -1,6 +1,12 @@
 import clsx from "clsx";
 import type { PlayerContract } from "../../common/types.ts";
 import { helpers, useLocal, useLocalPartial } from "../util/index.ts";
+import {
+	getRosterContractSearchValue,
+	getRosterContractTerms,
+} from "./rosterContractTerms.ts";
+
+export { getRosterContractTerms } from "./rosterContractTerms.ts";
 
 type ContractPlayer = {
 	draft: {
@@ -43,9 +49,11 @@ const NON_GUARANTEED_CONTRACT_TEXT =
 export const ContractAmount = ({
 	p,
 	override,
+	showTerms = true,
 }: {
 	p: ContractPlayer;
 	override?: number;
+	showTerms?: boolean;
 }) => {
 	const justDrafted = useJustDrafted(p);
 
@@ -55,7 +63,7 @@ export const ContractAmount = ({
 			title={justDrafted ? NON_GUARANTEED_CONTRACT_TEXT : undefined}
 		>
 			{helpers.formatCurrency(override ?? p.contract.amount, "M")}
-			{override === undefined ? (
+			{override === undefined && showTerms ? (
 				<>
 					<TwoWayBadge contract={p.contract} />
 					<OptionBadge contract={p.contract} />
@@ -145,6 +153,60 @@ export const wrappedContract = (p: ContractPlayer) => {
 	return {
 		value: <Contract p={p} />,
 		sortValue: p.contract.amount,
+		searchValue: formatted,
+	};
+};
+
+const RosterContract = ({ p }: { p: ContractPlayer }) => {
+	const justDrafted = useJustDrafted(p);
+
+	return (
+		<>
+			<ContractAmount p={p} showTerms={false} />
+			<span
+				className={justDrafted ? "fst-italic" : undefined}
+				title={justDrafted ? NON_GUARANTEED_CONTRACT_TEXT : undefined}
+			>
+				{" "}
+				thru{" "}
+			</span>
+			<ContractExp p={p} />
+		</>
+	);
+};
+
+const RosterContractTerms = ({ p }: { p: ContractPlayer }) => (
+	<span style={{ whiteSpace: "nowrap" }}>
+		{getRosterContractTerms(p.contract).map((term) => (
+			<span className="badge text-bg-secondary ms-1" key={term}>
+				{term}
+			</span>
+		))}
+	</span>
+);
+
+export const wrappedRosterContract = (p: ContractPlayer) => {
+	const formattedAmount = helpers.formatCurrency(p.contract.amount, "M");
+	const formatted = getRosterContractSearchValue({
+		amount: formattedAmount,
+		exp: p.contract.exp,
+		terms: [],
+	});
+
+	return {
+		value: <RosterContract p={p} />,
+		sortValue: p.contract.amount,
+		searchValue: formatted,
+	};
+};
+
+export const wrappedRosterContractTerms = (p: ContractPlayer) => {
+	const terms = getRosterContractTerms(p.contract);
+	const formatted = terms.join(" ");
+
+	return {
+		value: <RosterContractTerms p={p} />,
+		sortValue: formatted,
 		searchValue: formatted,
 	};
 };

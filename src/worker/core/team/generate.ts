@@ -8,6 +8,7 @@ import {
 import finances from "../finances/index.ts";
 import genRandomJersey from "./genRandomJersey.ts";
 import isValidJersey from "./isValidJersey.ts";
+import { sanitizeBasketballRotation } from "./basketballMinutes.ts";
 
 /**
  * Create a new team object.
@@ -59,6 +60,7 @@ const generate = (tm: any): Team => {
 		adjustForInflation: tm.adjustForInflation ?? true,
 		disabled: tm.disabled ?? false,
 		keepRosterSorted: tm.keepRosterSorted ?? true,
+		basketballRotation: sanitizeBasketballRotation(tm.basketballRotation),
 		autoTicketPrice: tm.autoTicketPrice ?? true,
 		midLevelExceptionUsedSeason: tm.midLevelExceptionUsedSeason,
 		playThroughInjuries:

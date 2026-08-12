@@ -194,12 +194,31 @@ describe("full league-year gameplay smoke", () => {
 			);
 
 			lifecycleLocation = "playing time";
-			// Playing Time/rotation production API.
-			const rotationPid = initialRoster[1]!.pid;
-			await api.main.updatePlayingTime({ pid: rotationPid, ptModifier: 1.25 });
+			// Unified Dynamic minutes production API. Start from the generated Auto
+			// plan, make one legal edit, and atomically save it as Custom.
+			const initialRosterView = await readView("roster", {
+				abbrev: userAbbrev(),
+				season: String(g.get("season")),
+			});
+			assert.strictEqual(initialRosterView.basketballMinutes.mode, "auto");
+			const customMinutes = {
+				...initialRosterView.basketballMinutes.minutesByPid,
+			} as Record<number, number>;
+			const minuteEntries = Object.entries(customMinutes) as [string, number][];
+			const recipient = minuteEntries.find(([, minutes]) => minutes <= 47)!;
+			const rotationPlanPid = Number(recipient[0]);
+			const donor = minuteEntries.find(
+				([pid, minutes]) => pid !== recipient[0] && minutes >= 1,
+			)!;
+			customMinutes[rotationPlanPid] = recipient[1] + 1;
+			customMinutes[Number(donor[0])] = donor[1] - 1;
+			await api.main.updateBasketballMinutes({
+				tid: g.get("userTid"),
+				minutesByPid: customMinutes,
+			});
 			assert.strictEqual(
-				(await idb.cache.players.get(rotationPid))!.ptModifier,
-				1.25,
+				(await idb.cache.teams.get(g.get("userTid")))!.basketballRotation!.mode,
+				"custom",
 			);
 
 			lifecycleLocation = "release player";
@@ -226,7 +245,7 @@ describe("full league-year gameplay smoke", () => {
 			// Deterministic real trade commit path. Force acceptance is the God Mode
 			// production path; transaction mechanics and all durable mutations are real.
 			const tradeAway = (await getUserPlayers()).find(
-				(p) => p.pid !== editedPid && p.pid !== rotationPid,
+				(p) => p.pid !== editedPid && p.pid !== rotationPlanPid,
 			)!;
 			const otherTid = 1;
 			const tradeFor = (
@@ -350,9 +369,16 @@ describe("full league-year gameplay smoke", () => {
 				(await idb.cache.players.get(editedPid))!.ratings.at(-1)!.spd,
 				editedPlayer.ratings.at(-1)!.spd,
 			);
-			assert.strictEqual(
-				(await idb.cache.players.get(rotationPid))!.ptModifier,
-				1.25,
+			const persistedRotation = (await idb.cache.teams.get(0))!
+				.basketballRotation!;
+			assert.strictEqual(persistedRotation.mode, "custom");
+			assert.closeTo(
+				Object.values(persistedRotation.minutesByPid!).reduce(
+					(total, minutes) => total + minutes,
+					0,
+				),
+				240,
+				8,
 			);
 			assert.strictEqual((await idb.cache.players.get(tradeFor.pid))!.tid, 0);
 			await playOneDay("One day after reload");
@@ -496,6 +522,22 @@ describe("full league-year gameplay smoke", () => {
 			assert.strictEqual(g.get("phase"), PHASE.REGULAR_SEASON);
 			await playOneDay("next-season regular season day 1");
 			await playOneDay("next-season regular season day 2");
+			const nextSeasonRotation = (await idb.cache.teams.get(0))!
+				.basketballRotation!;
+			const nextSeasonRoster = await getUserPlayers();
+			assert.strictEqual(nextSeasonRotation.mode, "custom");
+			assert.sameMembers(
+				Object.keys(nextSeasonRotation.minutesByPid!).map(Number),
+				nextSeasonRoster.map((p) => p.pid),
+			);
+			assert.closeTo(
+				Object.values(nextSeasonRotation.minutesByPid!).reduce(
+					(total, minutes) => total + minutes,
+					0,
+				),
+				240,
+				8,
+			);
 			assertPlayable("second consecutive next-season One day");
 		},
 	);

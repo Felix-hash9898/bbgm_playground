@@ -5,6 +5,7 @@ import { idb } from "../../db/index.ts";
 import { g, helpers, local, logEvent } from "../../util/index.ts";
 import type { DraftPick } from "../../../common/types.ts";
 import getRookieContractLength from "./getRookieContractLength.ts";
+import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
 
 /**
  * Select a player for the current drafting team.
@@ -198,6 +199,12 @@ const selectPlayer = async (dp: DraftPick, pid: number) => {
 		tids: eventTids,
 		score,
 	});
+	if (
+		g.get("phase") !== PHASE.FANTASY_DRAFT &&
+		g.get("phase") !== PHASE.EXPANSION_DRAFT
+	) {
+		await reconcileBasketballRotation(eventTids);
+	}
 
 	if (g.get("userTids").includes(dp.tid) && !g.get("spectator")) {
 		const t = await idb.cache.teams.get(dp.tid);

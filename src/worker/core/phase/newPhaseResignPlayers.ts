@@ -18,6 +18,7 @@ import type { Conditions, PhaseReturn } from "../../../common/types.ts";
 import { orderBy } from "../../../common/utils.ts";
 import { processContractOptions } from "../contracts/contractOptionDecisions.ts";
 import { getTradeReputationByTid } from "../player/getTradeReputation.ts";
+import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
 
 export const FREE_AGENCY_DAYS = 30;
 
@@ -352,6 +353,7 @@ const newPhaseResignPlayers = async (
 	await league.setGameAttributes({
 		daysLeft: FREE_AGENCY_DAYS,
 	});
+	await reconcileBasketballRotation(userTids);
 
 	return {
 		redirect: {

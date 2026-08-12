@@ -1584,6 +1584,18 @@ export type SortType =
 	| "string"
 	| "pos";
 
+export type BasketballRotation = {
+	version: 1;
+	mode: "auto" | "custom";
+	/**
+	 * Planned minutes are always stored in the normal 48-minute convention,
+	 * regardless of the league's quarter length. This is only populated for a
+	 * custom plan; Auto is generated from the current roster when needed.
+	 */
+	minutesByPid?: Record<number, number>;
+	numPlayersOnCourtAtSave?: number;
+};
+
 export type Team = {
 	tid: number;
 	draftLottery?: {
@@ -1648,6 +1660,7 @@ export type Team = {
 	adjustForInflation: boolean;
 	disabled: boolean;
 	keepRosterSorted: boolean;
+	basketballRotation?: BasketballRotation;
 
 	// [regular season, playoffs]
 	playThroughInjuries: [number, number];

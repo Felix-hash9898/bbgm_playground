@@ -2,6 +2,7 @@ import { allStar, player, season, team } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, random } from "../../util/index.ts";
 import type {
+	BasketballRotation,
 	Player,
 	MinimalPlayerRatings,
 	Conditions,
@@ -14,6 +15,11 @@ import {
 	PHASE,
 } from "../../../common/index.ts";
 import playThroughInjuriesFactor from "../../../common/playThroughInjuriesFactor.ts";
+import {
+	getBasketballRotationMinutes,
+	getGameEffectiveBasketballMinutes,
+} from "../team/basketballMinutes.ts";
+import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
 
 const MAX_NUM_PLAYERS_PACE = 7;
 
@@ -141,6 +147,7 @@ export const processTeam = async (
 		tid: number;
 		playThroughInjuries: [number, number];
 		depth?: any;
+		basketballRotation?: BasketballRotation;
 	},
 	teamSeason: {
 		won: number;
@@ -415,6 +422,43 @@ export const processTeam = async (
 	}
 
 	if (isSport("basketball")) {
+		const userControlled =
+			g.get("userTids").includes(t.id) && !g.get("spectator");
+		const minutesPlayers = players.map((p) => {
+			const ratings = p.ratings.at(-1)!;
+			return {
+				pid: p.pid,
+				rosterOrder: p.rosterOrder,
+				endurance:
+					userControlled && g.get("challengeNoRatings")
+						? 0.5
+						: userControlled
+							? player.fuzzRating(ratings.endu, ratings.fuzz) / 100
+							: ratings.endu / 100,
+			};
+		});
+		const planned = getBasketballRotationMinutes({
+			rotation: userControlled ? teamInput.basketballRotation : undefined,
+			players: minutesPlayers,
+			numPlayersOnCourt: g.get("numPlayersOnCourt"),
+			playoffs,
+		});
+		const numAvailable = t.player.filter((p: any) => !p.injured).length;
+		const effective = getGameEffectiveBasketballMinutes({
+			players: minutesPlayers.map((p, i) => ({
+				...p,
+				available:
+					numAvailable < g.get("numPlayersOnCourt") || !t.player[i]!.injured,
+				value: t.player[i]!.valueNoPot,
+			})),
+			minutesByPid: planned.minutesByPid,
+			numPlayersOnCourt: g.get("numPlayersOnCourt"),
+			regulationMinutes: g.get("quarterLength") * g.get("numPeriods"),
+		});
+		for (const p of t.player) {
+			p.plannedMinutes = effective[p.id] ?? 0;
+		}
+
 		t.pace = 0;
 
 		let numPlayers = 0;
@@ -529,6 +573,11 @@ const loadTeams = async (tids: number[], conditions: Conditions) => {
 			);
 		}
 	} else {
+		if (isSport("basketball") && !g.get("spectator")) {
+			await reconcileBasketballRotation(
+				tids.filter((tid) => g.get("userTids").includes(tid)),
+			);
+		}
 		await Promise.all(
 			tids.map(async (tid) => {
 				const [players, team, teamSeason] = await Promise.all([

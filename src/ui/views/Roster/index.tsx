@@ -29,7 +29,10 @@ import type {
 	Phase,
 	View,
 } from "../../../common/types.ts";
-import { wrappedContract } from "../../components/contract.tsx";
+import {
+	wrappedRosterContract,
+	wrappedRosterContractTerms,
+} from "../../components/contract.tsx";
 import type {
 	DataTableRow,
 	SortBy,
@@ -40,6 +43,24 @@ import { wrappedRatingWithChange } from "../../components/RatingWithChange.tsx";
 import type { BulkAction } from "../../components/DataTable/BulkActions.tsx";
 import { groupByUnique } from "../../../common/utils.ts";
 import { movePlayerPids, swapPlayerPids } from "./reorderPlayers.ts";
+import { rosterCompactControlStyle } from "./compactControlStyle.ts";
+import { useBasketballMinutesAutosave } from "./useBasketballMinutesAutosave.ts";
+
+const saveBasketballMinutesPlan = (
+	tid: number,
+	minutesByPid: Record<number, number>,
+) => toWorker("main", "updateBasketballMinutes", { tid, minutesByPid });
+
+const resetBasketballMinutesPlan = (tid: number) =>
+	toWorker("main", "resetPlayingTime", [tid]);
+
+const reportBasketballMinutesError = (error: unknown) => {
+	logEvent({
+		type: "error",
+		text: String(error),
+		saveToDb: false,
+	});
+};
 
 const handleRelease = async (
 	p: View<"roster">["players"][number],
@@ -97,6 +118,7 @@ const handleRelease = async (
 
 const Roster = ({
 	abbrev,
+	basketballMinutes,
 	budget,
 	challengeNoRatings,
 	currentSeason,
@@ -129,6 +151,24 @@ const Roster = ({
 	const [sortedPids, setSortedPids] = useState<number[] | undefined>(undefined);
 	const [prevPlayers, setPrevPlayers] = useState(players);
 	const { gender } = useLocalPartial(["gender"]);
+	const {
+		minutesDraft,
+		plannedMinutesTotal,
+		plannedMinutesValid,
+		plannedMinutesChanged,
+		minutesSaveStatus,
+		autoResetPending,
+		handleMinutesChange,
+		handleAutoMinutes,
+	} = useBasketballMinutesAutosave({
+		basketballMinutes,
+		players,
+		editable,
+		tid,
+		saveCustomPlan: saveBasketballMinutesPlan,
+		resetToAuto: resetBasketballMinutesPlan,
+		onError: reportBasketballMinutesError,
+	});
 
 	useTitleBar({
 		title: "Roster",
@@ -169,7 +209,7 @@ const Roster = ({
 			"Ovr",
 			"Pot",
 			...(isSport("basketball") && season === currentSeason ? ["Form"] : []),
-			...(season === currentSeason ? ["Contract"] : []),
+			...(season === currentSeason ? ["Contract", "Terms"] : []),
 			"stat:yearsWithTeam",
 			"Country",
 			...stats.map((stat) => `stat:${stat}`),
@@ -188,36 +228,55 @@ const Roster = ({
 				desc: "Country",
 			},
 			PT: {
+				width: isSport("basketball") ? "56px" : undefined,
 				titleReact: (
 					<>
-						PT{" "}
-						<HelpPopover title="Playing time modifier">
-							<p>
-								Your coach will divide up playing time based on ability and
-								stamina. If you want to influence{" "}
-								{helpers.pronoun(gender, "his")} judgement, your options are:
-							</p>
-							<p>
-								<span style={ptStyles["0"]}>0 No Playing Time</span>
-								<br />
-								<span style={ptStyles["0.75"]}>- Less Playing Time</span>
-								<br />
-								<span style={ptStyles["1"]}>
-									&nbsp;&nbsp;&nbsp; Let Coach Decide
-								</span>
-								<br />
-								<span style={ptStyles["1.25"]}>+ More Playing Time</span>
-								<br />
-								<span style={ptStyles["1.5"]}>++ Even More Playing Time</span>
-							</p>
-						</HelpPopover>
+						{isSport("basketball") ? (
+							<>
+								Minutes{" "}
+								<HelpPopover title="Planned minutes">
+									<p>
+										Dynamic rotations use this 48-minute plan as their target.
+										Actual minutes can vary with fatigue, fouls, injuries,
+										blowouts, overtime, and substitution timing.
+									</p>
+								</HelpPopover>
+							</>
+						) : (
+							<>
+								PT{" "}
+								<HelpPopover title="Playing time modifier">
+									<p>
+										Your coach will divide up playing time based on ability and
+										stamina. If you want to influence{" "}
+										{helpers.pronoun(gender, "his")} judgement, your options
+										are:
+									</p>
+									<p>
+										<span style={ptStyles["0"]}>0 No Playing Time</span>
+										<br />
+										<span style={ptStyles["0.75"]}>- Less Playing Time</span>
+										<br />
+										<span style={ptStyles["1"]}>
+											&nbsp;&nbsp;&nbsp; Let Coach Decide
+										</span>
+										<br />
+										<span style={ptStyles["1.25"]}>+ More Playing Time</span>
+										<br />
+										<span style={ptStyles["1.5"]}>
+											++ Even More Playing Time
+										</span>
+									</p>
+								</HelpPopover>
+							</>
+						)}
 					</>
 				),
 			},
 			Usage: {
 				titleReact: (
 					<>
-						Shot Priority{" "}
+						Tendency{" "}
 						<HelpPopover title="Shot Priority">
 							<p>
 								This adjusts how often a player is selected to finish
@@ -237,6 +296,10 @@ const Roster = ({
 						</HelpPopover>
 					</>
 				),
+				width: "70px",
+			},
+			Terms: {
+				width: "7rem",
 			},
 			Mood: {
 				titleReact: (
@@ -346,7 +409,9 @@ const Roster = ({
 								: "0.0",
 						]
 					: []),
-				...(season === currentSeason ? [wrappedContract(p)] : []),
+				...(season === currentSeason
+					? [wrappedRosterContract(p), wrappedRosterContractTerms(p)]
+					: []),
 				playoffs === "playoffs" ? null : p.stats.yearsWithTeam,
 				{
 					value: (
@@ -368,7 +433,28 @@ const Roster = ({
 				},
 				...stats.map((stat) => helpers.roundStat(p.stats[stat], stat)),
 				...(editable
-					? [<PlayingTime p={p} userTid={userTid} godMode={godMode} />]
+					? isSport("basketball")
+						? [
+								<input
+									className="form-control form-control-sm"
+									type="number"
+									min={0}
+									max={48}
+									step={1}
+									value={minutesDraft[p.pid] ?? ""}
+									onChange={(event) =>
+										handleMinutesChange(p.pid, event.target.value)
+									}
+									aria-label={`Planned minutes for ${p.firstName} ${p.lastName}`}
+									style={{
+										...rosterCompactControlStyle,
+										width: "56px",
+										minWidth: "56px",
+										textAlign: "center",
+									}}
+								/>,
+							]
+						: [<PlayingTime p={p} userTid={userTid} godMode={godMode} />]
 					: []),
 				...(editable && isSport("basketball") && season === currentSeason
 					? [<UsageBias p={p} userTid={userTid} />]
@@ -466,6 +552,35 @@ const Roster = ({
 				<p className="alert alert-danger d-inline-block">
 					The AI will handle roster management in spectator mode.
 				</p>
+			) : null}
+
+			{editable && basketballMinutes ? (
+				<div className="mb-3">
+					<div className="d-flex flex-wrap align-items-center gap-2">
+						<span className="fw-bold">
+							{(basketballMinutes.mode === "auto" && !plannedMinutesChanged) ||
+							autoResetPending
+								? "Auto plan"
+								: "Custom plan"}
+						</span>
+						<span
+							className={plannedMinutesValid ? "text-success" : "text-danger"}
+						>
+							Total {plannedMinutesTotal} / {basketballMinutes.required}
+						</span>
+						{minutesSaveStatus === "saving" ? (
+							<span className="text-body-secondary small">Saving…</span>
+						) : minutesSaveStatus === "saved" ? (
+							<span className="text-success small">Saved</span>
+						) : null}
+						<button
+							className="btn btn-light-bordered btn-sm"
+							onClick={handleAutoMinutes}
+						>
+							Auto Minutes
+						</button>
+					</div>
+				</div>
 			) : null}
 
 			<DataTable

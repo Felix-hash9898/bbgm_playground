@@ -1177,6 +1177,10 @@ $small-scrollbar-thumb-hover-color: darken($gray-500, 10%) !default;
 	color: darken($yellow, 10%) !important;
 }
 
+.text-orange {
+	color: darken($orange, 20%) !important;
+}
+
 .badge-news {
 	font-size: inherit;
 	font-weight: inherit;

@@ -11,6 +11,7 @@ import {
 } from "../../util/index.ts";
 import type { TradeEventTeams } from "../../../common/types.ts";
 import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
+import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
 
 const processTrade = async (
 	tids: [number, number],
@@ -162,6 +163,8 @@ const processTrade = async (
 			});
 		}
 	}
+
+	await reconcileBasketballRotation(tids);
 
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 	await recomputeLocalUITeamOvrs();

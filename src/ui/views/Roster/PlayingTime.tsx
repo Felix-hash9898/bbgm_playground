@@ -1,6 +1,7 @@
 import { type ChangeEvent, useEffect, useState } from "react";
 import { helpers, toWorker } from "../../util/index.ts";
 import type { View } from "../../../common/types.ts";
+import { rosterCompactControlStyle } from "./compactControlStyle.ts";
 
 type Player = View<"roster">["players"][number];
 
@@ -128,6 +129,7 @@ const PlayingTime = ({
 				value={value}
 				onChange={(event) => handlePtChange(p, userTid, event)}
 				style={{
+					...rosterCompactControlStyle,
 					...(ptStyles as any)[String(value)],
 					width: "44px",
 					minWidth: "44px",
@@ -151,7 +153,7 @@ const PlayingTime = ({
 					placeholder="Auto"
 					min={0}
 					max={48}
-					step="any"
+					step={1}
 					value={targetInput}
 					disabled={p.tid !== userTid}
 					onChange={(e) => setTargetInput(e.target.value)}
@@ -162,13 +164,8 @@ const PlayingTime = ({
 						}
 					}}
 					style={{
+						...rosterCompactControlStyle,
 						width: "58px",
-						height: "20px",
-						minHeight: "20px",
-						boxSizing: "border-box",
-						fontSize: "0.8rem",
-						lineHeight: "18px",
-						padding: "0 0.25rem",
 						textAlign: "center",
 					}}
 					title="Target Minutes (soft cap, blank for Auto; use PT=0 for DNP)"
