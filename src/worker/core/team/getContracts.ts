@@ -1,5 +1,6 @@
 import { idb } from "../../db/index.ts";
 import type { ContractInfo, PlayerContract } from "../../../common/types.ts";
+import type Cache from "../../db/Cache.ts";
 
 /**
  * Gets all the contracts a team owes.
@@ -10,9 +11,12 @@ import type { ContractInfo, PlayerContract } from "../../../common/types.ts";
  * @param {number} tid Team ID.
  * @returns {Promise.Array} Array of objects containing contract information.
  */
-const getContracts = async (tid: number): Promise<ContractInfo[]> => {
+const getContracts = async (
+	tid: number,
+	cache: Cache = idb.cache,
+): Promise<ContractInfo[]> => {
 	// First, get players currently on the roster
-	const players = await idb.cache.players.indexGetAll("playersByTid", tid);
+	const players = await cache.players.indexGetAll("playersByTid", tid);
 	const contracts = players.map((p) => {
 		const { pos, skills } = p.ratings.at(-1)!;
 		return {
@@ -35,18 +39,13 @@ const getContracts = async (tid: number): Promise<ContractInfo[]> => {
 	});
 
 	// Then, get any released players still owed money
-	const releasedPlayers = await idb.cache.releasedPlayers.indexGetAll(
+	const releasedPlayers = await cache.releasedPlayers.indexGetAll(
 		"releasedPlayersByTid",
 		tid,
 	);
 
 	for (const releasedPlayer of releasedPlayers) {
-		const p = await idb.getCopy.players(
-			{
-				pid: releasedPlayer.pid,
-			},
-			"noCopyCache",
-		);
+		const p = await cache.players.get(releasedPlayer.pid);
 
 		if (p) {
 			// If a player is deleted, such as if the user deletes retired players, this will be undefined
@@ -54,8 +53,8 @@ const getContracts = async (tid: number): Promise<ContractInfo[]> => {
 				pid: releasedPlayer.pid,
 				firstName: p.firstName,
 				lastName: p.lastName,
-				skills: p.ratings.at(-1).skills,
-				pos: p.ratings.at(-1).pos,
+				skills: p.ratings.at(-1)!.skills,
+				pos: p.ratings.at(-1)!.pos,
 				injury: p.injury,
 				jerseyNumber: undefined,
 				watch: p.watch ?? 0,

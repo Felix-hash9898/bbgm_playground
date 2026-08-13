@@ -8,7 +8,14 @@ import Cache, { STORES } from "../../db/Cache.ts";
 import { connectLeague, idb } from "../../db/index.ts";
 import { g, helpers, local } from "../../util/index.ts";
 import * as workerUtil from "../../util/index.ts";
-import { freeAgents, league, player, team } from "../index.ts";
+import {
+	contractNegotiation,
+	freeAgents,
+	league,
+	player,
+	team,
+	trade,
+} from "../index.ts";
 import newPhase from "./newPhase.ts";
 
 let lid: number;
@@ -67,6 +74,7 @@ beforeEach(async () => {
 	p.contract.exp = g.get("season");
 	p.value = 70;
 	p.valueNoPot = 68;
+	p.usageBias = 1.25;
 	pid = await idb.cache.players.add(p);
 	await idb.cache.flush(undefined, {
 		league: idb.league,
@@ -77,6 +85,135 @@ beforeEach(async () => {
 	vi.spyOn(player, "moodInfo").mockResolvedValue({ willing: true } as any);
 	vi.spyOn(team, "valueChange").mockResolvedValue(-1);
 	vi.spyOn(Math, "random").mockReturnValue(0.99);
+});
+
+test.each([0.85, 1.1, 1.25])(
+	"user formal same-team re-sign restores usageBias %s",
+	async (usageBias) => {
+		g.setWithoutSavingToDB("userTid", 1);
+		g.setWithoutSavingToDB("userTids", [1]);
+		const expiring = await idb.cache.players.get(pid);
+		assert.isDefined(expiring);
+		expiring!.usageBias = usageBias;
+		await idb.cache.players.put(expiring!);
+
+		await newPhase(PHASE.RESIGN_PLAYERS, {} as any);
+		const freeAgent = await idb.cache.players.get(pid);
+		const negotiation = await idb.cache.negotiations.get(pid);
+		assert.strictEqual(freeAgent?.tid, -1);
+		assert.strictEqual(freeAgent?.usageBias, 1);
+		assert.strictEqual(negotiation?.tid, 1);
+		assert.strictEqual(negotiation?.resigning, true);
+		assert.strictEqual(negotiation?.usageBiasBeforeFreeAgency, usageBias);
+		assert.strictEqual((await readPlayer())?.usageBias, 1);
+
+		const error = await contractNegotiation.accept({
+			pid,
+			amount: freeAgent!.contract.amount,
+			exp: freeAgent!.contract.exp,
+		});
+		assert.strictEqual(error, undefined);
+		assert.strictEqual((await idb.cache.players.get(pid))?.tid, 1);
+		assert.strictEqual(
+			(await idb.cache.players.get(pid))?.usageBias,
+			usageBias,
+		);
+		assert.strictEqual((await readPlayer())?.usageBias, usageBias);
+	},
+);
+
+test("canceling formal re-sign then ordinary FA return stays Normal", async () => {
+	g.setWithoutSavingToDB("userTid", 1);
+	g.setWithoutSavingToDB("userTids", [1]);
+	await newPhase(PHASE.RESIGN_PLAYERS, {} as any);
+	assert.strictEqual(
+		(await idb.cache.negotiations.get(pid))?.usageBiasBeforeFreeAgency,
+		1.25,
+	);
+	await contractNegotiation.cancel(pid);
+
+	g.setWithoutSavingToDB("phase", PHASE.FREE_AGENCY);
+	const createError = await contractNegotiation.create(pid, false, 1);
+	assert.strictEqual(createError, undefined);
+	const freeAgent = await idb.cache.players.get(pid);
+	assert.strictEqual(freeAgent?.usageBias, 1);
+	const acceptError = await contractNegotiation.accept({
+		pid,
+		amount: freeAgent!.contract.amount,
+		exp: freeAgent!.contract.exp,
+	});
+	assert.strictEqual(acceptError, undefined);
+	assert.strictEqual((await idb.cache.players.get(pid))?.tid, 1);
+	assert.strictEqual((await idb.cache.players.get(pid))?.usageBias, 1);
+});
+
+test("canceling formal re-sign then signing a different team stays Normal", async () => {
+	g.setWithoutSavingToDB("userTid", 1);
+	g.setWithoutSavingToDB("userTids", [1]);
+	await newPhase(PHASE.RESIGN_PLAYERS, {} as any);
+	assert.strictEqual(
+		(await idb.cache.negotiations.get(pid))?.usageBiasBeforeFreeAgency,
+		1.25,
+	);
+	await contractNegotiation.cancel(pid);
+
+	g.setWithoutSavingToDB("phase", PHASE.FREE_AGENCY);
+	g.setWithoutSavingToDB("userTid", 0);
+	g.setWithoutSavingToDB("userTids", [0]);
+	const createError = await contractNegotiation.create(pid, false, 0);
+	assert.strictEqual(createError, undefined);
+	const freeAgent = await idb.cache.players.get(pid);
+	assert.strictEqual(freeAgent?.usageBias, 1);
+	const acceptError = await contractNegotiation.accept({
+		pid,
+		amount: freeAgent!.contract.amount,
+		exp: freeAgent!.contract.exp,
+	});
+	assert.strictEqual(acceptError, undefined);
+	assert.strictEqual((await idb.cache.players.get(pid))?.tid, 0);
+	assert.strictEqual((await idb.cache.players.get(pid))?.usageBias, 1);
+	assert.strictEqual((await readPlayer())?.usageBias, 1);
+});
+
+test("concurrent formal re-sign accepts consume one snapshot and restore once", async () => {
+	g.setWithoutSavingToDB("userTid", 1);
+	g.setWithoutSavingToDB("userTids", [1]);
+	await newPhase(PHASE.RESIGN_PLAYERS, {} as any);
+	const freeAgent = await idb.cache.players.get(pid);
+	const eventsBefore = (await idb.cache.events.getAll()).length;
+	const params = {
+		pid,
+		amount: freeAgent!.contract.amount,
+		exp: freeAgent!.contract.exp,
+	};
+
+	const results = await Promise.all([
+		contractNegotiation.accept(params),
+		contractNegotiation.accept(params),
+	]);
+	assert.strictEqual(
+		results.filter((result) => result === undefined).length,
+		1,
+	);
+	assert.strictEqual(
+		results.filter((result) => typeof result === "string").length,
+		1,
+	);
+	assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
+	assert.strictEqual(
+		(await idb.cache.events.getAll()).length,
+		eventsBefore + 1,
+	);
+	assert.strictEqual((await idb.cache.players.get(pid))?.usageBias, 1.25);
+	assert.strictEqual((await readPlayer())?.usageBias, 1.25);
+});
+
+test("trade resets a roster player's usageBias to Normal", async () => {
+	assert.strictEqual((await idb.cache.players.get(pid))?.usageBias, 1.25);
+	await trade.processTrade([1, 0], [[pid], []], [[], []]);
+	const traded = await idb.cache.players.get(pid);
+	assert.strictEqual(traded?.tid, 0);
+	assert.strictEqual(traded?.usageBias, 1);
 });
 
 afterEach(async () => {
@@ -148,6 +285,7 @@ test("newPhaseResignPlayers rolls back memory before enabled autoflush and retri
 		throw new Error("Re-signed player was not persisted");
 	}
 	assert.strictEqual(durablePlayer.tid, 1);
+	assert.strictEqual(durablePlayer.usageBias, 1.25);
 	assert.strictEqual(durablePlayer.contract.exp > g.get("season"), true);
 });
 
@@ -173,6 +311,7 @@ test("post-flush finalize failure leaves one consistent durable phase boundary",
 	assert.strictEqual(await readGameAttribute("phase"), PHASE.RESIGN_PLAYERS);
 	assert.deepStrictEqual(memoryPlayer, durablePlayer);
 	assert.strictEqual(memoryPlayer?.tid, 1);
+	assert.strictEqual(memoryPlayer?.usageBias, 1.25);
 	assert.strictEqual((memoryPlayer?.contract.exp ?? 0) > g.get("season"), true);
 	assert.strictEqual(idb.cache._dirty, false);
 	assert.strictEqual(idb.cache._dirtyRecords.players.size, 0);

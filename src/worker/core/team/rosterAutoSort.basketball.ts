@@ -1,6 +1,7 @@
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import updateValues from "../player/updateValues.ts";
+import type { CapturedLeagueContext } from "../capturedContext.ts";
 
 /**
  * Given a list of players sorted by ability, find the starters.
@@ -68,9 +69,10 @@ export const getRosterOrderByPid = (
 	}[],
 	tid: number,
 	fuzzUser: boolean,
+	userTid = g.get("userTid"),
 ) => {
 	// Fuzz only for user's team
-	if (fuzzUser && tid === g.get("userTid")) {
+	if (fuzzUser && tid === userTid) {
 		players.sort((a, b) => b.valueNoPotFuzz - a.valueNoPotFuzz);
 	} else {
 		players.sort((a, b) => b.valueNoPot - a.valueNoPot);
@@ -103,31 +105,59 @@ export const getRosterOrderByPid = (
  * @param {number} tid Team ID.
  * @return {Promise}
  */
-const rosterAutoSort = async (tid: number, onlyNewPlayers?: boolean) => {
+const rosterAutoSort = async (
+	tid: number,
+	onlyNewPlayers?: boolean,
+	posOrContext?: string | CapturedLeagueContext,
+	context?: CapturedLeagueContext,
+) => {
+	const capturedContext =
+		context ?? (typeof posOrContext === "object" ? posOrContext : undefined);
 	if (onlyNewPlayers) {
 		// This option is just for football currently
 		return;
 	}
 
 	// Get roster and sort by value (no potential included)
-	const playersFromCache = await idb.cache.players.indexGetAll(
-		"playersByTid",
-		tid,
-	);
+	const cache = capturedContext?.cache ?? idb.cache;
+	const season = capturedContext?.season ?? g.get("season");
+	const playersFromCache = await cache.players.indexGetAll("playersByTid", tid);
 
 	for (const p of playersFromCache) {
-		await updateValues(p);
+		await updateValues(
+			p,
+			cache,
+			capturedContext
+				? {
+						captured: true,
+						ovrMeanStd: capturedContext.ovrMeanStd,
+						repeatSeason: capturedContext.repeatSeason,
+						season: capturedContext.season,
+					}
+				: undefined,
+		);
 	}
 
-	const players = await idb.getCopies.playersPlus(playersFromCache, {
-		attrs: ["pid", "valueNoPot", "valueNoPotFuzz"],
-		ratings: ["pos"],
-		season: g.get("season"),
-		showNoStats: true,
-		showRookies: true,
+	// playersPlus merges through the global cache. Build the small projection
+	// needed for sorting directly from the captured records so a league switch
+	// cannot make this old task read or mutate the new cache.
+	const players = playersFromCache.map((p) => {
+		const ratings =
+			p.ratings.find((rating) => rating.season === season) ?? p.ratings.at(-1)!;
+		return {
+			pid: p.pid,
+			valueNoPot: p.valueNoPot,
+			valueNoPotFuzz: p.valueNoPotFuzz,
+			ratings: { pos: ratings.pos },
+		};
 	});
 
-	const rosterOrders = getRosterOrderByPid(players, tid, true);
+	const rosterOrders = getRosterOrderByPid(
+		players,
+		tid,
+		true,
+		capturedContext?.userTid,
+	);
 
 	// Update rosterOrder
 	for (const p of playersFromCache) {
@@ -136,7 +166,7 @@ const rosterAutoSort = async (tid: number, onlyNewPlayers?: boolean) => {
 		// Only write to DB if this actually changes
 		if (rosterOrder !== undefined && rosterOrder !== p.rosterOrder) {
 			p.rosterOrder = rosterOrder;
-			await idb.cache.players.put(p);
+			await cache.players.put(p);
 		}
 	}
 };

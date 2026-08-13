@@ -1,9 +1,10 @@
-import { assert, beforeEach, test } from "vitest";
+import { afterEach, assert, beforeEach, test, vi } from "vitest";
 import { PLAYER } from "../../../common/index.ts";
 import { resetCache, resetG } from "../../../test/helpers.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
 import { player, team } from "../index.ts";
+import { captureSigningContext } from "../capturedContext.ts";
 import { getContractDemandResults } from "./contractDemands.ts";
 import normalizeContractDemands from "./normalizeContractDemands.ts";
 
@@ -63,6 +64,10 @@ beforeEach(async () => {
 	});
 });
 
+afterEach(() => {
+	vi.restoreAllMocks();
+});
+
 test("contract demand helper does not mutate original player objects", async () => {
 	const playersAll = await idb.cache.players.indexGetAll("playersByTid", [
 		PLAYER.FREE_AGENT,
@@ -102,6 +107,56 @@ test("normalizeContractDemands writes the helper result", async () => {
 		const p = await idb.cache.players.get(pid);
 		assert.deepStrictEqual(p?.contract, result.contract);
 	}
+});
+
+test("captured normalization aborts after player get without writing either contract", async () => {
+	const context = captureSigningContext();
+	const before = structuredClone(await idb.cache.players.getAll());
+	const originalGet = idb.cache.players.get.bind(idb.cache.players);
+	let switched = false;
+	vi.spyOn(idb.cache.players, "get").mockImplementation(async (pid) => {
+		const result = await originalGet(pid);
+		if (!switched) {
+			switched = true;
+			g.setWithoutSavingToDB("lid", context.lid + 1);
+		}
+		return result;
+	});
+
+	let rejected = false;
+	try {
+		await normalizeContractDemands({ type: "freeAgentsOnly", context });
+	} catch {
+		rejected = true;
+	}
+	assert.equal(rejected, true);
+	assert.deepStrictEqual(await context.cache.players.getAll(), before);
+	g.setWithoutSavingToDB("lid", context.lid);
+});
+
+test("captured normalization rolls back an earlier player put after a league switch", async () => {
+	const context = captureSigningContext();
+	const before = structuredClone(await idb.cache.players.getAll());
+	const originalPut = idb.cache.players.put.bind(idb.cache.players);
+	let switched = false;
+	vi.spyOn(idb.cache.players, "put").mockImplementation(async (p) => {
+		const result = await originalPut(p);
+		if (!switched) {
+			switched = true;
+			g.setWithoutSavingToDB("lid", context.lid + 1);
+		}
+		return result;
+	});
+
+	let rejected = false;
+	try {
+		await normalizeContractDemands({ type: "freeAgentsOnly", context });
+	} catch {
+		rejected = true;
+	}
+	assert.equal(rejected, true);
+	assert.deepStrictEqual(await context.cache.players.getAll(), before);
+	g.setWithoutSavingToDB("lid", context.lid);
 });
 
 test("freeAgentsOnly updates only free agents", async () => {

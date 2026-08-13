@@ -1,21 +1,23 @@
 import { idb } from "../../db/index.ts";
+import { g } from "../../util/index.ts";
 import genDepth from "./genDepth.football.ts";
 import type { Position } from "../../../common/types.football.ts";
+import type { CapturedLeagueContext } from "../capturedContext.ts";
 
 const rosterAutoSort = async (
 	tid: number,
 	onlyNewPlayers?: boolean,
 	pos?: Position,
+	context?: CapturedLeagueContext,
 ) => {
-	const t = await idb.cache.teams.get(tid);
+	const cache = context?.cache ?? idb.cache;
+	const season = context?.season ?? g.get("season");
+	const t = await cache.teams.get(tid);
 	if (!t) {
 		throw new Error("Invalid tid");
 	}
 
-	const playersFromCache = await idb.cache.players.indexGetAll(
-		"playersByTid",
-		tid,
-	);
+	const playersFromCache = await cache.players.indexGetAll("playersByTid", tid);
 
 	t.depth = await genDepth(
 		playersFromCache,
@@ -36,9 +38,10 @@ const rosterAutoSort = async (
 		},
 		onlyNewPlayers,
 		pos,
+		season,
 	);
 
-	await idb.cache.teams.put(t);
+	await cache.teams.put(t);
 };
 
 export default rosterAutoSort;

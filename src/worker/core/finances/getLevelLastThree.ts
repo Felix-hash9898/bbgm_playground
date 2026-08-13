@@ -3,6 +3,7 @@ import type { Team, TeamSeasonWithoutKey } from "../../../common/types.ts";
 import { DEFAULT_LEVEL } from "../../../common/budgetLevels.ts";
 import { PHASE } from "../../../common/index.ts";
 import { idb } from "../../db/index.ts";
+import type Cache from "../../db/Cache.ts";
 
 const getLevelLastThree = async (
 	key: keyof TeamSeasonWithoutKey["expenseLevels"],
@@ -18,17 +19,27 @@ const getLevelLastThree = async (
 				t?: Team;
 				teamSeasons?: TeamSeasonWithoutKey[];
 		  },
+	context?: {
+		cache: Cache;
+		season: number;
+		phase: number;
+		budget: boolean;
+		numGames: number;
+	},
 ) => {
-	if (g.get("budget")) {
+	const cache = context?.cache ?? idb.cache;
+	const season = context?.season ?? g.get("season");
+	const phase = context?.phase ?? g.get("phase");
+	if (context?.budget ?? g.get("budget")) {
 		const NUM_SEASONS = 3;
 
 		const teamSeasons =
 			extra.teamSeasons ??
-			(await idb.cache.teamSeasons.indexGetAll("teamSeasonsByTidSeason", [
-				[(extra as any).tid, g.get("season") - 2],
-				[(extra as any).tid, g.get("season")],
+			(await cache.teamSeasons.indexGetAll("teamSeasonsByTidSeason", [
+				[(extra as any).tid, season - 2],
+				[(extra as any).tid, season],
 			]));
-		const t = extra.t ?? (await idb.cache.teams.get((extra as any).tid));
+		const t = extra.t ?? (await cache.teams.get((extra as any).tid));
 		if (!t) {
 			throw new Error("Should never happen");
 		}
@@ -43,10 +54,7 @@ const getLevelLastThree = async (
 			const gp = helpers.getTeamSeasonGp(row);
 			if (row.expenseLevels[key] === 0) {
 				if (gp === 0) {
-					if (
-						g.get("season") === row.season &&
-						g.get("phase") > PHASE.REGULAR_SEASON
-					) {
+					if (season === row.season && phase > PHASE.REGULAR_SEASON) {
 						// If there are no GP and no expenses, treat as if there is no row at all, unless it's still the preseason or regular season of the current year
 						numSeasonsToImpute += 1;
 					}
@@ -67,11 +75,11 @@ const getLevelLastThree = async (
 		// In addition to the blank seasons found above, impute when there are not enough rows passed
 		numSeasonsToImpute += NUM_SEASONS - upToLastThreeTeamSeasons.length;
 
-		const numGames = g.get("numGames");
+		const gamesPerSeason = context?.numGames ?? g.get("numGames");
 
 		if (numSeasonsToImpute > 0) {
-			levelSum += t.initialBudget[key] * numSeasonsToImpute * numGames;
-			gpSum += numSeasonsToImpute * numGames;
+			levelSum += t.initialBudget[key] * numSeasonsToImpute * gamesPerSeason;
+			gpSum += numSeasonsToImpute * gamesPerSeason;
 		}
 
 		if (gpSum > 0) {

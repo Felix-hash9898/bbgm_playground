@@ -1,11 +1,16 @@
 import { bySport, isSport, PLAYER } from "../../../common/index.ts";
 import { player } from "../index.ts";
 import { defaultGameAttributes, g, random } from "../../util/index.ts";
+import { DEFAULT_LEVEL } from "../../../common/budgetLevels.ts";
 import type {
 	MinimalPlayerRatings,
 	Player,
 	PlayerWithoutKey,
 } from "../../../common/types.ts";
+import {
+	isCapturedContextActive,
+	type CapturedSigningContext,
+} from "../capturedContext.ts";
 
 // To improve the distribution of DP ages in leagues with modified draftAges, this code will change the % of players who declare for draft each year to work better with modified draftAges settings. Previously, it was just a constant defaultFractionPerYear.
 const defaultFractionPerYear = bySport({
@@ -43,8 +48,11 @@ const getFractionPerYear = (ageGap: number) => {
 	return 1 / ageGap;
 };
 
-const developOneSeason = async (p: Player) => {
-	await player.develop(p, 1, true);
+const developOneSeason = async (
+	p: Player,
+	context?: CapturedSigningContext,
+) => {
+	await player.develop(p, 1, true, undefined, false, context);
 };
 
 const genPlayersWithoutSaving = async (
@@ -52,21 +60,32 @@ const genPlayersWithoutSaving = async (
 	scoutingLevel: number,
 	existingPlayers: PlayerWithoutKey<MinimalPlayerRatings>[],
 	forceScrubs?: boolean,
+	context?: CapturedSigningContext,
 ): Promise<PlayerWithoutKey<MinimalPlayerRatings>[]> => {
+	const assertActive = () => {
+		if (context && !isCapturedContextActive(context)) {
+			throw new Error("Draft generation league context changed");
+		}
+	};
+	const numActiveTeams = context?.numActiveTeams ?? g.get("numActiveTeams");
+	const numDraftRounds = context?.numDraftRounds ?? g.get("numDraftRounds");
+	const draftAges = context?.draftAges ?? g.get("draftAges");
+	const forceRetireAge = context?.forceRetireAge ?? g.get("forceRetireAge");
+	const forceRetireSeasons =
+		context?.forceRetireSeasons ?? g.get("forceRetireSeasons");
+	const maxRosterSize = context?.maxRosterSize ?? g.get("maxRosterSize");
+	const season = context?.season ?? g.get("season");
 	// If user has increased the number of rounds - code below ensures excess players are scrubs.
 	// If user has descreased the number of rounds - keep number of prospects the same, more will go undrafted.
 	const normalNumPlayers = Math.round(
-		(defaultGameAttributes.numDraftRounds * g.get("numActiveTeams") * 7) / 6,
+		(defaultGameAttributes.numDraftRounds * numActiveTeams * 7) / 6,
 	);
 	let baseNumPlayers = Math.max(
-		Math.round((g.get("numDraftRounds") * g.get("numActiveTeams") * 7) / 6),
+		Math.round((numDraftRounds * numActiveTeams * 7) / 6),
 		normalNumPlayers,
 	);
 
 	// Based on draftAges, forceRetireAge, and forceRetireSeasons settings, check how many players we need per draft class to fill the league. KEEP IN SYNC WITH LEAGUE CREATION seasonsSimmed
-	const draftAges = g.get("draftAges");
-	const forceRetireAge = g.get("forceRetireAge");
-	const forceRetireSeasons = g.get("forceRetireSeasons");
 	const averageDraftAge = Math.round((draftAges[0] + draftAges[1]) / 2); // Ideally this would be more intelligently determined, based on getFractionPerYear
 	const forceRetireAgeDiff = forceRetireAge - averageDraftAge;
 	let forceRetireDiff = 0;
@@ -76,8 +95,7 @@ const genPlayersWithoutSaving = async (
 		forceRetireDiff = Math.max(forceRetireAgeDiff, forceRetireSeasons);
 	}
 	if (forceRetireAgeDiff > 0 || forceRetireSeasons > 0) {
-		const numActivePlayers =
-			(g.get("maxRosterSize") + 1) * g.get("numActiveTeams");
+		const numActivePlayers = (maxRosterSize + 1) * numActiveTeams;
 		const numSeasonsPerPlayer = forceRetireDiff;
 		const numPlayersNeededPerYear = Math.ceil(
 			numActivePlayers / numSeasonsPerPlayer,
@@ -99,7 +117,7 @@ const genPlayersWithoutSaving = async (
 		forceScrubs = numRealPlayers > 0.5 * normalNumPlayers;
 	}
 
-	let baseAge = draftAges[0] - (draftYear - g.get("season"));
+	let baseAge = draftAges[0] - (draftYear - season);
 	if (isSport("football")) {
 		// See below comment about FBGM
 		baseAge -= 2;
@@ -109,6 +127,7 @@ const genPlayersWithoutSaving = async (
 	let remaining = [];
 	for (let i = 0; i < numPlayers; i++) {
 		const name = await player.name();
+		assertActive();
 		const p: any = await player.generate(
 			PLAYER.UNDRAFTED,
 			baseAge,
@@ -119,7 +138,8 @@ const genPlayersWithoutSaving = async (
 		);
 
 		// Just for ovr/pot
-		await player.develop(p, 0);
+		await player.develop(p, 0, false, DEFAULT_LEVEL, false, context);
+		assertActive();
 
 		// Add a fudge factor, used when sorting below to add a little randomness to players entering draft. This may
 		// seem quite large, but empirically it seems to work well.
@@ -139,7 +159,7 @@ const genPlayersWithoutSaving = async (
 	if (isSport("football")) {
 		for (let i = 0; i < 2; i++) {
 			for (const p of remaining) {
-				await developOneSeason(p);
+				await developOneSeason(p, context);
 			}
 		}
 	}
@@ -159,7 +179,7 @@ const genPlayersWithoutSaving = async (
 		remaining = remaining.slice(cutoff); // Each player staying in college, develop 1 year more
 
 		for (const p of remaining) {
-			await developOneSeason(p);
+			await developOneSeason(p, context);
 		}
 	}
 
@@ -171,7 +191,7 @@ const genPlayersWithoutSaving = async (
 			if (Math.random() < 1 / numSpecialPlayerChances) {
 				const p = enteringDraft[i];
 				player.bonus(p);
-				await player.develop(p, 0); // Recalculate ovr/pot
+				await player.develop(p, 0, false, DEFAULT_LEVEL, false, context); // Recalculate ovr/pot
 			}
 		}
 	}
@@ -203,7 +223,7 @@ const genPlayersWithoutSaving = async (
 			const ovrDiff = p.ratings[0].ovr - worstPlayer.ratings[0].ovr;
 			if (ovrDiff > 0) {
 				player.bonus(p, -ovrDiff / 2);
-				await player.develop(p, 0);
+				await player.develop(p, 0, false, DEFAULT_LEVEL, false, context);
 			}
 		}
 	}

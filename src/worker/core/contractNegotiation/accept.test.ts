@@ -1,4 +1,4 @@
-import { afterEach, assert, beforeEach, test } from "vitest";
+import { afterEach, assert, beforeEach, test, vi } from "vitest";
 import { contractNegotiation } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
@@ -616,12 +616,88 @@ test("concurrent accepts consume one negotiation and sign once", async () => {
 		1,
 	);
 	assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
+	assert.strictEqual((await idb.cache.events.getAll()).length, 1);
 	const signed = await idb.cache.players.get(pid);
 	assert.strictEqual(signed?.tid, g.get("userTid"));
 	assert.strictEqual(signed?.contract.amount, g.get("minContract"));
 	// This signing path records the contract on the player but does not append a
 	// transaction row; the negotiation deletion and final contract are the
 	// durable effects observable here.
+});
+
+test("rosterAutoSort failure does not roll back a durable core signing", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+	const rosterError = new Error("roster sort failed");
+	const rosterAutoSort = vi
+		.spyOn(team, "rosterAutoSort")
+		.mockRejectedValueOnce(rosterError);
+	const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+	const result = await contractNegotiation.accept({
+		pid,
+		amount: g.get("minContract"),
+		exp: g.get("season") + 1,
+	});
+	assert.strictEqual(result, undefined);
+	assert.strictEqual(warning.mock.calls.length, 1);
+	warning.mockRestore();
+	rosterAutoSort.mockRestore();
+
+	assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
+	assert.strictEqual((await idb.cache.events.getAll()).length, 1);
+	assert.strictEqual((await idb.cache.players.get(pid))?.tid, g.get("userTid"));
+});
+
+test("accept passes the signed player tid to keepRosterSorted decisions", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	const error = await contractNegotiation.create(pid, false);
+	assert.strictEqual(error, undefined);
+
+	const userTeam = await idb.cache.teams.get(g.get("userTid"));
+	assert.isDefined(userTeam);
+	userTeam!.keepRosterSorted = false;
+	await idb.cache.teams.put(userTeam!);
+	const rosterAutoSort = vi
+		.spyOn(team, "rosterAutoSort")
+		.mockResolvedValueOnce(undefined);
+
+	await contractNegotiation.accept({
+		pid,
+		amount: g.get("minContract"),
+		exp: g.get("season") + 1,
+	});
+
+	assert.strictEqual(rosterAutoSort.mock.calls[0]?.[0], g.get("userTid"));
+	assert.strictEqual(rosterAutoSort.mock.calls[0]?.[1], true);
+	rosterAutoSort.mockRestore();
+});
+
+test("different players can accept concurrently without duplicate events", async () => {
+	for (const pid of [0, 1]) {
+		await givePlayerMinContract(pid);
+		const error = await contractNegotiation.create(pid, true);
+		assert.strictEqual(error, undefined);
+	}
+
+	const results = await Promise.all(
+		[0, 1].map((pid) =>
+			contractNegotiation.accept({
+				pid,
+				amount: g.get("minContract"),
+				exp: g.get("season") + 1,
+			}),
+		),
+	);
+
+	assert.deepStrictEqual(results, [undefined, undefined]);
+	assert.strictEqual((await idb.cache.events.getAll()).length, 2);
+	for (const pid of [0, 1]) {
+		assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
+	}
 });
 
 test("concurrent dry runs do not use the accept submission lock", async () => {

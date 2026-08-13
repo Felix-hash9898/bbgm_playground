@@ -5,22 +5,34 @@ import getDraftProspects from "./getDraftProspects.ts";
 import loadDataBasketball from "./loadData.basketball.ts";
 import addRelatives from "./addRelatives.ts";
 import { LEAGUE_DATABASE_VERSION, PHASE } from "../../../common/index.ts";
+import {
+	isCapturedContextActive,
+	type CapturedSigningContext,
+} from "../capturedContext.ts";
 
 const updateRandomDebutsForever = async (
 	draftYear: number,
 	numPlayersDraftYear: number,
+	context?: CapturedSigningContext,
 ) => {
-	const iteration = (g.get("randomDebutsForever") ?? 1) + 1;
+	const cache = context?.cache ?? idb.cache;
+	const iteration =
+		(context?.randomDebutsForever ?? g.get("randomDebutsForever") ?? 1) + 1;
+	const assertActive = () => {
+		if (context && !isCapturedContextActive(context)) {
+			throw new Error("Random Debuts Forever league context changed");
+		}
+	};
+	assertActive();
 
 	const basketball = await loadDataBasketball();
+	assertActive();
 
-	const currentTeams = (await idb.cache.teams.getAll()).filter(
-		(t) => !t.disabled,
-	);
+	const currentTeams = (await cache.teams.getAll()).filter((t) => !t.disabled);
 
-	const scheduledEvents = await idb.cache.scheduledEvents.getAll();
+	const scheduledEvents = await cache.scheduledEvents.getAll();
 
-	const lastPID = idb.cache._maxIds.players;
+	const lastPID = cache._maxIds.players;
 
 	const draftProspects = await getDraftProspects(
 		basketball,
@@ -35,11 +47,13 @@ const updateRandomDebutsForever = async (
 			phase: PHASE.DRAFT, // Faked, so initialDraftYear is correct in getDraftProspects
 			randomDebuts: true,
 			randomDebutsKeepCurrent: false,
-			realDraftRatings: g.get("realDraftRatings") ?? "draft",
+			realDraftRatings:
+				context?.realDraftRatings ?? g.get("realDraftRatings") ?? "draft",
 			realStats: "none",
 			includePlayers: true,
 		},
 	);
+	assertActive();
 
 	for (const p of draftProspects) {
 		p.name += ` v${iteration}`;
@@ -57,23 +71,54 @@ const updateRandomDebutsForever = async (
 		p.born.year += diff;
 	}
 
-	const scoutingLevel = await finances.getLevelLastThree("scouting", {
-		tid: g.get("userTid"),
-	});
+	const scoutingLevel = await finances.getLevelLastThree(
+		"scouting",
+		{ tid: context?.userTid ?? g.get("userTid") },
+		context,
+	);
+	assertActive();
 
 	for (const p of draftProspects) {
+		assertActive();
 		const p2 = await player.augmentPartialPlayer(
 			p,
 			scoutingLevel,
 			LEAGUE_DATABASE_VERSION,
 		);
-		await player.updateValues(p2);
-		await idb.cache.players.put(p2);
+		assertActive();
+		await player.updateValues(
+			p2,
+			cache,
+			context
+				? {
+						captured: true,
+						ovrMeanStd: context.ovrMeanStd,
+						repeatSeason: context.repeatSeason,
+						season: context.season,
+					}
+				: undefined,
+		);
+		assertActive();
+		await cache.players.put(p2);
 	}
 
-	await league.setGameAttributes({
-		randomDebutsForever: iteration,
-	});
+	if (context) {
+		assertActive();
+		await cache.gameAttributes.put({
+			key: "randomDebutsForever",
+			value: iteration,
+		});
+		// setGameAttributes keeps g and its normal UI/game-attribute side effects
+		// in sync. It is only safe while the captured league is still active.
+		assertActive();
+		await league.setGameAttributes({
+			randomDebutsForever: iteration,
+		});
+	} else {
+		await league.setGameAttributes({
+			randomDebutsForever: iteration,
+		});
+	}
 };
 
 export default updateRandomDebutsForever;

@@ -24,6 +24,7 @@ import PlayByPlayLogger from "./PlayByPlayLogger.ts";
 import {
 	getShotPriorityContext,
 	getUsageSelectionWeights,
+	SHOT_PRIORITY_SHARE_EPSILON,
 	type ShotPriorityContext,
 	type ShotPriorityPlayerContext,
 } from "./shotPriority.ts";
@@ -37,6 +38,15 @@ const TIMEOUTS_STOP_CLOCK = 2; // [minutes]
 
 const TIP_IN_ONLY_LIMIT = 0.2; // [seconds] - only tip-ins from an inbound with less than this much time
 const IN_GAME_INJURY_SHARE = 0.35;
+
+// These are marginal make-probability point costs on only the incrementally
+// displaced share, not percentage multipliers on every attempt.
+export const USAGE_MARGINAL_MAKE_PENALTY_2P = 0.04;
+export const USAGE_MARGINAL_MAKE_PENALTY_3P = 0.03;
+// This multiplies total positive displaced finish share at each TOV decision.
+export const USAGE_TEAM_TOV_COEFFICIENT = 1;
+// Fraction of modeled extra ordinary TOV mass assigned by finish displacement.
+export const USAGE_EXTRA_TOV_FINISH_SHARE = 0.75;
 
 type ShotType =
 	| "atRim"
@@ -184,6 +194,47 @@ const getSortedIndexes = (ovrs: number[]) => {
 
 // Use if denominator of prob might be 0
 const boundProb = (prob: number) => helpers.bound(prob, 0.001, 0.999);
+
+export const applyUsageMarginalShotQuality = ({
+	probAndOne,
+	probMake,
+	probMissAndFoul,
+	incrementalFraction,
+	penalty,
+}: {
+	probAndOne: number;
+	probMake: number;
+	probMissAndFoul: number;
+	incrementalFraction: number;
+	penalty: number;
+}) => {
+	if (
+		!Number.isFinite(incrementalFraction) ||
+		incrementalFraction <= SHOT_PRIORITY_SHARE_EPSILON ||
+		!Number.isFinite(penalty) ||
+		penalty <= 0
+	) {
+		return { probAndOne, probMake, probMissAndFoul };
+	}
+
+	const make = helpers.bound(probMake, 0, 1);
+	const andOne = helpers.bound(probAndOne, 0, 1);
+	const missAndFoul = helpers.bound(probMissAndFoul, 0, 1);
+	const incremental = helpers.bound(incrementalFraction, 0, 1);
+	const andOneMass = make * andOne;
+	const missFoulMass = (1 - make) * missAndFoul;
+	const adjustedMake = helpers.bound(
+		make - incremental * penalty,
+		andOneMass,
+		1 - missFoulMass,
+	);
+
+	return {
+		probMake: adjustedMake,
+		probAndOne: adjustedMake > 0 ? andOneMass / adjustedMake : 0,
+		probMissAndFoul: adjustedMake < 1 ? missFoulMass / (1 - adjustedMake) : 0,
+	};
+};
 
 class GameSim extends GameSimBase {
 	team: [TeamGameSim, TeamGameSim];
@@ -956,16 +1007,14 @@ class GameSim extends GameSimBase {
 				baselineShare: 0,
 				adjustedShare: 0,
 				shareRatio: 1,
-				relativeIncrease: 0,
-				relativeDecrease: 0,
-				overload: 0,
-				relief: 0,
+				excessShare: 0,
+				incrementalFraction: 0,
 			}
 		);
 	}
 
-	getTeamUsageOverload() {
-		return this.getShotPriorityContext().teamUsageOverload;
+	getTeamDisplacement() {
+		return this.getShotPriorityContext().teamDisplacement;
 	}
 
 	getFoulTroubleLimit() {
@@ -1961,19 +2010,29 @@ class GameSim extends GameSimBase {
 	 *
 	 * @return {number} Probability from 0 to 1.
 	 */
-	probTov() {
-		const baseProb =
+	getBaseTurnoverProbability() {
+		return boundProb(
 			(g.get("turnoverFactor") *
 				(0.14 * this.team[this.d].compositeRating.defense)) /
-			(0.5 *
-				(this.team[this.o].compositeRating.dribbling +
-					this.team[this.o].compositeRating.passing));
+				(0.5 *
+					(this.team[this.o].compositeRating.dribbling +
+						this.team[this.o].compositeRating.passing)),
+		);
+	}
 
-		// Keep the team-wide turnover effect small so concentrated usage
-		// does not cause a large increase in the raw turnover rate.
-		const usageOverloadFactor = 1 + 0.35 * this.getTeamUsageOverload();
+	getTurnoverProbabilities(
+		shotPriorityContext = this.getShotPriorityContext(),
+	) {
+		const base = this.getBaseTurnoverProbability();
+		const displacement = shotPriorityContext.teamDisplacement;
+		const adjusted = boundProb(
+			base * (1 + USAGE_TEAM_TOV_COEFFICIENT * displacement),
+		);
+		return { adjusted, base };
+	}
 
-		return boundProb(baseProb * usageOverloadFactor);
+	probTov() {
+		return this.getTurnoverProbabilities().adjusted;
 	}
 
 	/**
@@ -2006,7 +2065,49 @@ class GameSim extends GameSimBase {
 	}
 
 	pickTurnoverPlayer() {
-		return this.pickPlayer("turnovers", this.o, 2);
+		const shotPriorityContext = this.getShotPriorityContext();
+		const displacement = shotPriorityContext.teamDisplacement;
+		if (
+			!Number.isFinite(displacement) ||
+			displacement <= SHOT_PRIORITY_SHARE_EPSILON
+		) {
+			return this.pickPlayer("turnovers", this.o, 2);
+		}
+
+		const officialWeights = this.ratingArray("turnovers", this.o, 2);
+		const officialTotal = officialWeights.reduce(
+			(sum, weight) => sum + weight,
+			0,
+		);
+		const numPlayers = officialWeights.length;
+		const officialShares =
+			Number.isFinite(officialTotal) && officialTotal > 0
+				? officialWeights.map((weight) => weight / officialTotal)
+				: officialWeights.map(() => 1 / numPlayers);
+		const excessShares = shotPriorityContext.players.map(
+			(context) => context.excessShare / displacement,
+		);
+		const { adjusted, base } =
+			this.getTurnoverProbabilities(shotPriorityContext);
+		const extraFraction =
+			adjusted > 0 ? Math.max(adjusted - base, 0) / adjusted : 0;
+		const finishWeight = USAGE_EXTRA_TOV_FINISH_SHARE * extraFraction;
+		const weights = officialShares.map(
+			(officialShare, index) =>
+				(1 - finishWeight) * officialShare +
+				finishWeight * excessShares[index]!,
+		);
+		const total = weights.reduce((sum, weight) => sum + weight, 0);
+
+		if (
+			!Number.isFinite(total) ||
+			total <= 0 ||
+			weights.some((weight) => !Number.isFinite(weight) || weight < 0)
+		) {
+			return this.pickPlayer("turnovers", this.o, 2);
+		}
+
+		return this.pickPlayer("turnovers", this.o, 2, undefined, weights);
 	}
 
 	pickDefensiveReboundPlayer() {
@@ -2205,28 +2306,18 @@ class GameSim extends GameSimBase {
 			}
 			probMake *= g.get("threePointAccuracyFactor");
 		} else {
-			let r1 = 0.8 * Math.random() * p.compositeRating.shootingMidRange;
-			let r2 =
+			const r1 = 0.8 * Math.random() * p.compositeRating.shootingMidRange;
+			const r2 =
 				Math.random() *
 				(p.compositeRating.shootingAtRim +
 					this.synergyFactor *
 						(this.team[this.o].synergy.off - this.team[this.d].synergy.def)); // Synergy makes easy shots either more likely or less likely
 
-			let r3 =
+			const r3 =
 				Math.random() *
 				(p.compositeRating.shootingLowPost +
 					this.synergyFactor *
 						(this.team[this.o].synergy.off - this.team[this.d].synergy.def)); // Synergy makes easy shots either more likely or less likely
-
-			const { overload: usageOverload, relief: usageRelief } =
-				this.getPlayerShotPriorityContext(p, shotPriorityContext);
-
-			// A higher relative Shot Priority share should make clean interior
-			// touches a bit harder to come by, nudging the player toward more
-			// bailout 2s.
-			r1 *= 1 + 0.75 * usageOverload - 0.2 * usageRelief;
-			r2 *= 1 - 0.32 * usageOverload + 0.08 * usageRelief;
-			r3 *= 1 - 0.2 * usageOverload + 0.05 * usageRelief;
 
 			if (r1 > r2 && r1 > r3) {
 				// Two point jumper
@@ -2292,6 +2383,31 @@ class GameSim extends GameSimBase {
 				if (passer !== undefined) {
 					probMake += 0.025;
 				}
+			}
+
+			if (
+				type === "atRim" ||
+				type === "lowPost" ||
+				type === "midRange" ||
+				type === "threePointer"
+			) {
+				const { incrementalFraction } = this.getPlayerShotPriorityContext(
+					p,
+					shotPriorityContext,
+				);
+				const adjusted = applyUsageMarginalShotQuality({
+					probAndOne,
+					probMake,
+					probMissAndFoul,
+					incrementalFraction,
+					penalty:
+						type === "threePointer"
+							? USAGE_MARGINAL_MAKE_PENALTY_3P
+							: USAGE_MARGINAL_MAKE_PENALTY_2P,
+				});
+				probMake = adjusted.probMake;
+				probAndOne = adjusted.probAndOne;
+				probMissAndFoul = adjusted.probMissAndFoul;
 			}
 		}
 

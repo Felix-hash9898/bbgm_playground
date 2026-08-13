@@ -5,6 +5,7 @@ import type {
 	PlayerWithoutKey,
 } from "../../../common/types.ts";
 import { getTradeReputationByTid } from "./getTradeReputation.ts";
+import type { CapturedSigningContext } from "../capturedContext.ts";
 
 /**
  * Adds player to the free agents list.
@@ -18,6 +19,7 @@ import { getTradeReputationByTid } from "./getTradeReputation.ts";
 const addToFreeAgents = async (
 	p: Player<MinimalPlayerRatings> | PlayerWithoutKey<MinimalPlayerRatings>,
 	tradeReputationByTid?: Record<number, number>,
+	context?: CapturedSigningContext,
 ) => {
 	p.tid = PLAYER.FREE_AGENT;
 	p.numDaysFreeAgent = 0;
@@ -25,7 +27,8 @@ const addToFreeAgents = async (
 	delete p.targetMinutes;
 	p.usageBias = 1;
 	p.tradeReputationByTid = {
-		...(tradeReputationByTid ?? (await getTradeReputationByTid())),
+		...(tradeReputationByTid ??
+			(await getTradeReputationByTid(context?.season, context?.cache))),
 	};
 };
 

@@ -93,6 +93,7 @@ const genDepth = async (
 	},
 	onlyNewPlayers?: boolean,
 	pos?: "F" | "D" | "G",
+	season = g.get("season"),
 ) => {
 	if (initialDepth === undefined) {
 		throw new Error("Missing depth");
@@ -117,7 +118,7 @@ const genDepth = async (
 		players = await idb.getCopies.playersPlus(playersRaw, {
 			attrs: ["pid"],
 			ratings: ["pos", "ovrs"],
-			season: g.get("season"),
+			season,
 			showNoStats: true,
 			showRookies: true,
 			fuzz: true,

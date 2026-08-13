@@ -12,6 +12,7 @@ import {
 	helpers,
 } from "../../util/index.ts";
 import type { Conditions } from "../../../common/types.ts";
+import { idb } from "../../db/index.ts";
 
 /**
  * Simulates one or more days of free agency.
@@ -40,17 +41,41 @@ async function play(
 	const cbRunDay = async () => {
 		// This is called if there are remaining days to simulate
 		const cbYetAnother = async () => {
-			await decreaseDemands();
-			await autoSign();
-			await league.setGameAttributes({
-				daysLeft: g.get("daysLeft") - 1,
-			});
+			const cache = idb.cache;
+			const leagueDB = idb.league;
+			const releaseAutoFlush = cache.pauseAutoFlush();
+			const checkpoint = cache.beginMutationCheckpoint();
+			let runAnotherDay = false;
+			try {
+				await decreaseDemands();
+				await autoSign();
+				await league.setGameAttributes({
+					daysLeft: g.get("daysLeft") - 1,
+				});
 
-			if (g.get("daysLeft") > 0 && numDays > 0) {
-				await toUI("realtimeUpdate", [["playerMovement"]]);
-				await recomputeLocalUITeamOvrs();
-				await updateStatus(helpers.daysLeft(true));
-				await trade.betweenAiTeams();
+				if (g.get("daysLeft") > 0 && numDays > 0) {
+					await toUI("realtimeUpdate", [["playerMovement"]]);
+					await recomputeLocalUITeamOvrs();
+					await updateStatus(helpers.daysLeft(true));
+					await trade.betweenAiTeams();
+					runAnotherDay = true;
+				}
+
+				// autoSign uses deferred durability. Commit this complete day before
+				// starting the next one, so a later day cannot erase prior progress.
+				await cache.flush(undefined, {
+					league: leagueDB,
+					updateLastPlayed: false,
+				});
+				checkpoint.commit();
+			} catch (error) {
+				checkpoint.rollback();
+				throw error;
+			} finally {
+				releaseAutoFlush();
+			}
+
+			if (runAnotherDay) {
 				await play(numDays - 1, conditions, false);
 			} else {
 				await cbNoDays();

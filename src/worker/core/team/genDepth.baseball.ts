@@ -156,6 +156,7 @@ export const getDepthDefense = (
 		};
 	}[],
 	dh: boolean,
+	season = g.get("season"),
 ) => {
 	const defensivePlayersSorted: typeof players = [];
 
@@ -205,7 +206,7 @@ export const getDepthDefense = (
 			pos,
 			i,
 		}));
-		random.shuffle(defPositionsShuffled, g.get("season") + numSwapTries);
+		random.shuffle(defPositionsShuffled, season + numSwapTries);
 
 		for (const { i, pos } of defPositionsShuffled) {
 			for (let j = 0; j < numPlayersToTest; j++) {
@@ -307,6 +308,7 @@ const genDepth = async (
 	},
 	onlyNewPlayers?: boolean,
 	pos?: "L" | "LP" | "D" | "DP" | "P",
+	season = g.get("season"),
 ) => {
 	if (initialDepth === undefined) {
 		throw new Error("Missing depth");
@@ -332,7 +334,7 @@ const genDepth = async (
 		players = await idb.getCopies.playersPlus(playersRaw, {
 			attrs: ["pid"],
 			ratings: ["spd", "con", "hpw", "eye", "pos", "ovrs"],
-			season: g.get("season"),
+			season,
 			showNoStats: true,
 			showRookies: true,
 			fuzz: true,
@@ -480,9 +482,9 @@ const genDepth = async (
 
 				depth[pos2] = indexes;
 			} else if (pos2 === "DP") {
-				depth[pos2] = getDepthDefense(players, false);
+				depth[pos2] = getDepthDefense(players, false, season);
 			} else if (pos2 === "D") {
-				depth[pos2] = getDepthDefense(players, true);
+				depth[pos2] = getDepthDefense(players, true, season);
 			} else if (pos2 === "P") {
 				depth[pos2] = getDepthPitchers(players);
 			}

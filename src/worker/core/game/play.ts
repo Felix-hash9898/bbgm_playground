@@ -760,13 +760,43 @@ const play = async (
 		}
 	};
 
+	const cleanupAfterError = async (error: unknown): Promise<never> => {
+		// canStartGames() sets this lock before cbRunDay starts. Always clear it
+		// at the outer user-request boundary so recursive days do not repeat UI
+		// cleanup. Cleanup failures must not replace the original error.
+		const cleanupErrors: unknown[] = [];
+		try {
+			await lock.set("gameSim", false);
+		} catch (cleanupError) {
+			cleanupErrors.push(cleanupError);
+		}
+		try {
+			await updatePlayMenu();
+		} catch (cleanupError) {
+			cleanupErrors.push(cleanupError);
+		}
+		try {
+			await updateStatus("Idle");
+		} catch (cleanupError) {
+			cleanupErrors.push(cleanupError);
+		}
+		for (const cleanupError of cleanupErrors) {
+			console.error("Failed to clean up game day after an error", cleanupError);
+		}
+		throw error;
+	};
+
 	// If this is a request to start a new simulation... are we allowed to do
 	// that? If so, set the lock and update the play menu
 	if (start) {
 		const canStartGames = await lock.canStartGames();
 
 		if (canStartGames) {
-			await cbRunDay();
+			try {
+				await cbRunDay();
+			} catch (error) {
+				await cleanupAfterError(error);
+			}
 		}
 	} else {
 		await cbRunDay();

@@ -1,16 +1,23 @@
 import { bySport, PLAYER, POSITION_COUNTS } from "../../../common/index.ts";
-import { player, freeAgents } from "../index.ts";
+import { player, freeAgents, team } from "../index.ts";
 import rosterAutoSort from "./rosterAutoSort.ts";
-import { idb } from "../../db/index.ts";
 import { g, helpers, local } from "../../util/index.ts";
 import type { MinimalPlayerRatings, Player } from "../../../common/types.ts";
 import { KEY_POSITIONS_NEEDED } from "../freeAgents/getBest.ts";
 import { isStandardContract } from "../contracts/contractTwoWay.ts";
 import { isMinimumContractForPlayer } from "../contracts/contractMinimum.ts";
+import { getContractException } from "../contracts/contractLimits.ts";
+import {
+	canOfferTwoWay,
+	canTeamAddTwoWay,
+} from "../contracts/contractTwoWay.ts";
+import { applySigningTransaction } from "../signingTransaction.ts";
+import { captureSigningContext } from "../capturedContext.ts";
 
 export const dropPlayers = async (
 	players: Player<MinimalPlayerRatings>[],
 	numToDrop: number,
+	context?: ReturnType<typeof captureSigningContext>,
 ) => {
 	// Automatically drop lowest value players until we reach g.get("maxRosterSize")
 
@@ -104,7 +111,7 @@ export const dropPlayers = async (
 			}
 		}
 
-		await player.release(p, false);
+		await player.release(p, false, context);
 		releasedPIDs.push(p.pid);
 
 		if (releasedPIDs.length >= numToDrop) {
@@ -129,75 +136,163 @@ export const dropPlayers = async (
 const checkRosterSizes = async (
 	userOrOther: "user" | "other",
 ): Promise<string | undefined> => {
+	const context = captureSigningContext();
+	const teamInfoCache = g.get("teamInfoCache");
 	const minFreeAgents: Player[] = [];
 	let userTeamSizeError: string | undefined;
 
 	const releasedPIDs: number[] = [];
 
 	const checkRosterSize = async (tid: number, userTeamAndActive: boolean) => {
-		const players = await idb.cache.players.indexGetAll("playersByTid", tid);
+		const players = await context.cache.players.indexGetAll(
+			"playersByTid",
+			tid,
+		);
 		const standardPlayers = players.filter((p) =>
 			isStandardContract(p.contract),
 		);
 		let numPlayersOnRoster = standardPlayers.length;
 
-		if (numPlayersOnRoster > g.get("maxRosterSize")) {
+		if (numPlayersOnRoster > context.maxRosterSize) {
 			if (userTeamAndActive) {
-				if (g.get("userTids").length <= 1) {
+				if (context.userTids.length <= 1) {
 					userTeamSizeError = "Your team has ";
 				} else {
-					userTeamSizeError = `The ${g.get("teamInfoCache")[tid]?.region} ${
-						g.get("teamInfoCache")[tid]?.name
+					userTeamSizeError = `The ${teamInfoCache[tid]?.region} ${
+						teamInfoCache[tid]?.name
 					} have `;
 				}
 
-				userTeamSizeError += `more than the maximum number of players (${g.get(
-					"maxRosterSize",
-				)}). You must remove players (by <a href="${helpers.leagueUrl([
-					"roster",
-				])}">releasing them from your roster</a> or through <a href="${helpers.leagueUrl(
+				userTeamSizeError += `more than the maximum number of players (${context.maxRosterSize}). You must remove players (by <a href="${helpers.leagueUrl(
+					["roster"],
+				)}">releasing them from your roster</a> or through <a href="${helpers.leagueUrl(
 					["trade"],
 				)}">trades</a>) before continuing.`;
 			} else {
 				const releasedPIDsTemp = await dropPlayers(
 					standardPlayers,
-					numPlayersOnRoster - g.get("maxRosterSize"),
+					numPlayersOnRoster - context.maxRosterSize,
+					context,
 				);
 				releasedPIDs.push(...releasedPIDsTemp);
 			}
-		} else if (numPlayersOnRoster < g.get("minRosterSize")) {
+		} else if (numPlayersOnRoster < context.minRosterSize) {
 			if (userTeamAndActive) {
-				if (g.get("userTids").length <= 1) {
+				if (context.userTids.length <= 1) {
 					userTeamSizeError = "Your team has ";
 				} else {
-					userTeamSizeError = `The ${g.get("teamInfoCache")[tid]?.region} ${
-						g.get("teamInfoCache")[tid]?.name
+					userTeamSizeError = `The ${teamInfoCache[tid]?.region} ${
+						teamInfoCache[tid]?.name
 					} have `;
 				}
 
-				userTeamSizeError += `less than the minimum number of players (${g.get(
-					"minRosterSize",
-				)}). You must add players (through <a href="${helpers.leagueUrl([
-					"free_agents",
-				])}">free agency</a> or <a href="${helpers.leagueUrl([
+				userTeamSizeError += `less than the minimum number of players (${context.minRosterSize}). You must add players (through <a href="${helpers.leagueUrl(
+					["free_agents"],
+				)}">free agency</a> or <a href="${helpers.leagueUrl([
 					"trade",
 				])}">trades</a>) before continuing.<br><br>Reminder: you can always sign free agents to ${helpers.formatCurrency(
-					g.get("minContract") / 1000,
+					context.minContract / 1000,
 					"M",
 					2,
 				)}/yr contracts, even if you're over the cap!`;
 			} else {
 				// Auto-add players
-				while (numPlayersOnRoster < g.get("minRosterSize")) {
+				while (numPlayersOnRoster < context.minRosterSize) {
 					// See also core.phase
-					let p: any = minFreeAgents.shift();
+					let p = minFreeAgents.shift();
 
 					if (!p) {
-						p = await player.genRandomFreeAgent();
+						p = await player.genRandomFreeAgent(context);
+					}
+					const contractToSign = p.contract;
+					let expectedContractException: "capSpace" | "minimum" | undefined;
+					if (
+						contractToSign.type !== "twoWay" &&
+						context.salaryCapType !== "none"
+					) {
+						const currentTeam = await context.cache.teams.get(tid);
+						const payroll = await team.getPayroll(
+							tid,
+							undefined,
+							context.cache,
+						);
+						const initialException = getContractException({
+							birdException: false,
+							contract: contractToSign,
+							p,
+							payroll,
+							team: currentTeam,
+						}).type;
+						if (
+							initialException !== "capSpace" &&
+							initialException !== "minimum"
+						) {
+							throw new Error(
+								"Roster repair requires cap space or the minimum exception",
+							);
+						}
+						expectedContractException = initialException;
 					}
 
-					await player.sign(p, tid, p.contract, g.get("phase"));
-					await idb.cache.players.put(p);
+					const signed = await applySigningTransaction({
+						context,
+						player: p,
+						tid,
+						contract: contractToSign,
+						phase: context.phase,
+						durability: "deferred",
+						exceptionValidator:
+							expectedContractException === undefined
+								? undefined
+								: {
+										expected: expectedContractException,
+										validate: async ({ player: currentPlayer }) => {
+											const currentTeam = await context.cache.teams.get(tid);
+											const payroll = await team.getPayroll(
+												tid,
+												undefined,
+												context.cache,
+											);
+											const actual = getContractException({
+												birdException: false,
+												contract: contractToSign,
+												p: currentPlayer,
+												payroll,
+												team: currentTeam,
+											}).type;
+											return actual === "capSpace" || actual === "minimum"
+												? actual
+												: undefined;
+										},
+									},
+						revalidate: async ({ player: currentPlayer }) => {
+							if (currentPlayer.tid !== PLAYER.FREE_AGENT) {
+								throw new Error(
+									"Player is no longer available for roster repair",
+								);
+							}
+							const currentRoster = await context.cache.players.indexGetAll(
+								"playersByTid",
+								tid,
+							);
+							if (
+								currentRoster.filter((rosterPlayer) =>
+									isStandardContract(rosterPlayer.contract),
+								).length >= context.maxRosterSize
+							) {
+								throw new Error("Team roster limit is no longer available");
+							}
+							if (contractToSign.type === "twoWay") {
+								if (
+									!canOfferTwoWay(currentPlayer) ||
+									!canTeamAddTwoWay(currentRoster, tid)
+								) {
+									throw new Error("Two-way slot is no longer available");
+								}
+							}
+						},
+					});
+					p = signed.player;
 					numPlayersOnRoster += 1;
 				}
 			}
@@ -205,13 +300,20 @@ const checkRosterSizes = async (
 
 		// Auto sort rosters (except player's team)
 		// This will sort all AI rosters before every game. Excessive? It could change some times, but usually it won't
-		const t = await idb.cache.teams.get(tid);
+		const t = await context.cache.teams.get(tid);
 		if (!userTeamAndActive || (t && t.keepRosterSorted)) {
-			await rosterAutoSort(tid);
+			try {
+				await rosterAutoSort(tid, undefined, undefined, context);
+			} catch (error) {
+				console.warn(
+					"Core roster-size signing succeeded; roster refresh failed",
+					error,
+				);
+			}
 		}
 	};
 
-	const players = await idb.cache.players.indexGetAll(
+	const players = await context.cache.players.indexGetAll(
 		"playersByTid",
 		PLAYER.FREE_AGENT,
 	);
@@ -228,16 +330,16 @@ const checkRosterSizes = async (
 
 	minFreeAgents.sort((a, b) => b.value - a.value); // Make sure teams are all within the roster limits
 
-	const teams = await idb.cache.teams.getAll();
+	const teams = await context.cache.teams.getAll();
 	for (const t of teams) {
 		if (t.disabled) {
 			continue;
 		}
 
 		const userTeamAndActive =
-			g.get("userTids").includes(t.tid) &&
+			context.userTids.includes(t.tid) &&
 			!local.autoPlayUntil &&
-			!g.get("spectator");
+			!context.spectator;
 
 		if (
 			(userTeamAndActive && userOrOther === "user") ||
@@ -255,6 +357,7 @@ const checkRosterSizes = async (
 		await freeAgents.normalizeContractDemands({
 			type: "dummyExpiringContracts",
 			pids: releasedPIDs,
+			context,
 		});
 	}
 

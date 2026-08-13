@@ -1,11 +1,9 @@
 import { isSport, PLAYER } from "../../../common/index.ts";
-import { player, team } from "../index.ts";
+import { team } from "../index.ts";
 import getBest from "./getBest.ts";
-import { idb } from "../../db/index.ts";
-import { g, local, random } from "../../util/index.ts";
+import { helpers, local, random } from "../../util/index.ts";
 import { orderBy } from "../../../common/utils.ts";
 import { getContractException } from "../contracts/contractLimits.ts";
-import { getMidLevelExceptionSeason } from "../contracts/contractMidLevel.ts";
 import { isMinimumContractForPlayer } from "../contracts/contractMinimum.ts";
 import {
 	canOfferTwoWay,
@@ -13,6 +11,8 @@ import {
 	isStandardContract,
 	makeTwoWayContract,
 } from "../contracts/contractTwoWay.ts";
+import { captureSigningContext } from "../capturedContext.ts";
+import { applySigningTransaction } from "../signingTransaction.ts";
 
 /**
  * AI teams sign free agents.
@@ -23,7 +23,8 @@ import {
  * @return {Promise}
  */
 const autoSign = async () => {
-	const players = await idb.cache.players.indexGetAll(
+	const context = captureSigningContext();
+	const players = await context.cache.players.indexGetAll(
 		"playersByTid",
 		PLAYER.FREE_AGENT,
 	);
@@ -36,15 +37,113 @@ const autoSign = async () => {
 	let playersSorted = orderBy(players, "value", "desc");
 
 	// Randomly order teams
-	const teams = await idb.cache.teams.getAll();
+	const teams = await context.cache.teams.getAll();
 	random.shuffle(teams);
+
+	const completeSigning = async (
+		p: (typeof players)[number],
+		tid: number,
+		teamMarker?: (typeof teams)[number],
+		contract: (typeof players)[number]["contract"] = p.contract,
+	) => {
+		let expectedContractException:
+			| "capSpace"
+			| "bird"
+			| "minimum"
+			| "midLevel"
+			| undefined;
+		if (contract.type !== "twoWay" && context.salaryCapType !== "none") {
+			const currentTeam = await context.cache.teams.get(tid);
+			if (!currentTeam) {
+				throw new Error("Signing team is no longer available");
+			}
+			const currentPayroll = await team.getPayroll(
+				tid,
+				undefined,
+				context.cache,
+			);
+			expectedContractException = getContractException({
+				birdException: false,
+				contract,
+				p,
+				payroll: currentPayroll,
+				team: currentTeam,
+			}).type;
+			if (
+				expectedContractException === undefined ||
+				(teamMarker && expectedContractException !== "midLevel")
+			) {
+				throw new Error(
+					"Contract exception is unavailable before auto-signing",
+				);
+			}
+		}
+		const result = await applySigningTransaction({
+			context,
+			player: p,
+			tid,
+			contract,
+			phase: context.phase,
+			team: teamMarker,
+			durability: "deferred",
+			exceptionValidator:
+				expectedContractException === undefined
+					? undefined
+					: {
+							expected: expectedContractException,
+							validate: async ({ player: currentPlayer }) => {
+								const currentTeam = await context.cache.teams.get(tid);
+								const currentPayroll = await team.getPayroll(
+									tid,
+									undefined,
+									context.cache,
+								);
+								return getContractException({
+									birdException: false,
+									contract,
+									p: currentPlayer,
+									payroll: currentPayroll,
+									team: currentTeam,
+								}).type;
+							},
+						},
+			revalidate: async ({ player: currentPlayer }) => {
+				if (currentPlayer.tid !== PLAYER.FREE_AGENT) {
+					throw new Error("Player is no longer available for auto-signing");
+				}
+				const currentRoster = await context.cache.players.indexGetAll(
+					"playersByTid",
+					tid,
+				);
+				if (!(await context.cache.teams.get(tid))) {
+					throw new Error("Signing team is no longer available");
+				}
+				if (
+					contract.type === "twoWay" &&
+					(!canOfferTwoWay(currentPlayer) ||
+						!canTeamAddTwoWay(currentRoster, tid))
+				) {
+					throw new Error("Two-way roster slot is no longer available");
+				}
+			},
+		});
+		try {
+			await team.rosterAutoSort(tid, undefined, undefined, context);
+		} catch (error) {
+			console.warn(
+				"Core auto-signing succeeded; post-signing roster refresh failed",
+				error,
+			);
+		}
+		return result.player;
+	};
 
 	for (const t of teams) {
 		// Skip the user's team
 		if (
-			g.get("userTids").includes(t.tid) &&
+			context.userTids.includes(t.tid) &&
 			!local.autoPlayUntil &&
-			!g.get("spectator")
+			!context.spectator
 		) {
 			continue;
 		}
@@ -65,7 +164,7 @@ const autoSign = async () => {
 			continue;
 		}
 
-		let playersOnRoster = await idb.cache.players.indexGetAll(
+		let playersOnRoster = await context.cache.players.indexGetAll(
 			"playersByTid",
 			t.tid,
 		);
@@ -75,23 +174,21 @@ const autoSign = async () => {
 
 		// With forceHistoricalRosters, only sign FAs if we have to
 		if (
-			standardPlayersOnRoster.length >= g.get("minRosterSize") &&
-			g.get("forceHistoricalRosters")
+			standardPlayersOnRoster.length >= context.minRosterSize &&
+			context.forceHistoricalRosters
 		) {
 			continue;
 		}
 
 		// Ignore roster size, will drop bad player if necessary in checkRosterSizes, and getBest won't sign min contract player unless under the roster limit
-		const payroll = await team.getPayroll(t.tid);
+		const payroll = await team.getPayroll(t.tid, undefined, context.cache);
 		const p = getBest(playersOnRoster, playersSorted, payroll);
 		if (p) {
 			// Remove from list of free agents
 			playersSorted = playersSorted.filter((p2) => p2 !== p);
 
-			await player.sign(p, t.tid, p.contract, g.get("phase"));
-			await idb.cache.players.put(p);
-			playersOnRoster = [...playersOnRoster, p];
-			await team.rosterAutoSort(t.tid);
+			const signedPlayer = await completeSigning(p, t.tid);
+			playersOnRoster = [...playersOnRoster, signedPlayer];
 		}
 
 		if (!p) {
@@ -113,36 +210,39 @@ const autoSign = async () => {
 
 			if (pMidLevel) {
 				playersSorted = playersSorted.filter((p2) => p2 !== pMidLevel);
-				pMidLevel.contract.exception = "midLevel";
-
-				await player.sign(pMidLevel, t.tid, pMidLevel.contract, g.get("phase"));
-				await idb.cache.players.put(pMidLevel);
-				t.midLevelExceptionUsedSeason = getMidLevelExceptionSeason();
-				await idb.cache.teams.put(t);
-				playersOnRoster = [...playersOnRoster, pMidLevel];
-				await team.rosterAutoSort(t.tid);
+				const teamWithMLE = helpers.deepCopy(t);
+				teamWithMLE.midLevelExceptionUsedSeason = context.mleSeason;
+				const pMidLevelForSigning = helpers.deepCopy(pMidLevel);
+				pMidLevelForSigning.contract.exception = "midLevel";
+				const signedPlayer = await completeSigning(
+					pMidLevelForSigning,
+					t.tid,
+					teamWithMLE,
+					pMidLevelForSigning.contract,
+				);
+				playersOnRoster = [...playersOnRoster, signedPlayer];
 			}
 		}
 
-		const standardPlayersOnRosterAfterStandardPass = playersOnRoster.filter((p) =>
-			isStandardContract(p.contract),
+		const standardPlayersOnRosterAfterStandardPass = playersOnRoster.filter(
+			(p) => isStandardContract(p.contract),
 		);
 		if (
-			standardPlayersOnRosterAfterStandardPass.length >= g.get("minRosterSize") &&
+			standardPlayersOnRosterAfterStandardPass.length >=
+				context.minRosterSize &&
 			canTeamAddTwoWay(playersOnRoster, t.tid)
 		) {
 			const pTwoWay = playersSorted.find((p) => canOfferTwoWay(p));
 			if (pTwoWay) {
 				playersSorted = playersSorted.filter((p) => p !== pTwoWay);
 
-				await player.sign(
+				const signedPlayer = await completeSigning(
 					pTwoWay,
 					t.tid,
+					undefined,
 					makeTwoWayContract(),
-					g.get("phase"),
 				);
-				await idb.cache.players.put(pTwoWay);
-				await team.rosterAutoSort(t.tid);
+				playersOnRoster = [...playersOnRoster, signedPlayer];
 			}
 		}
 	}

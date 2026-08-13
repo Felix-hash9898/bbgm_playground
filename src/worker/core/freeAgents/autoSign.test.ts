@@ -132,7 +132,10 @@ test("AI team with available two-way slot can sign an eligible low-end young fre
 
 	const players = await idb.cache.players.indexGetAll("playersByTid", 1);
 	assert.strictEqual(countTwoWayContracts(players, 1), 1);
-	assert.strictEqual(countStandardContracts(players, 1), g.get("maxRosterSize") - 2);
+	assert.strictEqual(
+		countStandardContracts(players, 1),
+		g.get("maxRosterSize") - 2,
+	);
 	assert.strictEqual(
 		players.some((p) => isTwoWayContract(p.contract)),
 		true,
@@ -203,7 +206,10 @@ test("AI two-way signing does not fill standard minimum roster size", async () =
 
 	const players = await idb.cache.players.indexGetAll("playersByTid", 1);
 	assert.strictEqual(countTwoWayContracts(players, 1), 0);
-	assert.strictEqual(countStandardContracts(players, 1), g.get("minRosterSize"));
+	assert.strictEqual(
+		countStandardContracts(players, 1),
+		g.get("minRosterSize"),
+	);
 });
 
 test("AI can use MLE once when cap space is insufficient", async () => {
@@ -232,6 +238,159 @@ test("AI can use MLE once when cap space is insufficient", async () => {
 		roster.some((p) => p.contract.exception === "midLevel"),
 		true,
 	);
+});
+
+test("AI may temporarily exceed the standard roster limit, then real roster repair keeps the signing and cuts the worst player", async () => {
+	g.setWithoutSavingToDB("salaryCapType", "none");
+	const candidate = makePlayer({
+		tid: PLAYER.FREE_AGENT,
+		ovr: 90,
+		pot: 90,
+		value: 100,
+		valueNoPot: 100,
+		contractAmount: g.get("minContract") + 5000,
+	});
+	await resetCacheForAutoSign({
+		aiStandardPlayers: g.get("maxRosterSize"),
+		freeAgentPlayers: [candidate],
+	});
+
+	const rosterBefore = await idb.cache.players.indexGetAll("playersByTid", 1);
+	const worstPlayer = rosterBefore[0]!;
+	worstPlayer.value = -100;
+	await idb.cache.players.put(worstPlayer);
+	const candidatePid = (
+		await idb.cache.players.indexGetAll("playersByTid", PLAYER.FREE_AGENT)
+	)[0]!.pid;
+	// Keep the fixture's explicit values deterministic. checkRosterSizes itself is
+	// real and still performs the actual release and post-repair roster sort.
+	vi.spyOn(team, "rosterAutoSort").mockResolvedValue();
+
+	await autoSignWithoutRandomSkip();
+
+	const overLimitRoster = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		1,
+	);
+	assert.strictEqual(
+		countStandardContracts(overLimitRoster, 1),
+		g.get("maxRosterSize") + 1,
+	);
+	assert.strictEqual(
+		overLimitRoster.some((p) => p.pid === candidatePid),
+		true,
+	);
+	const signingEvent = (await idb.cache.events.getAll()).find((event) =>
+		event.pids?.includes(candidatePid),
+	);
+	assert.isDefined(signingEvent);
+
+	assert.isUndefined(await team.checkRosterSizes("other"));
+
+	const repairedRoster = await idb.cache.players.indexGetAll("playersByTid", 1);
+	assert.strictEqual(
+		countStandardContracts(repairedRoster, 1),
+		g.get("maxRosterSize"),
+	);
+	const signedPlayer = await idb.cache.players.get(candidatePid);
+	assert.strictEqual(signedPlayer?.tid, 1);
+	assert.strictEqual(
+		signedPlayer?.contract.amount,
+		g.get("minContract") + 5000,
+	);
+	const releasedPlayer = await idb.cache.players.get(worstPlayer.pid);
+	assert.strictEqual(releasedPlayer?.tid, PLAYER.FREE_AGENT);
+	assert.strictEqual(
+		(await idb.cache.events.get(signingEvent!.eid))?.pids?.includes(
+			candidatePid,
+		),
+		true,
+	);
+});
+
+test("AI MLE signing also remains atomic when a full standard roster temporarily goes over the limit", async () => {
+	await resetCacheForAutoSign({
+		aiStandardPlayers: g.get("maxRosterSize"),
+		freeAgentPlayers: [
+			makePlayer({
+				tid: PLAYER.FREE_AGENT,
+				contractAmount: getMidLevelExceptionAmount() - 500,
+				value: 80,
+				valueNoPot: 80,
+			}),
+		],
+	});
+	const roster = await idb.cache.players.indexGetAll("playersByTid", 1);
+	roster[0]!.contract.amount = g.get("salaryCap") - 4000;
+	await idb.cache.players.put(roster[0]!);
+
+	await autoSignWithoutRandomSkip();
+
+	const overLimitRoster = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		1,
+	);
+	assert.strictEqual(
+		countStandardContracts(overLimitRoster, 1),
+		g.get("maxRosterSize") + 1,
+	);
+	assert.strictEqual(
+		overLimitRoster.some((p) => p.contract.exception === "midLevel"),
+		true,
+	);
+	assert.strictEqual(
+		(await idb.cache.teams.get(1))?.midLevelExceptionUsedSeason,
+		g.get("season"),
+	);
+});
+
+test("auto-signing reports core success when roster refresh fails", async () => {
+	await resetCacheForAutoSign({
+		aiStandardPlayers: g.get("maxRosterSize") - 2,
+		freeAgentPlayers: [
+			makePlayer({
+				tid: PLAYER.FREE_AGENT,
+				value: 80,
+				valueNoPot: 80,
+				contractAmount: getMidLevelExceptionAmount() - 500,
+			}),
+		],
+	});
+	const roster = await idb.cache.players.indexGetAll("playersByTid", 1);
+	roster[0]!.contract.amount = g.get("salaryCap") - 4000;
+	await idb.cache.players.put(roster[0]!);
+
+	const rosterError = new Error("roster refresh failed");
+	vi.spyOn(team, "rosterAutoSort").mockRejectedValue(rosterError);
+	const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+	await autoSignWithoutRandomSkip();
+
+	assert.strictEqual(warning.mock.calls.length > 0, true);
+	const signed = await idb.cache.players.indexGetAll("playersByTid", 1);
+	assert.strictEqual(signed.length, g.get("maxRosterSize") - 1);
+});
+
+test("auto-signing stages mutations for the outer day flush", async () => {
+	await resetCacheForAutoSign({
+		aiStandardPlayers: g.get("maxRosterSize") - 2,
+		freeAgentPlayers: [
+			makePlayer({
+				tid: PLAYER.FREE_AGENT,
+				value: 80,
+				valueNoPot: 80,
+				contractAmount: getMidLevelExceptionAmount() - 500,
+			}),
+		],
+	});
+	const roster = await idb.cache.players.indexGetAll("playersByTid", 1);
+	roster[0]!.contract.amount = g.get("salaryCap") - 4000;
+	await idb.cache.players.put(roster[0]!);
+	const flush = vi.spyOn(idb.cache, "flush");
+
+	await autoSignWithoutRandomSkip();
+
+	assert.strictEqual(flush.mock.calls.length, 0);
+	assert.strictEqual(idb.cache._dirty, true);
 });
 
 test("AI does not use MLE twice in the same season", async () => {

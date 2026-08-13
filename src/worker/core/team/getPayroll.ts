@@ -1,4 +1,5 @@
 import { idb } from "../../db/index.ts";
+import type Cache from "../../db/Cache.ts";
 import type { ContractInfo } from "../../../common/types.ts";
 import { isTwoWayContract } from "../contracts/contractTwoWay.ts";
 import { getContractCapHit } from "../contracts/contractMinimum.ts";
@@ -15,13 +16,14 @@ import { getContractCapHit } from "../contracts/contractMinimum.ts";
 const getPayroll = async (
 	input: number | ContractInfo[],
 	season?: number,
+	cache: Cache = idb.cache,
 ): Promise<number> => {
 	let payroll = 0;
 
 	if (typeof input === "number") {
 		const tid = input;
-		const players = await idb.cache.players.indexGetAll("playersByTid", tid);
-		const releasedPlayers = await idb.cache.releasedPlayers.indexGetAll(
+		const players = await cache.players.indexGetAll("playersByTid", tid);
+		const releasedPlayers = await cache.releasedPlayers.indexGetAll(
 			"releasedPlayersByTid",
 			tid,
 		);

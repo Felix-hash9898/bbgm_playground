@@ -988,6 +988,7 @@ export type Negotiation = {
 	pid: number;
 	tid: number;
 	resigning: boolean;
+	usageBiasBeforeFreeAgency?: number;
 };
 
 export type Option = {

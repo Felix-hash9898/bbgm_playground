@@ -30,11 +30,14 @@ describe("Shot Priority", () => {
 					14,
 				);
 			}
-			expect(context.players.map((p) => p.overload)).toEqual([0, 0, 0, 0, 0]);
-			expect(context.players.map((p) => p.relief)).toEqual([0, 0, 0, 0, 0]);
+			expect(context.players.map((p) => p.excessShare)).toEqual([
+				0, 0, 0, 0, 0,
+			]);
+			expect(context.players.map((p) => p.incrementalFraction)).toEqual([
+				0, 0, 0, 0, 0,
+			]);
 			expect(context.players.map((p) => p.shareRatio)).toEqual([1, 1, 1, 1, 1]);
-			expect(context.teamUsageOverload).toBe(0);
-			expect(1 + 0.35 * context.teamUsageOverload).toBe(1);
+			expect(context.teamDisplacement).toBe(0);
 		}
 	});
 
@@ -60,20 +63,11 @@ describe("Shot Priority", () => {
 				shooterWeights[i]! / totalShooterWeight,
 			);
 			expect(playerContext.shareRatio).toBe(1);
-			expect(playerContext.overload).toBe(0);
-			expect(playerContext.relief).toBe(0);
+			expect(playerContext.excessShare).toBe(0);
+			expect(playerContext.incrementalFraction).toBe(0);
 			expect(usages[i]! * playerContext.shareRatio).toBe(usages[i]);
-			expect(
-				1 + 0.75 * playerContext.overload - 0.2 * playerContext.relief,
-			).toBe(1);
-			expect(
-				1 - 0.32 * playerContext.overload + 0.08 * playerContext.relief,
-			).toBe(1);
-			expect(
-				1 - 0.2 * playerContext.overload + 0.05 * playerContext.relief,
-			).toBe(1);
 		}
-		expect(1 + 0.35 * context.teamUsageOverload).toBe(1);
+		expect(context.teamDisplacement).toBe(0);
 	});
 
 	test("context shares exactly match the shared usage selection algorithm", () => {
@@ -110,7 +104,8 @@ describe("Shot Priority", () => {
 			normal.players[4]!.adjustedShare,
 		);
 		expect(lowUsage.shareRatio).toBeLessThan(1.01);
-		expect(lowUsage.overload).toBeLessThan(0.01);
+		expect(lowUsage.excessShare).toBeLessThan(0.0005);
+		expect(lowUsage.incrementalFraction).toBeLessThan(0.01);
 	});
 
 	test("overload follows the actual share increase when a player crosses the floor", () => {
@@ -133,7 +128,7 @@ describe("Shot Priority", () => {
 		expect(normal.baselineWeights[4]).toBeGreaterThan(rawNormalWeight);
 		expect(featured.adjustedWeights[4]).toBeCloseTo(rawFeaturedWeight);
 		expect(player.adjustedShare).toBeGreaterThan(player.baselineShare);
-		expect(player.overload).toBeGreaterThan(0.09);
+		expect(player.incrementalFraction).toBeGreaterThan(0.08);
 		expect(crossoverUsages[4]! * player.shareRatio).toBeGreaterThan(
 			crossoverUsages[4]!,
 		);
@@ -146,9 +141,19 @@ describe("Shot Priority", () => {
 		const starB = featuredWithLow.players[0]!;
 
 		expect(starB.adjustedShare).toBeGreaterThan(starA.adjustedShare);
-		expect(starB.relativeIncrease).toBeGreaterThan(starA.relativeIncrease);
-		expect(featuredWithLow.teamUsageOverload).toBeGreaterThan(
-			featuredWithNormal.teamUsageOverload,
+		expect(starB.shareRatio).toBeGreaterThan(starA.shareRatio);
+		expect(starB.shareRatio - 1).toBeGreaterThan(0.25);
+		expect(featuredWithLow.teamDisplacement).toBeGreaterThan(
+			featuredWithNormal.teamDisplacement,
+		);
+		expect(featuredWithLow.teamDisplacement).toBeCloseTo(
+			0.5 *
+				featuredWithLow.players.reduce(
+					(sum, player) =>
+						sum + Math.abs(player.adjustedShare - player.baselineShare),
+					0,
+				),
+			14,
 		);
 		expect(usages[0]! * starB.shareRatio).toBeGreaterThan(
 			usages[0]! * starA.shareRatio,
@@ -173,6 +178,6 @@ describe("Shot Priority", () => {
 			Array(5).fill(0.2),
 		);
 		expect(context.players.map((p) => p.shareRatio)).toEqual(Array(5).fill(1));
-		expect(context.teamUsageOverload).toBe(0);
+		expect(context.teamDisplacement).toBe(0);
 	});
 });

@@ -33,6 +33,7 @@ const value = (
 	options: {
 		fuzz?: boolean;
 		noPot?: boolean;
+		season?: number;
 		ovrMean: number;
 		ovrStd: number;
 	},
@@ -41,7 +42,11 @@ const value = (
 	options.fuzz = !!options.fuzz;
 
 	// Latest season
-	const ratings = p.ratings.at(-1)!;
+	const ratings =
+		(options.season === undefined
+			? undefined
+			: p.ratings.find((row) => row.season === options.season)) ??
+		p.ratings.at(-1)!;
 	const pos = ratings.pos;
 
 	// Current values, adjusted for fuzz
@@ -152,11 +157,12 @@ const value = (
 
 	let age;
 
-	if (p.draft.year > g.get("season")) {
+	const season = options.season ?? g.get("season");
+	if (p.draft.year > season) {
 		// Draft prospect
 		age = p.draft.year - p.born.year;
 	} else {
-		age = g.get("season") - p.born.year;
+		age = season - p.born.year;
 	}
 
 	// Otherwise, combine based on age

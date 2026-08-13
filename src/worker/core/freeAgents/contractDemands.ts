@@ -1,5 +1,6 @@
 import { PLAYER, PHASE, bySport, isSport } from "../../../common/index.ts";
 import type { Player, PlayerContract } from "../../../common/types.ts";
+import type { CapturedSigningContext } from "../capturedContext.ts";
 import { orderBy } from "../../../common/utils.ts";
 import { g, helpers, random } from "../../util/index.ts";
 import {
@@ -45,11 +46,13 @@ const getExpiration = (
 	p: Player,
 	randomizeExp: boolean,
 	nextSeason?: boolean,
+	context?: CapturedSigningContext,
 ) => {
 	const { ovr, pot } = p.ratings.at(-1);
 
 	// pot is predictable via age+ovr with R^2=0.94, so skip it b/c wasn't in data
-	const age = g.get("season") - p.born.year;
+	const season = context?.season ?? g.get("season");
+	const age = season - p.born.year;
 	let years =
 		1 +
 		0.001629 * (age * age) -
@@ -61,22 +64,26 @@ const getExpiration = (
 	// Randomize expiration for contracts generated at beginning of new game
 	if (randomizeExp) {
 		years = random.randInt(1, years);
-		years = helpers.bound(years, 1, g.get("maxContractLength"));
+		years = helpers.bound(
+			years,
+			1,
+			context?.maxContractLength ?? g.get("maxContractLength"),
+		);
 	} else {
 		years = helpers.bound(
 			years,
-			g.get("minContractLength"),
-			g.get("maxContractLength"),
+			context?.minContractLength ?? g.get("minContractLength"),
+			context?.maxContractLength ?? g.get("maxContractLength"),
 		);
 	}
 
-	let offset = g.get("phase") <= PHASE.PLAYOFFS ? -1 : 0;
+	let offset = (context?.phase ?? g.get("phase")) <= PHASE.PLAYOFFS ? -1 : 0;
 	if (nextSeason) {
 		// Otherwise the season+phase combo appears off when setting contract expiration in newPhasePreseason
 		offset -= 1;
 	}
 
-	return g.get("season") + years + offset;
+	return season + years + offset;
 };
 
 const stableSoftmax = (values: number[], param: number) => {
@@ -107,12 +114,14 @@ export const getContractDemandResults = ({
 	teams,
 	pids,
 	nextSeason,
+	context,
 }: {
 	type: ContractDemandType;
 	playersAll: Player[];
 	teams: ContractDemandTeam[];
 	pids?: number[];
 	nextSeason?: boolean;
+	context?: CapturedSigningContext;
 }) => {
 	if (pids && pids.length === 0) {
 		return new Map<number, ContractDemandResult>();
@@ -128,8 +137,14 @@ export const getContractDemandResults = ({
 
 	const maxContract = getMaxContract();
 	const minContract = getMinContract();
-	const salaryCap = g.get("salaryCap");
-	const season = g.get("season");
+	const salaryCap = context?.salaryCap ?? g.get("salaryCap");
+	const season = context?.season ?? g.get("season");
+	const salaryCapType = context?.salaryCapType ?? g.get("salaryCapType");
+	const numActiveTeams = context?.numActiveTeams ?? g.get("numActiveTeams");
+	const maxRosterSize = context?.maxRosterSize ?? g.get("maxRosterSize");
+	const phase = context?.phase ?? g.get("phase");
+	const draftPickAutoContract =
+		context?.draftPickAutoContract ?? g.get("draftPickAutoContract");
 
 	let numRounds = DEFAULT_ROUNDS;
 
@@ -144,7 +159,7 @@ export const getContractDemandResults = ({
 			hockey: type === "dummyExpiringContracts" && pids !== undefined,
 		}) ||
 		minContract === maxContract ||
-		g.get("numActiveTeams") >= TOO_MANY_TEAMS_TOO_SLOW
+		numActiveTeams >= TOO_MANY_TEAMS_TOO_SLOW
 	) {
 		numRounds = 0;
 	}
@@ -213,7 +228,7 @@ export const getContractDemandResults = ({
 		for (const t of randTeams) {
 			let capSpace = salaryCap - t.payroll;
 			if (type === "newLeague") {
-				if (g.get("salaryCapType") !== "hard") {
+				if (salaryCapType !== "hard") {
 					// Simulating that teams could have gone over the cap to sign players with bird rights
 					capSpace += salaryCap;
 				} else {
@@ -282,7 +297,7 @@ export const getContractDemandResults = ({
 
 	// See selectPlayer.ts - for hard cap, players are not auto signed, so special logic here
 	let rookieSalaries;
-	if (g.get("draftPickAutoContract") && g.get("salaryCapType") === "hard") {
+	if (draftPickAutoContract && salaryCapType === "hard") {
 		rookieSalaries = draft.getRookieSalaries();
 	}
 
@@ -300,8 +315,7 @@ export const getContractDemandResults = ({
 	for (const info of playerInfosToUpdate) {
 		const p = info.p;
 		if (rookieSalaries && p.draft.year === season) {
-			const pickIndex =
-				(p.draft.round - 1) * g.get("numActiveTeams") + p.draft.pick - 1;
+			const pickIndex = (p.draft.round - 1) * numActiveTeams + p.draft.pick - 1;
 			info.contractAmount = rookieSalaries[pickIndex] ?? rookieSalaries.at(-1)!;
 		} else if (numRounds === 0) {
 			info.contractAmount = player.genContract(p, type === "newLeague").amount;
@@ -342,7 +356,7 @@ export const getContractDemandResults = ({
 					numPlayersOnTeams += 1;
 				}
 			}
-			const numTotalRosterSpots = activeTeams.length * g.get("maxRosterSize");
+			const numTotalRosterSpots = activeTeams.length * maxRosterSize;
 			const numOpenRosterSpots = Math.max(
 				0,
 				numTotalRosterSpots - numPlayersOnTeams,
@@ -380,13 +394,15 @@ export const getContractDemandResults = ({
 		}
 	}
 
-	let offset = g.get("phase") <= PHASE.PLAYOFFS ? -1 : 0;
+	let offset = phase <= PHASE.PLAYOFFS ? -1 : 0;
 	if (nextSeason) {
 		// Otherwise the season+phase combo appears off when setting contract expiration in newPhasePreseason
 		offset -= 1;
 	}
 	const minNewContractExp =
-		g.get("season") + g.get("minContractLength") + offset;
+		season +
+		(context?.minContractLength ?? g.get("minContractLength")) +
+		offset;
 
 	const results = new Map<number, ContractDemandResult>();
 	for (const info of playerInfosToUpdate) {
@@ -394,19 +410,15 @@ export const getContractDemandResults = ({
 
 		const exp =
 			rookieSalaries && p.draft.year === season
-				? g.get("season") + draft.getRookieContractLength(p.draft.round)
-				: getExpiration(p, type === "newLeague", nextSeason);
+				? season + draft.getRookieContractLength(p.draft.round)
+				: getExpiration(p, type === "newLeague", nextSeason, context);
 
 		let amount = info.contractAmount;
 
 		// HACK - assume within first 3 years it is a rookie contract. Only need to check players with draftPickAutoContract disabled, because otherwise there is other code handling rookie contracts.
 		let labelAsRookieContract = rookieSalaries && p.draft.year === season;
-		if (
-			type === "newLeague" &&
-			p.draft.round > 0 &&
-			!g.get("draftPickAutoContract")
-		) {
-			if (g.get("season") <= p.draft.year + 3) {
+		if (type === "newLeague" && p.draft.round > 0 && !draftPickAutoContract) {
+			if (season <= p.draft.year + 3) {
 				labelAsRookieContract = true;
 
 				// Decrease salary by 50%, like in newPhaseResignPlayers

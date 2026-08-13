@@ -8,18 +8,18 @@ export type ShotPriorityPlayerContext = {
 	baselineShare: number;
 	adjustedShare: number;
 	shareRatio: number;
-	relativeIncrease: number;
-	relativeDecrease: number;
-	overload: number;
-	relief: number;
+	excessShare: number;
+	incrementalFraction: number;
 };
 
 export type ShotPriorityContext = {
 	players: ShotPriorityPlayerContext[];
 	baselineWeights: number[];
 	adjustedWeights: number[];
-	teamUsageOverload: number;
+	teamDisplacement: number;
 };
+
+export const SHOT_PRIORITY_SHARE_EPSILON = 1e-12;
 
 export const getUsageSelectionWeights = (players: ShotPriorityInput[]) => {
 	if (players.length === 0) {
@@ -84,7 +84,7 @@ export const getShotPriorityContext = (
 			players: [],
 			baselineWeights: [],
 			adjustedWeights: [],
-			teamUsageOverload: 0,
+			teamDisplacement: 0,
 		};
 	}
 
@@ -97,27 +97,33 @@ export const getShotPriorityContext = (
 	const adjusted = getUsageSelectionWeights(players);
 
 	const playerContexts = baseline.shares.map((baselineShare, index) => {
-		const adjustedShare = adjusted.shares[index]!;
+		const rawAdjustedShare = adjusted.shares[index]!;
+		const adjustedShare =
+			Math.abs(rawAdjustedShare - baselineShare) < SHOT_PRIORITY_SHARE_EPSILON
+				? baselineShare
+				: rawAdjustedShare;
 		let shareRatio = baselineShare > 0 ? adjustedShare / baselineShare : 1;
-		if (!Number.isFinite(shareRatio) || Math.abs(shareRatio - 1) < 1e-12) {
+		if (
+			!Number.isFinite(shareRatio) ||
+			Math.abs(shareRatio - 1) < SHOT_PRIORITY_SHARE_EPSILON
+		) {
 			shareRatio = 1;
 		}
-		const relativeIncrease = Math.max(0, shareRatio - 1);
-		const relativeDecrease = Math.max(0, 1 - shareRatio);
+		const excessShare = Math.max(adjustedShare - baselineShare, 0);
+		const incrementalFraction =
+			adjustedShare > 0 ? excessShare / adjustedShare : 0;
 
 		return {
 			baselineShare,
 			adjustedShare,
 			shareRatio,
-			relativeIncrease,
-			relativeDecrease,
-			overload: Math.min(relativeIncrease, 0.25),
-			relief: Math.min(relativeDecrease, 0.15),
+			excessShare,
+			incrementalFraction,
 		};
 	});
 
-	const teamUsageOverload = playerContexts.reduce(
-		(sum, context) => sum + context.baselineShare * context.overload,
+	const teamDisplacement = playerContexts.reduce(
+		(sum, context) => sum + context.excessShare,
 		0,
 	);
 
@@ -125,6 +131,6 @@ export const getShotPriorityContext = (
 		players: playerContexts,
 		baselineWeights: baseline.weights,
 		adjustedWeights: adjusted.weights,
-		teamUsageOverload,
+		teamDisplacement,
 	};
 };

@@ -76,6 +76,13 @@ test("Play 1 Day during a playoff gap advances once without simulating the game"
 
 	await play(1, {});
 
+	assert.deepStrictEqual(
+		await idb.cache.gameAttributes.get("basketballPlayoffDaysProcessedThrough"),
+		{
+			key: "basketballPlayoffDaysProcessedThrough",
+			value: { day: 104, season },
+		},
+	);
 	assert.deepStrictEqual(g.get("basketballPlayoffDaysProcessedThrough"), {
 		day: 104,
 		season,

@@ -24,6 +24,7 @@ export { default as loadNames } from "./loadNames.ts";
 export { default as local } from "./local.ts";
 export { default as lock } from "./lock.ts";
 export { default as logEvent } from "./logEvent.ts";
+export { logEventInContext } from "./logEvent.ts";
 export { default as newLeagueGodModeLimits } from "./newLeagueGodModeLimits.ts";
 export { default as processPlayerStats } from "./processPlayerStats.ts";
 export { default as processPlayersHallOfFame } from "./processPlayersHallOfFame.ts";

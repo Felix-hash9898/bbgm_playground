@@ -15,6 +15,7 @@ import genWeight from "./genWeight.ts";
 import potEstimator from "./potEstimator.ts";
 import { TOO_MANY_TEAMS_TOO_SLOW } from "../season/getInitialNumGamesConfDivSettings.ts";
 import { DEFAULT_LEVEL } from "../../../common/budgetLevels.ts";
+import type { CapturedSigningContext } from "../capturedContext.ts";
 
 const NUM_SIMULATIONS = 20; // Higher is more accurate, but slower. Low accuracy is fine, though!
 
@@ -25,12 +26,14 @@ export const monteCarloPot = async ({
 	srID,
 	pos,
 	usePotEstimator,
+	numActiveTeams,
 }: {
 	ratings: MinimalPlayerRatings;
 	age: number;
 	srID?: string;
 	pos?: string;
 	usePotEstimator?: boolean;
+	numActiveTeams?: number;
 }): Promise<number> => {
 	if (age >= 29) {
 		return pos ? ratings.ovrs[pos] : ratings.ovr;
@@ -40,7 +43,8 @@ export const monteCarloPot = async ({
 		bySport({
 			baseball: true,
 			basketball:
-				usePotEstimator || g.get("numActiveTeams") >= TOO_MANY_TEAMS_TOO_SLOW,
+				usePotEstimator ||
+				(numActiveTeams ?? g.get("numActiveTeams")) >= TOO_MANY_TEAMS_TOO_SLOW,
 			football: true,
 			hockey: true,
 		})
@@ -124,6 +128,7 @@ const develop = async (
 	newPlayer: boolean = false,
 	coachingLevel: number = DEFAULT_LEVEL,
 	skipPot: boolean = false, // Only for making testing or core/debug faster
+	context?: CapturedSigningContext,
 ) => {
 	const ratings = p.ratings.at(-1)!;
 	let age = ratings.season - p.born.year;
@@ -146,7 +151,12 @@ const develop = async (
 			ratings.ovr = ovr(ratings);
 
 			if (!skipPot) {
-				ratings.pot = await monteCarloPot({ ratings, age, srID: p.srID });
+				ratings.pot = await monteCarloPot({
+					ratings,
+					age,
+					srID: p.srID,
+					numActiveTeams: context?.numActiveTeams,
+				});
 			}
 
 			if (typeof p.pos === "string") {
@@ -178,6 +188,7 @@ const develop = async (
 						age,
 						srID: p.srID,
 						pos: pos2,
+						numActiveTeams: context?.numActiveTeams,
 					});
 				}
 			}

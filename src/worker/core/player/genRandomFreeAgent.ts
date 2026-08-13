@@ -6,16 +6,24 @@ import { PHASE, PLAYER } from "../../../common/index.ts";
 import { idb } from "../../db/index.ts";
 import name from "./name.ts";
 import { DEFAULT_LEVEL } from "../../../common/budgetLevels.ts";
+import {
+	isCapturedContextActive,
+	type CapturedSigningContext,
+} from "../capturedContext.ts";
 
-const genRandomFreeAgent = async (): Promise<Player> => {
+const genRandomFreeAgent = async (
+	context?: CapturedSigningContext,
+): Promise<Player> => {
 	let minAge = 25;
 	let maxAge = 31;
+	const cache = context?.cache ?? idb.cache;
+	const forceRetireAge = context?.forceRetireAge ?? g.get("forceRetireAge");
+	const draftAges = context?.draftAges ?? g.get("draftAges");
+	const phase = context?.phase ?? g.get("phase");
+	const season = context?.season ?? g.get("season");
 
 	// Adjust for age limits
-	const forceRetireAge = g.get("forceRetireAge");
-	const draftAges = g.get("draftAges");
-
-	const offset = g.get("phase") > PHASE.REGULAR_SEASON ? 0 : 1;
+	const offset = phase > PHASE.REGULAR_SEASON ? 0 : 1;
 
 	if (
 		forceRetireAge > minAge ||
@@ -36,19 +44,30 @@ const genRandomFreeAgent = async (): Promise<Player> => {
 
 	for (let i = 0; i < 1000; i++) {
 		const age = random.randInt(minAge, maxAge);
-		const draftYear = g.get("season") - (age - 22);
+		const draftYear = season - (age - 22);
+		const generatedName = await name();
+		if (context && !isCapturedContextActive(context)) {
+			throw new Error(
+				"Random free-agent generation aborted after league context changed",
+			);
+		}
 		const p = generate(
 			PLAYER.FREE_AGENT,
 			age,
 			draftYear,
 			false,
 			DEFAULT_LEVEL,
-			await name(),
+			generatedName,
 		);
-		p.ratings[0].season = g.get("season"); // HACK!!!
+		p.ratings[0].season = season; // HACK!!!
 		await develop(p, 0);
 		if (p.ratings[0].ovr <= 40) {
-			await idb.cache.players.add(p); // Create pid
+			if (context && !isCapturedContextActive(context)) {
+				throw new Error(
+					"Random free-agent generation aborted after league context changed",
+				);
+			}
+			await cache.players.add(p); // Create pid in the captured cache
 			return p as Player;
 		}
 	}

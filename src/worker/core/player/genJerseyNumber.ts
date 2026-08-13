@@ -2,6 +2,7 @@ import { idb } from "../../db/index.ts";
 import { random, helpers } from "../../util/index.ts";
 import { bySport, isSport } from "../../../common/index.ts";
 import { range } from "../../../common/utils.ts";
+import type Cache from "../../db/Cache.ts";
 
 // Football/hockey gets 1-99
 const VALID_JERSEY_NUMBERS = range(1, 100).map(String);
@@ -388,13 +389,14 @@ export const JERSEY_NUMBERS_BY_POSITION =
 export const getTeammateJerseyNumbers = async (
 	tid: number,
 	pidsIgnore: number[],
+	cache: Cache = idb.cache,
 ) => {
 	const pidsIgnoreSet = new Set(pidsIgnore);
 	const jerseyNumbers = [];
 
 	if (tid >= 0) {
 		const teammates = (
-			await idb.cache.players.indexGetAll("playersByTid", tid)
+			await cache.players.indexGetAll("playersByTid", tid)
 		).filter((p) => !pidsIgnoreSet.has(p.pid));
 		for (const p of teammates) {
 			const teamJerseyNumber = p.jerseyNumber;
@@ -407,8 +409,11 @@ export const getTeammateJerseyNumbers = async (
 	return jerseyNumbers;
 };
 
-const getRetiredJerseyNumbers = async (tid: number) => {
-	const t = await idb.cache.teams.get(tid);
+const getRetiredJerseyNumbers = async (
+	tid: number,
+	cache: Cache = idb.cache,
+) => {
+	const t = await cache.teams.get(tid);
 	if (t?.retiredJerseyNumbers) {
 		return t.retiredJerseyNumbers.map((row) => row.number);
 	}
@@ -436,6 +441,7 @@ const genJerseyNumber = async (
 
 	// When all jersey numbers are retired, it will add a prefix and try again
 	prefix?: number,
+	cache: Cache = idb.cache,
 ): Promise<string> => {
 	let prevJerseyNumber;
 	if (!pickRandomNumber) {
@@ -448,9 +454,13 @@ const genJerseyNumber = async (
 
 	const teamJerseyNumbers =
 		teamJerseyNumbersInput ??
-		(await getTeammateJerseyNumbers(p.tid, p.pid !== undefined ? [p.pid] : []));
+		(await getTeammateJerseyNumbers(
+			p.tid,
+			p.pid !== undefined ? [p.pid] : [],
+			cache,
+		));
 	const retiredJerseyNumbers =
-		retiredJerseyNumbersInput ?? (await getRetiredJerseyNumbers(p.tid));
+		retiredJerseyNumbersInput ?? (await getRetiredJerseyNumbers(p.tid, cache));
 
 	let validJerseyNumbers;
 	if (prefix === undefined) {
@@ -482,6 +492,7 @@ const genJerseyNumber = async (
 			retiredJerseyNumbersInput,
 			pickRandomNumber,
 			(prefix ?? 0) + 1,
+			cache,
 		);
 	}
 

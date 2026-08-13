@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { resetG } from "../../../test/helpers.ts";
-import GameSim from "./index.ts";
+import GameSim, {
+	USAGE_EXTRA_TOV_FINISH_SHARE,
+	USAGE_TEAM_TOV_COEFFICIENT,
+} from "./index.ts";
 
 const makePlayers = () =>
 	[0.8, 0.6, 0.4, 0.2, 0].map((turnovers, index) => ({
@@ -51,7 +54,7 @@ beforeEach(() => {
 });
 
 describe("basketball turnover attribution", () => {
-	test("delegates to the Official individual turnover picker", () => {
+	test("D=0 delegates exactly to the Official individual turnover picker", () => {
 		const { players, sim } = makeGameSim();
 		const pickPlayer = vi
 			.spyOn(sim, "pickPlayer")
@@ -63,7 +66,7 @@ describe("basketball turnover attribution", () => {
 		expect(pickPlayer).toHaveBeenCalledExactlyOnceWith("turnovers", 0, 2);
 	});
 
-	test("Official turnover weights ignore usageBias directly", () => {
+	test("Official baseline weights retain their existing rating and floor", () => {
 		const { players, sim } = makeGameSim();
 		const normalWeights = sim.ratingArray("turnovers", 0, 2);
 		const expectedWeights = [0.64, 0.36, 0.16, 0.06, 0.06];
@@ -75,53 +78,105 @@ describe("basketball turnover attribution", () => {
 		for (const [index, player] of players.entries()) {
 			player.usageBias = index === 0 ? 1.25 : 0.85;
 		}
-
 		expect(sim.ratingArray("turnovers", 0, 2)).toEqual(normalWeights);
-
-		vi.spyOn(Math, "random").mockReturnValue(0.5);
-		const selectedWithConcentratedUsage = sim.pickTurnoverPlayer();
-		for (const player of players) {
-			player.usageBias = 1;
-		}
-		const selectedWithNormalUsage = sim.pickTurnoverPlayer();
-
-		expect(selectedWithConcentratedUsage).toBe(selectedWithNormalUsage);
 	});
 
-	test("usageBias still changes shot share and team turnover overload", () => {
+	test("team turnover occurrence uses uncapped total displacement", () => {
 		const { players, sim } = makeGameSim();
-		const normalContext = sim.getShotPriorityContext();
-		const normalProbTov = sim.probTov();
+		const normal = sim.getTurnoverProbabilities();
 
 		players[0]!.usageBias = 1.25;
 		for (const player of players.slice(1)) {
 			player.usageBias = 0.85;
 		}
+		const context = sim.getShotPriorityContext();
+		const concentrated = sim.getTurnoverProbabilities(context);
 
-		const concentratedContext = sim.getShotPriorityContext();
-		const concentratedProbTov = sim.probTov();
-
-		expect(concentratedContext.players[0]!.adjustedShare).toBeGreaterThan(
-			normalContext.players[0]!.adjustedShare,
-		);
-		expect(concentratedContext.teamUsageOverload).toBeGreaterThan(
-			normalContext.teamUsageOverload,
-		);
-		expect(concentratedProbTov).toBeGreaterThan(normalProbTov);
-		expect(concentratedProbTov).toBeCloseTo(
-			0.14 * (1 + 0.35 * concentratedContext.teamUsageOverload),
+		expect(context.players[0]!.shareRatio - 1).toBeGreaterThan(0.25);
+		expect(context.teamDisplacement).toBeGreaterThan(0);
+		expect(normal.base).toBeCloseTo(0.14);
+		expect(normal.adjusted).toBe(normal.base);
+		expect(concentrated.adjusted / concentrated.base).toBeCloseTo(
+			1 + USAGE_TEAM_TOV_COEFFICIENT * context.teamDisplacement,
+			12,
 		);
 	});
 
-	test("preserves the turnover, overload, and steal constants", () => {
+	test("attribution conserves baseline and modeled extra probability mass", () => {
+		const { players, sim } = makeGameSim();
+		players[0]!.usageBias = 1.25;
+		for (const player of players.slice(1)) {
+			player.usageBias = 0.85;
+		}
+		const context = sim.getShotPriorityContext();
+		const officialWeights = sim.ratingArray("turnovers", 0, 2);
+		const officialTotal = officialWeights.reduce(
+			(sum, value) => sum + value,
+			0,
+		);
+		const official = officialWeights.map((value) => value / officialTotal);
+		const excess = context.players.map(
+			(player) => player.excessShare / context.teamDisplacement,
+		);
+		const probabilities = sim.getTurnoverProbabilities(context);
+		const extra = probabilities.adjusted - probabilities.base;
+		const pickPlayer = vi
+			.spyOn(sim, "pickPlayer")
+			.mockReturnValue(
+				players[0] as unknown as ReturnType<GameSim["pickPlayer"]>,
+			);
+
+		sim.pickTurnoverPlayer();
+		const weights = pickPlayer.mock.calls[0]![4]!;
+		expect(weights.reduce((sum, value) => sum + value, 0)).toBeCloseTo(1, 14);
+		for (let i = 0; i < weights.length; i++) {
+			const eventMass = probabilities.adjusted * weights[i]!;
+			const expectedMass =
+				probabilities.base * official[i]! +
+				extra *
+					((1 - USAGE_EXTRA_TOV_FINISH_SHARE) * official[i]! +
+						USAGE_EXTRA_TOV_FINISH_SHARE * excess[i]!);
+			expect(eventMass).toBeCloseTo(expectedMass, 14);
+		}
+	});
+
+	test("equal total displacement gives equal turnover occurrence", () => {
 		const { sim } = makeGameSim();
+		const makeContext = (excessShares: number[]) => ({
+			players: excessShares.map((excessShare) => ({
+				baselineShare: 0.2,
+				adjustedShare: 0.2 + excessShare,
+				shareRatio: 1,
+				excessShare,
+				incrementalFraction: 0,
+			})),
+			baselineWeights: [],
+			adjustedWeights: [],
+			teamDisplacement: 0.06,
+		});
 
-		expect(sim.getTeamUsageOverload()).toBe(0);
-		expect(sim.probTov()).toBeCloseTo(0.14);
-		expect(sim.probStl()).toBeCloseTo(0.45);
+		expect(
+			sim.getTurnoverProbabilities(makeContext([0.06, 0, 0, 0, 0])),
+		).toEqual(
+			sim.getTurnoverProbabilities(makeContext([0.02, 0.02, 0.02, 0, 0])),
+		);
+	});
 
-		sim.getTeamUsageOverload = () => 0.1;
-		const overloadCoefficient = (sim.probTov() / 0.14 - 1) / 0.1;
-		expect(overloadCoefficient).toBeCloseTo(0.35);
+	test("an explicit turnover player override bypasses incremental attribution", () => {
+		const { players, sim } = makeGameSim();
+		const override = players[4]!;
+		const picker = vi.spyOn(sim, "pickTurnoverPlayer");
+		Object.assign(sim, {
+			isClockRunning: true,
+			playByPlay: { logEvent: vi.fn() },
+			probStl: () => 0,
+			recordStat: vi.fn(),
+			t: 100,
+		});
+		vi.spyOn(Math, "random").mockReturnValue(0.99);
+
+		expect(sim.doTov(override as never)).toBe("tov");
+		expect(picker).not.toHaveBeenCalled();
+		expect(sim.recordStat).toHaveBeenCalledWith(0, override, "tov");
 	});
 });

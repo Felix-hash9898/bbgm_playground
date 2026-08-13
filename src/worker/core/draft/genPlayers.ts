@@ -3,20 +3,37 @@ import { finances, player, realRosters } from "../index.ts";
 import genPlayersWithoutSaving from "./genPlayersWithoutSaving.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, logEvent } from "../../util/index.ts";
+import {
+	isCapturedContextActive,
+	type CapturedSigningContext,
+} from "../capturedContext.ts";
 
 const genPlayers = async (
 	draftYear: number,
 	scoutingLevel?: number,
 	forceScrubs?: boolean,
+	context?: CapturedSigningContext,
 ) => {
+	const cache = context?.cache ?? idb.cache;
+	const assertActive = () => {
+		if (context && !isCapturedContextActive(context)) {
+			throw new Error("Draft generation league context changed");
+		}
+	};
+	assertActive();
 	// If scoutingLevel is not supplied, have to hit the DB to get it
 	if (scoutingLevel === undefined) {
-		scoutingLevel = await finances.getLevelLastThree("scouting", {
-			tid: g.get("userTid"),
-		});
+		scoutingLevel = await finances.getLevelLastThree(
+			"scouting",
+			{
+				tid: context?.userTid ?? g.get("userTid"),
+			},
+			context,
+		);
+		assertActive();
 	}
 
-	const allDraftProspects = await idb.cache.players.indexGetAll(
+	const allDraftProspects = await cache.players.indexGetAll(
 		"playersByTid",
 		PLAYER.UNDRAFTED,
 	);
@@ -26,7 +43,9 @@ const genPlayers = async (
 	);
 
 	// Trigger randomDebutsForever?
-	if (g.get("randomDebutsForever") !== undefined) {
+	if (
+		(context?.randomDebutsForever ?? g.get("randomDebutsForever")) !== undefined
+	) {
 		// Trigger condition - draftYear has no real players in it, or the year after draftYear has no real players in it
 		const currentRealPlayers = existingPlayers.filter((p) => p.real).length;
 		const nextRealPlayers = allDraftProspects.filter(
@@ -36,6 +55,7 @@ const genPlayers = async (
 			await realRosters.updateRandomDebutsForever(
 				draftYear,
 				currentRealPlayers,
+				context,
 			);
 			return;
 		}
@@ -46,20 +66,36 @@ const genPlayers = async (
 		scoutingLevel,
 		existingPlayers,
 		forceScrubs,
+		context,
 	);
 
 	for (const p of players) {
-		await idb.cache.players.add(p);
+		assertActive();
+		await cache.players.add(p);
 
-		// idb.cache.players.add will create the "pid" property, transforming PlayerWithoutKey to Player
+		assertActive();
+		// cache.players.add creates the "pid" property, transforming PlayerWithoutKey to Player.
 		// @ts-expect-error
-		await player.addRelatives(p);
+		await player.addRelatives(p, context);
+		assertActive();
 
-		await player.updateValues(p);
+		await player.updateValues(
+			p,
+			cache,
+			context
+				? {
+						captured: true,
+						ovrMeanStd: context.ovrMeanStd,
+						repeatSeason: context.repeatSeason,
+						season: context.season,
+					}
+				: undefined,
+		);
+		assertActive();
 	}
 
 	// Easter eggs!
-	if (isSport("basketball") && !forceScrubs) {
+	if (isSport("basketball") && !forceScrubs && !context) {
 		if (Math.random() < 1 / 100000) {
 			const p = player.generate(
 				PLAYER.UNDRAFTED,

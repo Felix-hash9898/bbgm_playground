@@ -1,4 +1,12 @@
-import { afterAll, assert, beforeAll, describe, test } from "vitest";
+import {
+	afterAll,
+	afterEach,
+	assert,
+	beforeAll,
+	describe,
+	test,
+	vi,
+} from "vitest";
 import { PLAYER } from "../../../common/index.ts";
 import { mockIDBLeague, resetCache, resetG } from "../../../test/helpers.ts";
 import { player } from "../index.ts";
@@ -7,6 +15,8 @@ import { idb } from "../../db/index.ts";
 import type { Relative } from "../../../common/types.ts";
 import { DEFAULT_LEVEL } from "../../../common/budgetLevels.ts";
 import { range } from "../../../common/utils.ts";
+import { captureSigningContext } from "../capturedContext.ts";
+import { g } from "../../util/index.ts";
 
 const season = 2017;
 
@@ -38,7 +48,195 @@ afterAll(() => {
 	// @ts-expect-error
 	idb.league = undefined;
 });
+afterEach(() => {
+	vi.restoreAllMocks();
+});
 describe("makeBrother", () => {
+	test("rollback restores touched relatives but preserves an unrelated concurrent player mutation", async () => {
+		const target = player.generate(
+			PLAYER.UNDRAFTED,
+			20,
+			season,
+			true,
+			DEFAULT_LEVEL,
+		);
+		const unrelated = player.generate(0, 25, 1900, true, DEFAULT_LEVEL);
+		await resetCache({ players: [target, ...genBrothers(), unrelated] });
+		const context = captureSigningContext();
+		const before = new Map(
+			(await context.cache.players.getAll()).map((p) => [
+				p.pid,
+				structuredClone(p),
+			]),
+		);
+		const originalPut = context.cache.players.put.bind(context.cache.players);
+		let injected = false;
+		vi.spyOn(context.cache.players, "put").mockImplementation(async (row) => {
+			const result = await originalPut(row);
+			if (!injected) {
+				injected = true;
+				const concurrent = structuredClone(
+					(await context.cache.players.get(unrelated.pid!))!,
+				);
+				concurrent.firstName = "Concurrent";
+				await originalPut(concurrent);
+				g.setWithoutSavingToDB("lid", context.lid + 1);
+			}
+			return result;
+		});
+
+		let rejected = false;
+		try {
+			await makeBrother(
+				(await context.cache.players.get(target.pid!))!,
+				context,
+			);
+		} catch {
+			rejected = true;
+		}
+		assert.equal(rejected, true);
+		g.setWithoutSavingToDB("lid", context.lid);
+		for (const current of await context.cache.players.getAll()) {
+			if (current.pid === unrelated.pid) {
+				assert.strictEqual(current.firstName, "Concurrent");
+			} else {
+				assert.deepStrictEqual(current, before.get(current.pid));
+			}
+		}
+	});
+
+	test("rollback does not overwrite a newer mutation of the same relative pid", async () => {
+		await resetCache({
+			players: [
+				player.generate(PLAYER.UNDRAFTED, 20, season, true, DEFAULT_LEVEL),
+				...genBrothers(),
+			],
+		});
+		const context = captureSigningContext();
+		const originalPut = context.cache.players.put.bind(context.cache.players);
+		let concurrentlyUpdatedPid: number | undefined;
+		vi.spyOn(context.cache.players, "put").mockImplementation(async (row) => {
+			const result = await originalPut(row);
+			if (concurrentlyUpdatedPid === undefined) {
+				concurrentlyUpdatedPid = row.pid;
+				const concurrent = structuredClone(row);
+				concurrent.college = "Concurrent University";
+				await originalPut(concurrent);
+				g.setWithoutSavingToDB("lid", context.lid + 1);
+			}
+			return result;
+		});
+
+		let rejected = false;
+		try {
+			await makeBrother((await context.cache.players.get(0))!, context);
+		} catch {
+			rejected = true;
+		}
+		assert.equal(rejected, true);
+		g.setWithoutSavingToDB("lid", context.lid);
+		assert.strictEqual(
+			(await context.cache.players.get(concurrentlyUpdatedPid!))?.college,
+			"Concurrent University",
+		);
+	});
+
+	test("captured relative lookup aborts without one-way writes after a league switch", async () => {
+		await resetCache({
+			players: [
+				player.generate(PLAYER.UNDRAFTED, 20, season, true, DEFAULT_LEVEL),
+				...genBrothers(),
+			],
+		});
+		const context = captureSigningContext();
+		const before = structuredClone(await context.cache.players.getAll());
+		const originalGetAll = context.cache.players.getAll.bind(
+			context.cache.players,
+		);
+		let calls = 0;
+		vi.spyOn(context.cache.players, "getAll").mockImplementation(async () => {
+			const result = await originalGetAll();
+			calls += 1;
+			if (calls === 1) {
+				g.setWithoutSavingToDB("lid", context.lid + 1);
+			}
+			return result;
+		});
+
+		let rejected = false;
+		try {
+			await makeBrother(await getPlayer(0), context);
+		} catch {
+			rejected = true;
+		}
+		assert.equal(rejected, true);
+		g.setWithoutSavingToDB("lid", context.lid);
+		assert.deepStrictEqual(await context.cache.players.getAll(), before);
+	});
+
+	test("captured relative put rollback preserves symmetric relationship state", async () => {
+		await resetCache({
+			players: [
+				player.generate(PLAYER.UNDRAFTED, 20, season, true, DEFAULT_LEVEL),
+				...genBrothers(),
+			],
+		});
+		const context = captureSigningContext();
+		const before = structuredClone(await context.cache.players.getAll());
+		const originalPut = context.cache.players.put.bind(context.cache.players);
+		let switched = false;
+		vi.spyOn(context.cache.players, "put").mockImplementation(async (p) => {
+			const result = await originalPut(p);
+			if (!switched) {
+				switched = true;
+				g.setWithoutSavingToDB("lid", context.lid + 1);
+			}
+			return result;
+		});
+
+		let rejected = false;
+		try {
+			await makeBrother(await getPlayer(0), context);
+		} catch {
+			rejected = true;
+		}
+		assert.equal(rejected, true);
+		g.setWithoutSavingToDB("lid", context.lid);
+		assert.deepStrictEqual(await context.cache.players.getAll(), before);
+	});
+
+	test("captured jersey lookup cannot continue after switching leagues", async () => {
+		const target = player.generate(0, 20, season, true, DEFAULT_LEVEL);
+		const brother = player.generate(0, 25, season, true, DEFAULT_LEVEL);
+		target.ratings.at(-1)!.pos = "PG";
+		brother.ratings.at(-1)!.pos = "PG";
+		brother.jerseyNumber = "7";
+		await resetCache({ players: [target, brother] });
+		const context = captureSigningContext();
+		const before = structuredClone(await context.cache.players.getAll());
+		vi.spyOn(Math, "random").mockReturnValue(0);
+		const originalIndexGetAll = context.cache.players.indexGetAll.bind(
+			context.cache.players,
+		);
+		vi.spyOn(context.cache.players, "indexGetAll").mockImplementation(
+			async (...args) => {
+				const result = await originalIndexGetAll(...args);
+				g.setWithoutSavingToDB("lid", context.lid + 1);
+				return result;
+			},
+		);
+
+		let rejected = false;
+		try {
+			await makeBrother(await getPlayer(0), context);
+		} catch {
+			rejected = true;
+		}
+		assert.equal(rejected, true);
+		g.setWithoutSavingToDB("lid", context.lid);
+		assert.deepStrictEqual(await context.cache.players.getAll(), before);
+	});
+
 	test("make player the brother of another player", async () => {
 		await resetCache({
 			players: [

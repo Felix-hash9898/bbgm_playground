@@ -7,6 +7,7 @@ const setJerseyNumber = (
 	jerseyNumber: string,
 	options?: {
 		phase: Phase;
+		season?: number;
 	},
 ) => {
 	// Current jersey number is always stored in root, even if there is no corresponding stats entry available at the moment (like in the offseason)
@@ -16,7 +17,7 @@ const setJerseyNumber = (
 	if (p.tid >= 0) {
 		const stats = p.stats.at(-1);
 		const phase = options?.phase ?? g.get("nextPhase") ?? g.get("phase");
-		const season = g.get("season");
+		const season = options?.season ?? g.get("season");
 		if (
 			stats &&
 			stats.tid === p.tid &&
