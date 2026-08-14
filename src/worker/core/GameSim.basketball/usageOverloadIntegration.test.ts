@@ -6,7 +6,7 @@ import { g, helpers, local } from "../../util/index.ts";
 import { idb } from "../../db/index.ts";
 import { player, team } from "../index.ts";
 import loadTeams from "../game/loadTeams.ts";
-import GameSim from "./index.ts";
+import GameSim, { TEAM_TOV_BASE_COEFFICIENT } from "./index.ts";
 
 const seedRandom = (seed: number) => {
 	let state = seed >>> 0;
@@ -58,11 +58,12 @@ const makeFixture = async (biases: number[]) => {
 	});
 };
 
-class PreChangeNormalGameSim extends GameSim {
+class NoTendencyBaselineGameSim extends GameSim {
 	override probTov() {
 		return helpers.bound(
 			(g.get("turnoverFactor") *
-				(0.14 * this.team[this.d].compositeRating.defense)) /
+				(TEAM_TOV_BASE_COEFFICIENT *
+					this.team[this.d].compositeRating.defense)) /
 				(0.5 *
 					(this.team[this.o].compositeRating.dribbling +
 						this.team[this.o].compositeRating.passing)),
@@ -108,10 +109,10 @@ beforeEach(() => {
 	local.reset();
 });
 
-test("Normal full-game output exactly matches the pre-change normal formulas", async () => {
+test("Normal full-game output exactly matches the no-Tendency baseline formulas", async () => {
 	const current = await run(Array(5).fill(1));
-	const preChange = await run(Array(5).fill(1), PreChangeNormalGameSim);
-	assert.deepStrictEqual(current.stats, preChange.stats);
+	const baseline = await run(Array(5).fill(1), NoTendencyBaselineGameSim);
+	assert.deepStrictEqual(current.stats, baseline.stats);
 });
 
 test.each([0.85, 1.1, 1.25])(
@@ -179,4 +180,59 @@ test("missing and invalid legacy usageBias values are simulation-safe and cost-f
 	assert.deepStrictEqual(context.adjustedWeights, context.baselineWeights);
 	const result = sim.run();
 	assert(result.team.every((t) => Number.isFinite(t.stat.pts)));
+});
+
+test("base injury rate, not the deprecated global flag, controls basketball injuries", async () => {
+	await makeFixture([1, 1, 1, 1, 1]);
+	seedRandom(0x1a2b_3c4d);
+	const loaded = await loadTeams([0, 1], {});
+	assert(loaded[0] && loaded[1]);
+	const sim = new GameSim({
+		gid: 3,
+		teams: [loaded[0], loaded[1]],
+		baseInjuryRate: 1,
+		doPlayByPlay: false,
+		homeCourtFactor: 1,
+		allStarGame: false,
+		neutralSite: true,
+	});
+
+	const previousLegacyFlag = (g as any).disableInjuries;
+	const previousRandom = Math.random;
+	(g as any).disableInjuries = true;
+	Math.random = () => 0;
+	try {
+		assert.isTrue(sim.injuries());
+	} finally {
+		Math.random = previousRandom;
+		if (previousLegacyFlag === undefined) {
+			delete (g as any).disableInjuries;
+		} else {
+			(g as any).disableInjuries = previousLegacyFlag;
+		}
+	}
+});
+
+test("zero base injury rate disables basketball injuries", async () => {
+	await makeFixture([1, 1, 1, 1, 1]);
+	seedRandom(0x5e6f_7788);
+	const loaded = await loadTeams([0, 1], {});
+	assert(loaded[0] && loaded[1]);
+	const sim = new GameSim({
+		gid: 4,
+		teams: [loaded[0], loaded[1]],
+		baseInjuryRate: 0,
+		doPlayByPlay: false,
+		homeCourtFactor: 1,
+		allStarGame: false,
+		neutralSite: true,
+	});
+
+	const previousRandom = Math.random;
+	Math.random = () => 0;
+	try {
+		assert.isFalse(sim.injuries());
+	} finally {
+		Math.random = previousRandom;
+	}
 });

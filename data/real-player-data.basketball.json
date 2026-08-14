@@ -811084,8 +811084,8 @@
       "info": {
         "orbFactor": 1.107625,
         "pace": 106.7,
-        "stealFactor": 1.07,
-        "turnoverFactor": 1.14,
+        "stealFactor": 0.96,
+        "turnoverFactor": 1.29,
         "twoPointAccuracyFactor": 0.9762
       },
       "phase": 0,
@@ -811108,7 +811108,8 @@
         "blockFactor": 1.1,
         "orbFactor": 1.111,
         "pace": 105.8,
-        "stealFactor": 1,
+        "stealFactor": 0.98,
+        "turnoverFactor": 1.35,
         "twoPointAccuracyFactor": 0.99575
       },
       "phase": 0,
@@ -811130,10 +811131,10 @@
       "info": {
         "orbFactor": 1.128625,
         "pace": 103.1,
-        "stealFactor": 1.08,
+        "stealFactor": 1.06,
         "threePointTendencyFactor": 0.08,
         "threePointers": true,
-        "turnoverFactor": 1.13,
+        "turnoverFactor": 1.33,
         "twoPointAccuracyFactor": 1
       },
       "phase": 0,
@@ -811155,8 +811156,9 @@
       "info": {
         "orbFactor": 1.118125,
         "pace": 101.8,
-        "stealFactor": 1.05,
+        "stealFactor": 1.03,
         "threePointTendencyFactor": 0.06,
+        "turnoverFactor": 1.33,
         "twoPointAccuracyFactor": 1.008
       },
       "phase": 0,
@@ -811178,9 +811180,9 @@
       "info": {
         "orbFactor": 1.11475,
         "pace": 100.9,
-        "stealFactor": 1,
+        "stealFactor": 0.98,
         "threePointTendencyFactor": 0.065,
-        "turnoverFactor": 1.1,
+        "turnoverFactor": 1.3,
         "twoPointAccuracyFactor": 1.02
       },
       "phase": 0,
@@ -811202,8 +811204,8 @@
       "info": {
         "orbFactor": 1.1215,
         "pace": 103.1,
-        "stealFactor": 1.01,
-        "turnoverFactor": 1.13,
+        "stealFactor": 0.99,
+        "turnoverFactor": 1.33,
         "twoPointAccuracyFactor": 1.009
       },
       "phase": 0,
@@ -811233,9 +811235,9 @@
       "info": {
         "orbFactor": 1.107625,
         "pace": 101.4,
-        "stealFactor": 1.03,
+        "stealFactor": 1.01,
         "threePointTendencyFactor": 0.068,
-        "turnoverFactor": 1.1,
+        "turnoverFactor": 1.3,
         "twoPointAccuracyFactor": 1.023
       },
       "phase": 0,
@@ -811258,7 +811260,9 @@
         "draftType": "randomLottery",
         "pace": 102.1,
         "salaryCapType": "soft",
-        "threePointTendencyFactor": 0.092
+        "stealFactor": 1.01,
+        "threePointTendencyFactor": 0.092,
+        "turnoverFactor": 1.3
       },
       "phase": 0,
       "season": 1985,
@@ -811279,8 +811283,9 @@
     {
       "info": {
         "orbFactor": 1.10425,
-        "stealFactor": 1.06,
+        "stealFactor": 1.11,
         "threePointTendencyFactor": 0.095,
+        "turnoverFactor": 1.3,
         "twoPointAccuracyFactor": 1.016
       },
       "phase": 0,
@@ -811303,9 +811308,9 @@
         "draftType": "randomLotteryFirst3",
         "orbFactor": 1.128625,
         "pace": 100.8,
-        "stealFactor": 1.08,
+        "stealFactor": 1.13,
         "threePointTendencyFactor": 0.14,
-        "turnoverFactor": 1.07,
+        "turnoverFactor": 1.26,
         "twoPointAccuracyFactor": 1.006
       },
       "phase": 0,
@@ -811327,8 +811332,9 @@
       "info": {
         "orbFactor": 1.118125,
         "pace": 99.6,
-        "stealFactor": 1.12,
+        "stealFactor": 1.18,
         "threePointTendencyFactor": 0.149,
+        "turnoverFactor": 1.26,
         "twoPointAccuracyFactor": 1.005
       },
       "phase": 0,
@@ -811350,9 +811356,9 @@
       "info": {
         "orbFactor": 1.1215,
         "pace": 100.6,
-        "stealFactor": 1.2,
+        "stealFactor": 1.26,
         "threePointTendencyFactor": 0.193,
-        "turnoverFactor": 1.09,
+        "turnoverFactor": 1.29,
         "twoPointAccuracyFactor": 1.004
       },
       "phase": 0,
@@ -811376,9 +811382,9 @@
         "draftType": "nba1990",
         "orbFactor": 1.111,
         "pace": 98.3,
-        "stealFactor": 1.16,
+        "stealFactor": 1.22,
         "threePointTendencyFactor": 0.199,
-        "turnoverFactor": 1.06,
+        "turnoverFactor": 1.25,
         "twoPointAccuracyFactor": 1.001
       },
       "phase": 0,
@@ -811400,8 +811406,9 @@
       "info": {
         "orbFactor": 1.118125,
         "pace": 97.8,
-        "stealFactor": 1.2,
-        "threePointTendencyFactor": 0.214
+        "stealFactor": 1.26,
+        "threePointTendencyFactor": 0.214,
+        "turnoverFactor": 1.25
       },
       "phase": 0,
       "season": 1991,
@@ -811422,8 +811429,9 @@
       "info": {
         "orbFactor": 1.135375,
         "pace": 96.6,
-        "stealFactor": 1.21,
+        "stealFactor": 1.27,
         "threePointTendencyFactor": 0.232,
+        "turnoverFactor": 1.25,
         "twoPointAccuracyFactor": 0.997
       },
       "phase": 0,
@@ -811445,8 +811453,9 @@
       "info": {
         "orbFactor": 1.118125,
         "pace": 96.8,
-        "stealFactor": 1.23,
+        "stealFactor": 1.29,
         "threePointTendencyFactor": 0.274,
+        "turnoverFactor": 1.25,
         "twoPointAccuracyFactor": 1.003
       },
       "phase": 0,
@@ -811471,9 +811480,9 @@
         "draftType": "nba1994",
         "orbFactor": 1.128625,
         "pace": 95.1,
-        "stealFactor": 1.25,
+        "stealFactor": 1.31,
         "threePointTendencyFactor": 0.31,
-        "turnoverFactor": 1.07,
+        "turnoverFactor": 1.26,
         "twoPointAccuracyFactor": 0.991
       },
       "phase": 0,
@@ -811495,9 +811504,9 @@
       "info": {
         "orbFactor": 1.107625,
         "pace": 92.9,
-        "stealFactor": 1.18,
+        "stealFactor": 1.24,
         "threePointTendencyFactor": 0.485,
-        "turnoverFactor": 1.09,
+        "turnoverFactor": 1.29,
         "twoPointAccuracyFactor": 1.007
       },
       "phase": 0,
@@ -811520,8 +811529,9 @@
       "info": {
         "orbFactor": 1.100875,
         "pace": 91.8,
-        "stealFactor": 1.15,
+        "stealFactor": 1.21,
         "threePointTendencyFactor": 0.518,
+        "turnoverFactor": 1.29,
         "twoPointAccuracyFactor": 0.996
       },
       "phase": 0,
@@ -811543,8 +811553,9 @@
       "info": {
         "orbFactor": 1.107625,
         "pace": 90.1,
-        "stealFactor": 1.21,
+        "stealFactor": 1.27,
         "threePointTendencyFactor": 0.551,
+        "turnoverFactor": 1.29,
         "twoPointAccuracyFactor": 0.985
       },
       "phase": 0,
@@ -811566,8 +811577,9 @@
       "info": {
         "orbFactor": 1.1215,
         "pace": 90.3,
-        "stealFactor": 1.23,
+        "stealFactor": 1.29,
         "threePointTendencyFactor": 0.417,
+        "turnoverFactor": 1.29,
         "twoPointAccuracyFactor": 0.965
       },
       "phase": 0,
@@ -811590,8 +811602,9 @@
       "info": {
         "orbFactor": 1.111,
         "pace": 88.9,
-        "stealFactor": 1.17,
+        "stealFactor": 1.23,
         "threePointTendencyFactor": 0.438,
+        "turnoverFactor": 1.29,
         "twoPointAccuracyFactor": 0.937
       },
       "phase": 0,
@@ -811614,8 +811627,9 @@
       "info": {
         "orbFactor": 1.086625,
         "pace": 93.1,
+        "stealFactor": 1.22,
         "threePointTendencyFactor": 0.435,
-        "turnoverFactor": 1.07,
+        "turnoverFactor": 1.24,
         "twoPointAccuracyFactor": 0.96
       },
       "phase": 0,
@@ -811638,9 +811652,9 @@
       "info": {
         "orbFactor": 1.0765,
         "pace": 91.3,
-        "stealFactor": 1.15,
+        "stealFactor": 1.2,
         "threePointTendencyFactor": 0.443,
-        "turnoverFactor": 1.06,
+        "turnoverFactor": 1.23,
         "twoPointAccuracyFactor": 0.946
       },
       "phase": 0,
@@ -811663,9 +811677,9 @@
       "info": {
         "orbFactor": 1.090375,
         "pace": 90.7,
-        "stealFactor": 1.17,
+        "stealFactor": 1.22,
         "threePointTendencyFactor": 0.479,
-        "turnoverFactor": 1.04,
+        "turnoverFactor": 1.21,
         "twoPointAccuracyFactor": 0.954
       },
       "phase": 0,
@@ -811693,9 +811707,9 @@
       "info": {
         "orbFactor": 1.079875,
         "pace": 91,
-        "stealFactor": 1.16,
+        "stealFactor": 1.21,
         "threePointTendencyFactor": 0.476,
-        "turnoverFactor": 1.06,
+        "turnoverFactor": 1.23,
         "twoPointAccuracyFactor": 0.949
       },
       "phase": 0,
@@ -811717,8 +811731,9 @@
       "info": {
         "orbFactor": 1.086625,
         "pace": 90.1,
+        "stealFactor": 1.21,
         "threePointTendencyFactor": 0.488,
-        "turnoverFactor": 1.07,
+        "turnoverFactor": 1.24,
         "twoPointAccuracyFactor": 0.943
       },
       "phase": 0,
@@ -811771,9 +811786,9 @@
         "numGamesDiv": 16,
         "orbFactor": 1.079875,
         "pace": 90.9,
-        "stealFactor": 1.14,
+        "stealFactor": 1.19,
         "threePointTendencyFactor": 0.512,
-        "turnoverFactor": 1.04,
+        "turnoverFactor": 1.21,
         "twoPointAccuracyFactor": 0.964
       },
       "phase": 0,
@@ -811796,8 +811811,9 @@
       "info": {
         "orbFactor": 1.04875,
         "pace": 90.5,
-        "stealFactor": 1.09,
+        "stealFactor": 1.13,
         "threePointTendencyFactor": 0.521,
+        "turnoverFactor": 1.21,
         "twoPointAccuracyFactor": 0.98
       },
       "phase": 0,
@@ -811820,9 +811836,9 @@
       "info": {
         "orbFactor": 1.041625,
         "pace": 91.9,
-        "stealFactor": 1.02,
+        "stealFactor": 1.06,
         "threePointTendencyFactor": 0.545,
-        "turnoverFactor": 1.06,
+        "turnoverFactor": 1.23,
         "twoPointAccuracyFactor": 0.995
       },
       "phase": 0,
@@ -811843,9 +811859,9 @@
     {
       "info": {
         "pace": 92.4,
-        "stealFactor": 1.1,
+        "stealFactor": 1.14,
         "threePointTendencyFactor": 0.58,
-        "turnoverFactor": 1.02,
+        "turnoverFactor": 1.1,
         "twoPointAccuracyFactor": 0.993
       },
       "phase": 0,
@@ -811867,7 +811883,9 @@
     {
       "info": {
         "pace": 91.7,
+        "stealFactor": 1.14,
         "threePointTendencyFactor": 0.583,
+        "turnoverFactor": 1.1,
         "twoPointAccuracyFactor": 0.995
       },
       "phase": 0,
@@ -811889,8 +811907,9 @@
       "info": {
         "orbFactor": 1.031125,
         "pace": 92.7,
-        "stealFactor": 1.09,
+        "stealFactor": 1.13,
         "threePointTendencyFactor": 0.577,
+        "turnoverFactor": 1.1,
         "twoPointAccuracyFactor": 1.009
       },
       "phase": 0,
@@ -811912,8 +811931,8 @@
       "info": {
         "orbFactor": 1.034875,
         "pace": 92.1,
-        "stealFactor": 1.08,
-        "turnoverFactor": 1.03,
+        "stealFactor": 1.12,
+        "turnoverFactor": 1.11,
         "twoPointAccuracyFactor": 0.999
       },
       "phase": 0,
@@ -811924,9 +811943,9 @@
       "info": {
         "orbFactor": 1.0555,
         "pace": 91.3,
-        "stealFactor": 1.14,
+        "stealFactor": 1.19,
         "threePointTendencyFactor": 0.595,
-        "turnoverFactor": 1.04,
+        "turnoverFactor": 1.12,
         "twoPointAccuracyFactor": 0.978
       },
       "phase": 0,
@@ -811937,8 +811956,9 @@
       "info": {
         "orbFactor": 1.041625,
         "pace": 92,
-        "stealFactor": 1.15,
+        "stealFactor": 1.2,
         "threePointTendencyFactor": 0.64,
+        "turnoverFactor": 1.12,
         "twoPointAccuracyFactor": 0.991
       },
       "phase": 0,
@@ -811960,9 +811980,9 @@
       "info": {
         "orbFactor": 1.024375,
         "pace": 93.9,
-        "stealFactor": 1.13,
+        "stealFactor": 1.18,
         "threePointTendencyFactor": 0.676,
-        "turnoverFactor": 1.03,
+        "turnoverFactor": 1.11,
         "twoPointAccuracyFactor": 1
       },
       "phase": 0,
@@ -811983,9 +812003,9 @@
     },
     {
       "info": {
-        "stealFactor": 1.15,
+        "stealFactor": 1.2,
         "threePointTendencyFactor": 0.705,
-        "turnoverFactor": 1.02
+        "turnoverFactor": 1.1
       },
       "phase": 0,
       "season": 2015,
@@ -812007,9 +812027,9 @@
       "info": {
         "orbFactor": 1,
         "pace": 95.8,
-        "stealFactor": 1.16,
+        "stealFactor": 1.21,
         "threePointTendencyFactor": 0.744,
-        "turnoverFactor": 1.01
+        "turnoverFactor": 1.07
       },
       "phase": 0,
       "season": 2016,
@@ -812031,8 +812051,9 @@
       "info": {
         "blockFactor": 1,
         "pace": 96.4,
+        "stealFactor": 1.21,
         "threePointTendencyFactor": 0.827,
-        "turnoverFactor": 1
+        "turnoverFactor": 1.06
       },
       "phase": 0,
       "season": 2017,
@@ -812054,8 +812075,9 @@
     {
       "info": {
         "pace": 97.3,
-        "stealFactor": 1.14,
-        "threePointTendencyFactor": 0.881
+        "stealFactor": 1.19,
+        "threePointTendencyFactor": 0.881,
+        "turnoverFactor": 1.06
       },
       "phase": 0,
       "season": 2018,
@@ -812076,8 +812098,9 @@
       "info": {
         "draftType": "nba2019",
         "pace": 100,
-        "stealFactor": 1.1,
-        "threePointTendencyFactor": 0.946
+        "stealFactor": 1.22,
+        "threePointTendencyFactor": 0.946,
+        "turnoverFactor": 1
       },
       "phase": 0,
       "season": 2019,
@@ -812105,6 +812128,14 @@
       },
       "phase": 0,
       "season": 2020,
+      "type": "gameAttributes"
+    },
+    {
+      "info": {
+        "stealFactor": 1.22
+      },
+      "phase": 0,
+      "season": 2025,
       "type": "gameAttributes"
     },
     {

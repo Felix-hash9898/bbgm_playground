@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { resetG } from "../../../test/helpers.ts";
 import GameSim, {
+	TEAM_STEAL_CONDITIONAL_COEFFICIENT,
+	TEAM_TOV_BASE_COEFFICIENT,
 	USAGE_EXTRA_TOV_FINISH_SHARE,
 	USAGE_TEAM_TOV_COEFFICIENT,
 } from "./index.ts";
@@ -54,6 +56,11 @@ beforeEach(() => {
 });
 
 describe("basketball turnover attribution", () => {
+	test("conditional steal probability uses the calibrated team environment", () => {
+		const { sim } = makeGameSim();
+		expect(sim.probStl()).toBeCloseTo(TEAM_STEAL_CONDITIONAL_COEFFICIENT);
+	});
+
 	test("D=0 delegates exactly to the Official individual turnover picker", () => {
 		const { players, sim } = makeGameSim();
 		const pickPlayer = vi
@@ -94,7 +101,11 @@ describe("basketball turnover attribution", () => {
 
 		expect(context.players[0]!.shareRatio - 1).toBeGreaterThan(0.25);
 		expect(context.teamDisplacement).toBeGreaterThan(0);
-		expect(normal.base).toBeCloseTo(0.14);
+		expect(normal.base).toBeCloseTo(TEAM_TOV_BASE_COEFFICIENT);
+		expect(TEAM_TOV_BASE_COEFFICIENT * USAGE_TEAM_TOV_COEFFICIENT).toBeCloseTo(
+			0.14,
+			3,
+		);
 		expect(normal.adjusted).toBe(normal.base);
 		expect(concentrated.adjusted / concentrated.base).toBeCloseTo(
 			1 + USAGE_TEAM_TOV_COEFFICIENT * context.teamDisplacement,

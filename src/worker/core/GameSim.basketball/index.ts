@@ -39,12 +39,18 @@ const TIMEOUTS_STOP_CLOCK = 2; // [minutes]
 const TIP_IN_ONLY_LIMIT = 0.2; // [seconds] - only tip-ins from an inbound with less than this much time
 const IN_GAME_INJURY_SHARE = 0.35;
 
+// Baseline turnover environment calibrated against 2022-2025 real-team results.
+export const TEAM_TOV_BASE_COEFFICIENT = 0.114;
+// Conditional steal share is calibrated separately because steals are a subset of TOV.
+export const TEAM_STEAL_CONDITIONAL_COEFFICIENT = 0.48;
+
 // These are marginal make-probability point costs on only the incrementally
 // displaced share, not percentage multipliers on every attempt.
 export const USAGE_MARGINAL_MAKE_PENALTY_2P = 0.04;
 export const USAGE_MARGINAL_MAKE_PENALTY_3P = 0.03;
-// This multiplies total positive displaced finish share at each TOV decision.
-export const USAGE_TEAM_TOV_COEFFICIENT = 1;
+// Preserve the prior absolute overload-TOV mass after lowering the baseline
+// TOV environment: .114 * 1.23 is approximately the prior .14 product.
+export const USAGE_TEAM_TOV_COEFFICIENT = 1.23;
 // Fraction of modeled extra ordinary TOV mass assigned by finish displacement.
 export const USAGE_EXTRA_TOV_FINISH_SHARE = 0.75;
 
@@ -1676,7 +1682,7 @@ class GameSim extends GameSimBase {
 	 * This doesn't actually compute the type of injury, it just determines if a player is injured bad enough to miss the rest of the game.
 	 */
 	injuries() {
-		if ((g as any).disableInjuries) {
+		if (this.baseInjuryRate === 0) {
 			return false;
 		}
 
@@ -2013,7 +2019,8 @@ class GameSim extends GameSimBase {
 	getBaseTurnoverProbability() {
 		return boundProb(
 			(g.get("turnoverFactor") *
-				(0.14 * this.team[this.d].compositeRating.defense)) /
+				(TEAM_TOV_BASE_COEFFICIENT *
+					this.team[this.d].compositeRating.defense)) /
 				(0.5 *
 					(this.team[this.o].compositeRating.dribbling +
 						this.team[this.o].compositeRating.passing)),
@@ -2167,7 +2174,8 @@ class GameSim extends GameSimBase {
 	probStl() {
 		return boundProb(
 			g.get("stealFactor") *
-				((0.45 * this.team[this.d].compositeRating.defensePerimeter) /
+				((TEAM_STEAL_CONDITIONAL_COEFFICIENT *
+					this.team[this.d].compositeRating.defensePerimeter) /
 					(0.5 *
 						(this.team[this.o].compositeRating.dribbling +
 							this.team[this.o].compositeRating.passing))),
