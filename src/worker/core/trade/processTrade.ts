@@ -13,10 +13,15 @@ import type { TradeEventTeams } from "../../../common/types.ts";
 import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
 
+type ProcessTradeOptions = {
+	deferUiRefresh?: boolean;
+};
+
 const processTrade = async (
 	tids: [number, number],
 	pids: [number[], number[]],
 	dpids: [number[], number[]],
+	options?: ProcessTradeOptions,
 ) => {
 	let pidsEvent = [...pids[0], ...pids[1]];
 	const dpidsEvent = [...dpids[0], ...dpids[1]];
@@ -166,8 +171,10 @@ const processTrade = async (
 
 	await reconcileBasketballRotation(tids);
 
-	await toUI("realtimeUpdate", [["playerMovement"]]);
-	await recomputeLocalUITeamOvrs();
+	if (!options?.deferUiRefresh) {
+		await toUI("realtimeUpdate", [["playerMovement"]]);
+		await recomputeLocalUITeamOvrs();
+	}
 
 	// If draft pick was changed...
 	if (g.get("phase") === PHASE.DRAFT) {

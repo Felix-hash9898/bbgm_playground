@@ -210,10 +210,33 @@ test("concurrent formal re-sign accepts consume one snapshot and restore once", 
 
 test("trade resets a roster player's usageBias to Normal", async () => {
 	assert.strictEqual((await idb.cache.players.get(pid))?.usageBias, 1.25);
+	const toUISpy = vi.spyOn(workerUtil, "toUI");
+	const recomputeSpy = vi.spyOn(workerUtil, "recomputeLocalUITeamOvrs");
 	await trade.processTrade([1, 0], [[pid], []], [[], []]);
 	const traded = await idb.cache.players.get(pid);
 	assert.strictEqual(traded?.tid, 0);
 	assert.strictEqual(traded?.usageBias, 1);
+	assert.strictEqual(
+		toUISpy.mock.calls.filter(([name]) => name === "realtimeUpdate").length,
+		1,
+	);
+	assert.strictEqual(recomputeSpy.mock.calls.length, 1);
+});
+
+test("trade can defer UI-only refreshes when explicitly requested", async () => {
+	const toUISpy = vi.spyOn(workerUtil, "toUI");
+	const recomputeSpy = vi.spyOn(workerUtil, "recomputeLocalUITeamOvrs");
+
+	await trade.processTrade([1, 0], [[pid], []], [[], []], {
+		deferUiRefresh: true,
+	});
+
+	assert.strictEqual((await idb.cache.players.get(pid))?.tid, 0);
+	assert.strictEqual(
+		toUISpy.mock.calls.filter(([name]) => name === "realtimeUpdate").length,
+		0,
+	);
+	assert.strictEqual(recomputeSpy.mock.calls.length, 0);
 });
 
 afterEach(async () => {

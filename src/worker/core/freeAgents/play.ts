@@ -14,6 +14,39 @@ import {
 import type { Conditions } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 
+type PlayRequestContext = {
+	cache: typeof idb.cache;
+	leagueDB: typeof idb.league;
+	releaseAutoFlush: () => void;
+	checkpoint: ReturnType<typeof idb.cache.beginMutationCheckpoint> | undefined;
+	finalFlushAttempted: boolean;
+	batchUiRefresh: boolean;
+	finalUiRefreshSent: boolean;
+};
+
+const createPlayRequestContext = (
+	batchUiRefresh = false,
+): PlayRequestContext => {
+	const cache = idb.cache;
+	return {
+		cache,
+		leagueDB: idb.league,
+		releaseAutoFlush: cache.pauseAutoFlush(),
+		checkpoint: cache.beginMutationCheckpoint(),
+		finalFlushAttempted: false,
+		batchUiRefresh,
+		finalUiRefreshSent: false,
+	};
+};
+
+const flushPlayRequest = async (context: PlayRequestContext) => {
+	context.finalFlushAttempted = true;
+	await context.cache.flush(undefined, {
+		league: context.leagueDB,
+		updateLastPlayed: false,
+	});
+};
+
 /**
  * Simulates one or more days of free agency.
  *
@@ -25,15 +58,31 @@ async function play(
 	numDays: number,
 	conditions: Conditions,
 	start: boolean = true,
+	requestContext?: PlayRequestContext,
 ) {
+	let context = requestContext;
+	let ownsRequestContext = false;
+
+	const getContext = () => {
+		if (!context) {
+			throw new Error("Free Agency play request context is not initialized");
+		}
+		return context;
+	};
+
 	// This is called when there are no more days to play, either due to the user's request (e.g. 1 week) elapsing or at the end of free agency.
 	const cbNoDays = async () => {
+		const currentContext = getContext();
 		await lock.set("gameSim", false);
 		await updatePlayMenu(); // Check to see if free agency is over
 
 		if (g.get("daysLeft") <= 0) {
 			await updateStatus("Idle");
+			await flushPlayRequest(getContext());
+			currentContext.checkpoint?.commit();
+			currentContext.checkpoint = undefined;
 			await phase.newPhase(PHASE.PRESEASON, conditions);
+			currentContext.finalUiRefreshSent = true;
 		}
 	};
 
@@ -41,42 +90,30 @@ async function play(
 	const cbRunDay = async () => {
 		// This is called if there are remaining days to simulate
 		const cbYetAnother = async () => {
-			const cache = idb.cache;
-			const leagueDB = idb.league;
-			const releaseAutoFlush = cache.pauseAutoFlush();
-			const checkpoint = cache.beginMutationCheckpoint();
+			const currentContext = getContext();
 			let runAnotherDay = false;
-			try {
-				await decreaseDemands();
-				await autoSign();
-				await league.setGameAttributes({
-					daysLeft: g.get("daysLeft") - 1,
-				});
+			await decreaseDemands();
+			await autoSign();
+			await league.setGameAttributes({
+				daysLeft: g.get("daysLeft") - 1,
+			});
 
-				if (g.get("daysLeft") > 0 && numDays > 0) {
+			if (g.get("daysLeft") > 0 && numDays > 0) {
+				if (!currentContext.batchUiRefresh) {
 					await toUI("realtimeUpdate", [["playerMovement"]]);
-					await recomputeLocalUITeamOvrs();
-					await updateStatus(helpers.daysLeft(true));
-					await trade.betweenAiTeams();
-					runAnotherDay = true;
 				}
-
-				// autoSign uses deferred durability. Commit this complete day before
-				// starting the next one, so a later day cannot erase prior progress.
-				await cache.flush(undefined, {
-					league: leagueDB,
-					updateLastPlayed: false,
-				});
-				checkpoint.commit();
-			} catch (error) {
-				checkpoint.rollback();
-				throw error;
-			} finally {
-				releaseAutoFlush();
+				await recomputeLocalUITeamOvrs();
+				await updateStatus(helpers.daysLeft(true));
+				if (currentContext.batchUiRefresh) {
+					await trade.betweenAiTeams({ deferUiRefresh: true });
+				} else {
+					await trade.betweenAiTeams();
+				}
+				runAnotherDay = true;
 			}
 
 			if (runAnotherDay) {
-				await play(numDays - 1, conditions, false);
+				await play(numDays - 1, conditions, false, currentContext);
 			} else {
 				await cbNoDays();
 			}
@@ -98,17 +135,53 @@ async function play(
 		}
 	};
 
-	// If this is a request to start a new simulation... are we allowed to do
-	// that? If so, set the lock and update the play menu
-	if (start) {
-		const canStartGames = await lock.canStartGames();
+	try {
+		// If this is a request to start a new simulation... are we allowed to do
+		// that? If so, set the lock and update the play menu
+		if (start) {
+			const canStartGames = await lock.canStartGames();
 
-		if (canStartGames) {
-			await updatePlayMenu();
+			if (canStartGames) {
+				if (!context) {
+					context = createPlayRequestContext(numDays > 1);
+					ownsRequestContext = true;
+				}
+				await updatePlayMenu();
+				await cbRunDay();
+			}
+		} else {
+			if (!context) {
+				context = createPlayRequestContext(numDays > 1);
+				ownsRequestContext = true;
+			}
 			await cbRunDay();
 		}
-	} else {
-		await cbRunDay();
+
+		if (ownsRequestContext) {
+			const currentContext = getContext();
+			currentContext.checkpoint?.commit();
+			currentContext.checkpoint = undefined;
+			if (!currentContext.finalFlushAttempted) {
+				await flushPlayRequest(currentContext);
+			}
+			if (currentContext.batchUiRefresh) {
+				await recomputeLocalUITeamOvrs();
+			}
+			if (currentContext.batchUiRefresh && !currentContext.finalUiRefreshSent) {
+				await toUI("realtimeUpdate", [["playerMovement"]]);
+				currentContext.finalUiRefreshSent = true;
+			}
+		}
+	} catch (error) {
+		if (ownsRequestContext && context?.checkpoint) {
+			context.checkpoint.rollback();
+			context.checkpoint = undefined;
+		}
+		throw error;
+	} finally {
+		if (ownsRequestContext) {
+			getContext().releaseAutoFlush();
+		}
 	}
 }
 

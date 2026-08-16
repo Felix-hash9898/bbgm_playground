@@ -8,6 +8,10 @@ import summary from "./summary.ts";
 import type { TradeTeams } from "../../../common/types.ts";
 import { isSport } from "../../../common/index.ts";
 
+type BetweenAiTeamsOptions = {
+	deferUiRefresh?: boolean;
+};
+
 const getAITids = async () => {
 	const teams = await idb.cache.teams.getAll();
 	return teams
@@ -27,7 +31,10 @@ const getAITids = async () => {
 		.map((t) => t.tid);
 };
 
-const attempt = async (valueChangeKey: number) => {
+const attempt = async (
+	valueChangeKey: number,
+	options?: BetweenAiTeamsOptions,
+) => {
 	const aiTids = await getAITids();
 
 	if (aiTids.length === 0) {
@@ -137,14 +144,14 @@ const attempt = async (valueChangeKey: number) => {
 	const finalTids: [number, number] = [teams[0].tid, teams[1].tid];
 	const finalPids: [number[], number[]] = [teams[0].pids, teams[1].pids];
 	const finalDpids: [number[], number[]] = [teams[0].dpids, teams[1].dpids];
-	await processTrade(finalTids, finalPids, finalDpids);
+	await processTrade(finalTids, finalPids, finalDpids, options);
 
 	return true;
 };
 
 const DEFAULT_NUM_TEAMS = 30;
 
-const betweenAiTeams = async () => {
+const betweenAiTeams = async (options?: BetweenAiTeamsOptions) => {
 	// aiTrades is a legacy option. Only pay attention to it if the new option is at its default value.
 	if ((g as any).aiTrades === false && g.get("aiTradesFactor") === 1) {
 		return false;
@@ -173,7 +180,7 @@ const betweenAiTeams = async () => {
 		let valueChangeKey = Math.random();
 
 		for (let i = 0; i < numAttempts; i++) {
-			const tradeHappened = await attempt(valueChangeKey);
+			const tradeHappened = await attempt(valueChangeKey, options);
 			if (tradeHappened) {
 				valueChangeKey = Math.random();
 			}

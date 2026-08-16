@@ -7,7 +7,8 @@ import { resetG } from "../../../test/helpers.ts";
 import Cache, { STORES } from "../../db/Cache.ts";
 import { connectLeague, idb } from "../../db/index.ts";
 import { g, helpers, local, lock } from "../../util/index.ts";
-import { league, player, team, trade } from "../index.ts";
+import * as workerUtil from "../../util/index.ts";
+import { league, phase, player, team, trade } from "../index.ts";
 import play from "./play.ts";
 
 let lid: number;
@@ -91,7 +92,7 @@ afterEach(async () => {
 	local.autoSave = previousAutoSave;
 });
 
-test("free-agency day rolls back before enabled autoflush and retries on the same Cache", async () => {
+test("free-agency request rolls back before enabled autoflush and retries on the same Cache", async () => {
 	const freeAgent = (
 		await idb.cache.players.indexGetAll("playersByTid", PLAYER.FREE_AGENT)
 	)[0]!;
@@ -145,7 +146,7 @@ test("free-agency day rolls back before enabled autoflush and retries on the sam
 	assert.strictEqual((await readPlayer(freeAgent.pid))?.tid, 1);
 });
 
-test("three-day request commits day one, rolls back failed day two, and retries days two and three", async () => {
+test("multi-day request rolls back the whole request on a controlled failure", async () => {
 	await league.setGameAttributes({ daysLeft: 4 });
 	await idb.cache.flush(undefined, {
 		league: idb.league,
@@ -157,6 +158,7 @@ test("three-day request commits day one, rolls back failed day two, and retries 
 	vi.spyOn(Math, "random").mockReturnValue(0.99);
 	const laterError = new Error("second free-agency day failed");
 	let tradeCalls = 0;
+	const toUISpy = vi.spyOn(workerUtil, "toUI");
 	vi.spyOn(trade, "betweenAiTeams").mockImplementation(async () => {
 		tradeCalls += 1;
 		if (tradeCalls === 2) {
@@ -173,19 +175,192 @@ test("three-day request commits day one, rolls back failed day two, and retries 
 	}
 	assert.strictEqual(caught, laterError);
 	assert.strictEqual(tradeCalls, 2);
-	assert.strictEqual(g.get("daysLeft"), 3);
+	const playerMovementUpdates = toUISpy.mock.calls.filter(
+		([name, args]) =>
+			name === "realtimeUpdate" &&
+			Array.isArray(args[0]) &&
+			args[0].includes("playerMovement"),
+	).length;
+	assert.strictEqual(playerMovementUpdates, 0);
+	assert.strictEqual(g.get("daysLeft"), 4);
 	assert.strictEqual(
 		(await idb.cache.gameAttributes.get("daysLeft"))?.value,
-		3,
+		4,
 	);
-	assert.strictEqual(await readGameAttribute("daysLeft"), 3);
-	assert.strictEqual((await readPlayer(freeAgent.pid))?.tid, 1);
+	assert.strictEqual(await readGameAttribute("daysLeft"), 4);
+	assert.strictEqual(
+		(await idb.cache.players.get(freeAgent.pid))?.tid,
+		PLAYER.FREE_AGENT,
+	);
+	assert.strictEqual((await readPlayer(freeAgent.pid))?.tid, PLAYER.FREE_AGENT);
 
 	await new Promise((resolve) => setTimeout(resolve, 4500));
-	assert.strictEqual(await readGameAttribute("daysLeft"), 3);
+	assert.strictEqual(await readGameAttribute("daysLeft"), 4);
+
+	await play(3, {} as any, false);
+	assert.strictEqual(tradeCalls, 5);
+	assert.strictEqual(g.get("daysLeft"), 1);
+	assert.strictEqual(await readGameAttribute("daysLeft"), 1);
+	assert.strictEqual((await idb.cache.players.get(freeAgent.pid))?.tid, 1);
+	assert.strictEqual((await readPlayer(freeAgent.pid))?.tid, 1);
+});
+
+test("multi-day success flushes once at the request boundary", async () => {
+	await league.setGameAttributes({ daysLeft: 4 });
+	await idb.cache.flush(undefined, {
+		league: idb.league,
+		updateLastPlayed: false,
+	});
+	vi.spyOn(Math, "random").mockReturnValue(0.99);
+	vi.spyOn(trade, "betweenAiTeams").mockResolvedValue(undefined as any);
+	const flushSpy = vi.spyOn(idb.cache, "flush");
 
 	await play(2, {} as any, false);
-	assert.strictEqual(tradeCalls, 4);
+
+	assert.strictEqual(flushSpy.mock.calls.length, 1);
+	assert.strictEqual(g.get("daysLeft"), 2);
+	assert.strictEqual(await readGameAttribute("daysLeft"), 2);
+});
+
+test("one-day refresh remains immediate and multi-day refresh is batched", async () => {
+	vi.spyOn(Math, "random").mockReturnValue(0.99);
+	const tradeSpy = vi
+		.spyOn(trade, "betweenAiTeams")
+		.mockResolvedValue(undefined as any);
+	const toUISpy = vi.spyOn(workerUtil, "toUI");
+
+	await league.setGameAttributes({ daysLeft: 4 });
+	await idb.cache.flush(undefined, {
+		league: idb.league,
+		updateLastPlayed: false,
+	});
+	await play(1, {} as any, false);
+	assert.deepStrictEqual(tradeSpy.mock.calls[0], []);
+	assert.strictEqual(
+		toUISpy.mock.calls.filter(
+			([name, args]) =>
+				name === "realtimeUpdate" &&
+				Array.isArray(args[0]) &&
+				args[0].includes("playerMovement"),
+		).length,
+		1,
+	);
+
+	toUISpy.mockClear();
+	tradeSpy.mockClear();
+	await league.setGameAttributes({ daysLeft: 4 });
+	await idb.cache.flush(undefined, {
+		league: idb.league,
+		updateLastPlayed: false,
+	});
+	await play(2, {} as any, false);
+	assert.deepStrictEqual(
+		tradeSpy.mock.calls.map(([options]) => options),
+		[{ deferUiRefresh: true }, { deferUiRefresh: true }],
+	);
+	assert.strictEqual(
+		toUISpy.mock.calls.filter(
+			([name, args]) =>
+				name === "realtimeUpdate" &&
+				Array.isArray(args[0]) &&
+				args[0].includes("playerMovement"),
+		).length,
+		1,
+	);
+});
+
+test("stopGameSim flushes completed days before an early return", async () => {
+	await league.setGameAttributes({ daysLeft: 4 });
+	await idb.cache.flush(undefined, {
+		league: idb.league,
+		updateLastPlayed: false,
+	});
+	vi.spyOn(Math, "random").mockReturnValue(0.99);
+	let tradeCalls = 0;
+	vi.spyOn(trade, "betweenAiTeams").mockImplementation(async () => {
+		tradeCalls += 1;
+		await lock.set("stopGameSim", true);
+	});
+	const flushSpy = vi.spyOn(idb.cache, "flush");
+	const toUISpy = vi.spyOn(workerUtil, "toUI");
+
+	await play(3, {} as any, false);
+
+	assert.strictEqual(tradeCalls, 1);
+	assert.strictEqual(flushSpy.mock.calls.length, 1);
+	assert.strictEqual(g.get("daysLeft"), 3);
+	assert.strictEqual(await readGameAttribute("daysLeft"), 3);
+	assert.strictEqual(
+		toUISpy.mock.calls.filter(
+			([name, args]) =>
+				name === "realtimeUpdate" &&
+				Array.isArray(args[0]) &&
+				args[0].includes("playerMovement"),
+		).length,
+		1,
+	);
+});
+
+test("PRESEASON transition is included in the final durable boundary", async () => {
+	await league.setGameAttributes({ daysLeft: 1 });
+	await idb.cache.flush(undefined, {
+		league: idb.league,
+		updateLastPlayed: false,
+	});
+	vi.spyOn(Math, "random").mockReturnValue(0.99);
+	vi.spyOn(phase, "newPhase").mockImplementation(async (nextPhase) => {
+		await league.setGameAttributes({ phase: nextPhase });
+		g.setWithoutSavingToDB("phase", nextPhase);
+		await idb.cache.flush(undefined, {
+			league: idb.league,
+			updateLastPlayed: false,
+		});
+		await workerUtil.toUI("realtimeUpdate", [["playerMovement"]]);
+	});
+	const flushSpy = vi.spyOn(idb.cache, "flush");
+	const toUISpy = vi.spyOn(workerUtil, "toUI");
+
+	await play(2, {} as any, false);
+
+	assert.strictEqual(flushSpy.mock.calls.length, 2);
+	assert.strictEqual(g.get("phase"), PHASE.PRESEASON);
+	assert.strictEqual(await readGameAttribute("phase"), PHASE.PRESEASON);
+	assert.strictEqual(await readGameAttribute("daysLeft"), 0);
+	assert.strictEqual(
+		toUISpy.mock.calls.filter(
+			([name, args]) =>
+				name === "realtimeUpdate" &&
+				Array.isArray(args[0]) &&
+				args[0].includes("playerMovement"),
+		).length,
+		1,
+	);
+});
+
+test("final flush failure keeps the committed day dirty for retry", async () => {
+	const flushError = new Error("final Free Agency flush failed");
+	vi.spyOn(Math, "random").mockReturnValue(0.99);
+	const flushSpy = vi
+		.spyOn(idb.cache, "flush")
+		.mockRejectedValueOnce(flushError);
+
+	let caught: unknown;
+	try {
+		await play(1, {} as any, false);
+	} catch (error) {
+		caught = error;
+	}
+
+	assert.strictEqual(caught, flushError);
+	assert.strictEqual(flushSpy.mock.calls.length, 1);
 	assert.strictEqual(g.get("daysLeft"), 1);
+	assert.strictEqual(await readGameAttribute("daysLeft"), 2);
+	assert.strictEqual(idb.cache._dirty, true);
+
+	flushSpy.mockRestore();
+	await idb.cache.flush(undefined, {
+		league: idb.league,
+		updateLastPlayed: false,
+	});
 	assert.strictEqual(await readGameAttribute("daysLeft"), 1);
 });
