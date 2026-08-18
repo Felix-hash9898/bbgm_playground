@@ -168,7 +168,12 @@ import type { KeyboardShortcutsLocal } from "../../ui/util/keyboardShortcuts.ts"
 import { getNumPlayoffTeamsRaw } from "../core/season/getNumPlayoffTeams.ts";
 import type { NewLeagueSettings } from "../views/newLeague.ts";
 import { decideUserTeamOption } from "../core/contracts/contractOptionDecisions.ts";
-import { validateBasketballMinutes } from "../core/team/basketballMinutes.ts";
+import {
+	currentMinutesOverrideContextMatches,
+	getBasketballGameAvailability,
+	getBasketballMinutesOverrideContext,
+	validateBasketballMinutes,
+} from "../core/team/basketballMinutes.ts";
 import reconcileBasketballRotation from "../core/team/reconcileBasketballRotation.ts";
 
 const acceptContractNegotiation = async ({
@@ -3276,7 +3281,22 @@ const resetPlayingTime = async (tids: number[] | undefined) => {
 		for (const tid of tids2) {
 			const t = await idb.cache.teams.get(tid);
 			if (t) {
-				t.basketballRotation = { version: 1, mode: "auto" };
+				const previousRotation = t.basketballRotation;
+				const noInjuryMinutesIncreasePids =
+					previousRotation?.noInjuryMinutesIncreasePids;
+				t.basketballRotation = {
+					version: 1,
+					mode: "auto",
+					...(previousRotation?.rotationDepth
+						? { rotationDepth: previousRotation.rotationDepth }
+						: {}),
+					...(previousRotation?.coreReliance
+						? { coreReliance: previousRotation.coreReliance }
+						: {}),
+					...(noInjuryMinutesIncreasePids?.length
+						? { noInjuryMinutesIncreasePids }
+						: {}),
+				};
 				await idb.cache.teams.put(t);
 			}
 		}
@@ -4352,9 +4372,11 @@ const updatePlayingTime = async (args: {
 const updateBasketballMinutes = async ({
 	tid,
 	minutesByPid,
+	explicitPids = [],
 }: {
 	tid: number;
 	minutesByPid: Record<number, number>;
+	explicitPids?: number[];
 }) => {
 	if (
 		!isSport("basketball") ||
@@ -4378,15 +4400,291 @@ const updateBasketballMinutes = async ({
 	if (error) {
 		throw new Error(error);
 	}
+	const previousRotation = t.basketballRotation;
+	const previousAutoFilled = new Set(
+		previousRotation?.mode === "custom"
+			? (previousRotation.autoFilledPids ?? [])
+			: [],
+	);
+	const requiredMinutes = 48 * g.get("numPlayersOnCourt");
+	const baselineTotal = Object.values(minutesByPid).reduce(
+		(total, minutes) => total + minutes,
+		0,
+	);
+	const requestedExplicit = new Set(explicitPids);
+	const autoFilledPids = players
+		.filter((p) => {
+			if (!previousAutoFilled.has(p.pid) || requestedExplicit.has(p.pid)) {
+				return false;
+			}
+			return minutesByPid[p.pid] === previousRotation?.minutesByPid?.[p.pid];
+		})
+		.map((p) => p.pid);
+	const rosterAutoFillActive =
+		baselineTotal < requiredMinutes &&
+		previousRotation?.mode === "custom" &&
+		(previousRotation.rosterAutoFillActive === true ||
+			(previousAutoFilled.size > 0 &&
+				Object.values(previousRotation.minutesByPid ?? {}).reduce(
+					(total, minutes) => total + minutes,
+					0,
+				) < requiredMinutes));
+	const currentOverrideFields =
+		previousRotation?.currentMinutesOverrideByPid &&
+		previousRotation.currentMinutesOverrideContext
+			? {
+					currentMinutesOverrideByPid:
+						previousRotation.currentMinutesOverrideByPid,
+					currentMinutesOverrideContext:
+						previousRotation.currentMinutesOverrideContext,
+				}
+			: {};
 
 	t.basketballRotation = {
 		version: 1,
 		mode: "custom",
+		...(previousRotation?.rotationDepth
+			? { rotationDepth: previousRotation.rotationDepth }
+			: {}),
+		...(previousRotation?.coreReliance
+			? { coreReliance: previousRotation.coreReliance }
+			: {}),
 		minutesByPid: Object.fromEntries(
 			players.map((p) => [p.pid, minutesByPid[p.pid]!]),
 		),
 		numPlayersOnCourtAtSave: g.get("numPlayersOnCourt"),
+		...(previousRotation?.noInjuryMinutesIncreasePids?.length
+			? {
+					noInjuryMinutesIncreasePids:
+						previousRotation.noInjuryMinutesIncreasePids,
+				}
+			: {}),
+		...(autoFilledPids.length > 0 ? { autoFilledPids } : {}),
+		...(rosterAutoFillActive ? { rosterAutoFillActive: true } : {}),
+		...currentOverrideFields,
 	};
+	await idb.cache.teams.put(t);
+	if (rosterAutoFillActive || autoFilledPids.length > 0) {
+		await reconcileBasketballRotation([tid]);
+	}
+	await toUI("realtimeUpdate", [["playerMovement", "team"]]);
+};
+
+const updateBasketballCurrentMinutesOverride = async ({
+	tid,
+	pid,
+	minutes,
+}: {
+	tid: number;
+	pid: number;
+	minutes: number | null;
+}) => {
+	if (
+		!isSport("basketball") ||
+		g.get("spectator") ||
+		!g.get("userTids").includes(tid)
+	) {
+		throw new Error("You are not allowed to update current basketball minutes");
+	}
+	const [t, players] = await Promise.all([
+		idb.cache.teams.get(tid),
+		idb.cache.players.indexGetAll("playersByTid", tid),
+	]);
+	if (!t) {
+		throw new Error("Invalid tid");
+	}
+	if (!players.some((p) => p.pid === pid)) {
+		throw new Error("Invalid pid for this team");
+	}
+	if (minutes !== null) {
+		if (
+			!Number.isInteger(minutes) ||
+			minutes < 0 ||
+			minutes > g.get("quarterLength") * g.get("numPeriods")
+		) {
+			throw new Error("Current minutes must be a whole number in game range");
+		}
+	}
+
+	const playoffs = g.get("phase") === PHASE.PLAYOFFS;
+	const playThroughInjuries = t.playThroughInjuries[playoffs ? 1 : 0];
+	const availableValues = getBasketballGameAvailability({
+		players,
+		playThroughInjuries,
+		numPlayersOnCourt: g.get("numPlayersOnCourt"),
+	});
+	const availablePids = new Set(
+		players.filter((_, index) => availableValues[index]).map((p) => p.pid),
+	);
+	if (minutes !== null && !availablePids.has(pid)) {
+		throw new Error("Current minutes can only target an available player");
+	}
+	const regulationMinutes = g.get("quarterLength") * g.get("numPeriods");
+	const context = getBasketballMinutesOverrideContext({
+		players,
+		available: availablePids,
+		numPlayersOnCourt: g.get("numPlayersOnCourt"),
+		regulationMinutes,
+	});
+	const rotation = t.basketballRotation ?? {
+		version: 1,
+		mode: "auto" as const,
+	};
+	const previousContext = rotation.currentMinutesOverrideContext;
+	const previousOverrides = currentMinutesOverrideContextMatches(
+		previousContext,
+		context,
+	)
+		? { ...(rotation.currentMinutesOverrideByPid ?? {}) }
+		: {};
+	if (minutes === null) {
+		delete previousOverrides[pid];
+	} else {
+		previousOverrides[pid] = minutes;
+	}
+
+	const rosterPids = new Set(players.map((p) => p.pid));
+	const pinnedTotal = Object.entries(previousOverrides).reduce(
+		(total, [pidString, value]) => {
+			const overridePid = Number(pidString);
+			if (
+				!rosterPids.has(overridePid) ||
+				!availablePids.has(overridePid) ||
+				!Number.isInteger(value) ||
+				value < 0 ||
+				value > regulationMinutes
+			) {
+				throw new Error("Current minute overrides contain an invalid player");
+			}
+			return total + value;
+		},
+		0,
+	);
+	const required = regulationMinutes * g.get("numPlayersOnCourt");
+	if (pinnedTotal > required + 1e-7) {
+		throw new Error("Current minute overrides exceed the regulation total");
+	}
+	const unpinnedAvailable = [...availablePids].filter(
+		(availablePid) => previousOverrides[availablePid] === undefined,
+	);
+	if (required - pinnedTotal > 1e-7 && unpinnedAvailable.length === 0) {
+		throw new Error("Leave one available player for the remaining minutes");
+	}
+
+	t.basketballRotation = {
+		...rotation,
+		version: 1,
+		...(Object.keys(previousOverrides).length > 0
+			? {
+					currentMinutesOverrideByPid: previousOverrides,
+					currentMinutesOverrideContext: context,
+				}
+			: {}),
+	};
+	if (Object.keys(previousOverrides).length === 0) {
+		delete t.basketballRotation.currentMinutesOverrideByPid;
+		delete t.basketballRotation.currentMinutesOverrideContext;
+	}
+	await idb.cache.teams.put(t);
+	await toUI("realtimeUpdate", [["playerMovement", "team"]]);
+};
+
+const updateBasketballNoInjuryMinutesIncrease = async ({
+	tid,
+	pid,
+	protectedFromIncrease,
+}: {
+	tid: number;
+	pid: number;
+	protectedFromIncrease: boolean;
+}) => {
+	if (
+		!isSport("basketball") ||
+		g.get("spectator") ||
+		!g.get("userTids").includes(tid)
+	) {
+		throw new Error("You are not allowed to update this basketball plan");
+	}
+	const [t, players] = await Promise.all([
+		idb.cache.teams.get(tid),
+		idb.cache.players.indexGetAll("playersByTid", tid),
+	]);
+	if (!t) {
+		throw new Error("Invalid tid");
+	}
+	if (!players.some((p) => p.pid === pid)) {
+		throw new Error("Invalid pid for this team");
+	}
+
+	const protectedPids = new Set(
+		t.basketballRotation?.noInjuryMinutesIncreasePids ?? [],
+	);
+	if (protectedFromIncrease) {
+		protectedPids.add(pid);
+	} else {
+		protectedPids.delete(pid);
+	}
+	const noInjuryMinutesIncreasePids = Array.from(protectedPids).sort(
+		(a, b) => a - b,
+	);
+	const rotation = t.basketballRotation ?? {
+		version: 1,
+		mode: "auto" as const,
+	};
+	t.basketballRotation = {
+		...rotation,
+		version: 1,
+		...(noInjuryMinutesIncreasePids.length > 0
+			? { noInjuryMinutesIncreasePids }
+			: {}),
+	};
+	if (noInjuryMinutesIncreasePids.length === 0) {
+		delete t.basketballRotation.noInjuryMinutesIncreasePids;
+	}
+	await idb.cache.teams.put(t);
+	await toUI("realtimeUpdate", [["playerMovement", "team"]]);
+};
+
+const updateBasketballRotationProfile = async ({
+	tid,
+	rotationDepth,
+	coreReliance,
+}: {
+	tid: number;
+	rotationDepth: "short" | "normal" | "long";
+	coreReliance: "high" | "balanced" | "low";
+}) => {
+	if (
+		!isSport("basketball") ||
+		g.get("spectator") ||
+		!g.get("userTids").includes(tid)
+	) {
+		throw new Error("You are not allowed to update this basketball profile");
+	}
+	const t = await idb.cache.teams.get(tid);
+	if (!t) {
+		throw new Error("Invalid tid");
+	}
+	if (!["short", "normal", "long"].includes(rotationDepth)) {
+		throw new Error("Invalid basketball rotation depth");
+	}
+	if (!["high", "balanced", "low"].includes(coreReliance)) {
+		throw new Error("Invalid basketball core reliance");
+	}
+	const rotation = t.basketballRotation ?? {
+		version: 1,
+		mode: "auto" as const,
+	};
+	t.basketballRotation = {
+		...rotation,
+		version: 1,
+		rotationDepth,
+		coreReliance,
+	};
+	if (rotation.mode === "auto") {
+		delete t.basketballRotation.autoFilledPids;
+		delete t.basketballRotation.rosterAutoFillActive;
+	}
 	await idb.cache.teams.put(t);
 	await toUI("realtimeUpdate", [["playerMovement", "team"]]);
 };
@@ -5637,6 +5935,9 @@ export default {
 		onLiveSimOver,
 		updateAwards,
 		updateBasketballMinutes,
+		updateBasketballCurrentMinutesOverride,
+		updateBasketballNoInjuryMinutesIncrease,
+		updateBasketballRotationProfile,
 		updateBudget,
 		updateConfsDivs,
 		updateDefaultSettingsOverrides,

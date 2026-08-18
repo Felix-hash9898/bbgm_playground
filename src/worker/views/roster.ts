@@ -1,5 +1,5 @@
 import { bySport, isSport, PHASE, POSITIONS } from "../../common/index.ts";
-import { finances, season, team } from "../core/index.ts";
+import { finances, player, season, team } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers, orderTeams } from "../util/index.ts";
 import type {
@@ -11,7 +11,13 @@ import type {
 import { addMood } from "./freeAgents.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
 import { getActualPlayThroughInjuries } from "../core/game/loadTeams.ts";
-import { getBasketballRotationMinutes } from "../core/team/basketballMinutes.ts";
+import {
+	getBasketballGameAvailability,
+	getBasketballOvrPercentiles,
+	getBasketballRotationPlayerInput,
+	getBasketballRotationMinutes,
+	getGameEffectiveBasketballMinutesWithStatus,
+} from "../core/team/basketballMinutes.ts";
 
 const sortByPos = (p: {
 	ratings: {
@@ -191,6 +197,7 @@ const updateRoster = async (
 			"latestTransaction",
 			"mood",
 			"value",
+			"valueNoPot",
 			"awards",
 			"form",
 		]; // tid and draft are used for checking if a player can be released without paying his salary
@@ -201,9 +208,20 @@ const updateRoster = async (
 			"dovr",
 			"dpot",
 			"skills",
+			"hgt",
+			"fuzz",
 			"pos",
 			"ovrs",
 			"endu",
+			"drb",
+			"pss",
+			"oiq",
+			"reb",
+			"diq",
+			"stre",
+			"spd",
+			"jmp",
+			"tp",
 		];
 		const stats2 = [...stats, "yearsWithTeam", "jerseyNumber", "min", "gp"];
 
@@ -349,39 +367,127 @@ const updateRoster = async (
 			rank,
 		};
 		t2.seasonAttrs.avgAge = t2.seasonAttrs.avgAge ?? team.avgAge(players);
+		const leagueRotationOvrPercentiles =
+			isSport("basketball") &&
+			inputs.season === g.get("season") &&
+			inputs.tid === g.get("userTid") &&
+			!g.get("spectator") &&
+			!g.get("challengeNoRatings")
+				? getBasketballOvrPercentiles(
+						(
+							await idb.cache.players.indexGetAll("playersByTid", [0, Infinity])
+						).map((p) => {
+							const ratings = p.ratings.at(-1)!;
+							return {
+								pid: p.pid,
+								ovr: player.fuzzRating(ratings.ovr, ratings.fuzz),
+							};
+						}),
+					)
+				: undefined;
 
 		const basketballMinutes =
 			isSport("basketball") &&
 			inputs.season === g.get("season") &&
 			inputs.tid === g.get("userTid") &&
 			!g.get("spectator")
-				? {
-						...getBasketballRotationMinutes({
+				? (() => {
+						const minutesPlayers = players.map((p) =>
+							getBasketballRotationPlayerInput({
+								pid: p.pid,
+								rosterOrder: p.rosterOrder,
+								ratings: p.ratings as unknown as Record<string, unknown>,
+								challengeNoRatings: g.get("challengeNoRatings"),
+								// playersPlus(..., fuzz: true) already applied the user
+								// information policy. Do not fuzz these ratings again.
+								useFuzzedRatings: false,
+								ovrPercentile: leagueRotationOvrPercentiles?.get(p.pid),
+							}),
+						);
+						const playoffs = g.get("phase") === PHASE.PLAYOFFS;
+						const rotation = getBasketballRotationMinutes({
 							rotation: t.basketballRotation,
-							players: players.map((p) => ({
-								pid: p.pid,
-								rosterOrder: p.rosterOrder,
-								endurance: g.get("challengeNoRatings")
-									? 0.5
-									: p.ratings.endu / 100,
-							})),
+							players: minutesPlayers,
 							numPlayersOnCourt: g.get("numPlayersOnCourt"),
-							playoffs: g.get("phase") === PHASE.PLAYOFFS,
-						}),
-						autoMinutesByPid: getBasketballRotationMinutes({
-							rotation: undefined,
-							players: players.map((p) => ({
-								pid: p.pid,
-								rosterOrder: p.rosterOrder,
-								endurance: g.get("challengeNoRatings")
-									? 0.5
-									: p.ratings.endu / 100,
-							})),
+							playoffs,
+						});
+						const autoMinutes = getBasketballRotationMinutes({
+							rotation: {
+								version: 1,
+								mode: "auto",
+								rotationDepth: rotation.rotationDepth,
+								coreReliance: rotation.coreReliance,
+							},
+							players: minutesPlayers,
 							numPlayersOnCourt: g.get("numPlayersOnCourt"),
-							playoffs: g.get("phase") === PHASE.PLAYOFFS,
-						}).minutesByPid,
-						required: 48 * g.get("numPlayersOnCourt"),
-					}
+							playoffs,
+						});
+
+						let effective:
+							| ReturnType<typeof getGameEffectiveBasketballMinutesWithStatus>
+							| undefined;
+						let unavailablePids: number[] = [];
+						if (rotation.previewReady) {
+							const playThroughInjuries =
+								getActualPlayThroughInjuries(t)[playoffs ? 1 : 0];
+							const available = getBasketballGameAvailability({
+								players,
+								playThroughInjuries,
+								numPlayersOnCourt: g.get("numPlayersOnCourt"),
+							});
+							unavailablePids = players
+								.filter((_, index) => !available[index])
+								.map((p) => p.pid);
+							const availableCount = available.filter(Boolean).length;
+							if (availableCount >= g.get("numPlayersOnCourt")) {
+								const regulationMinutes =
+									g.get("quarterLength") * g.get("numPeriods");
+								const previewTargetTotal =
+									Object.values(rotation.minutesByPid).reduce(
+										(total, value) => total + value,
+										0,
+									) *
+									(regulationMinutes / 48);
+								effective = getGameEffectiveBasketballMinutesWithStatus({
+									players: minutesPlayers.map((p, index) => ({
+										...p,
+										available: available[index]!,
+										value: g.get("challengeNoRatings")
+											? undefined
+											: players[index]!.valueNoPot,
+									})),
+									minutesByPid: rotation.minutesByPid,
+									numPlayersOnCourt: g.get("numPlayersOnCourt"),
+									regulationMinutes,
+									targetTotalMinutes: previewTargetTotal,
+									noInjuryMinutesIncreasePids:
+										t.basketballRotation?.noInjuryMinutesIncreasePids ?? [],
+									rotationDepth: rotation.rotationDepth,
+									coreReliance: rotation.coreReliance,
+									currentMinutesOverrideByPid:
+										t.basketballRotation?.currentMinutesOverrideByPid,
+									currentMinutesOverrideContext:
+										t.basketballRotation?.currentMinutesOverrideContext,
+								});
+							}
+						}
+
+						return {
+							...rotation,
+							minutesByPid:
+								rotation.baselineMinutesByPid ?? rotation.minutesByPid,
+							healthyMinutesByPid: rotation.minutesByPid,
+							autoMinutesByPid: autoMinutes.minutesByPid,
+							effectiveMinutesByPid: effective?.minutesByPid,
+							protectionOverridePids: effective?.protectionOverridePids ?? [],
+							currentMinutesOverrideByPid:
+								effective?.activeCurrentMinutesOverrideByPid,
+							currentMinutesOverrideError:
+								effective?.currentMinutesOverrideError,
+							unavailablePids,
+							required: 48 * g.get("numPlayersOnCourt"),
+						};
+					})()
 				: undefined;
 
 		for (const p of players) {

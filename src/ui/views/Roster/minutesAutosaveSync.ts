@@ -17,6 +17,7 @@ export const shouldPreserveLocalMinutesDraft = ({
 	localMinutesKey,
 	ownWriteKeys,
 	autoResetPending,
+	localDraftPending = false,
 }: {
 	tidChanged: boolean;
 	rosterChanged?: boolean;
@@ -25,6 +26,7 @@ export const shouldPreserveLocalMinutesDraft = ({
 	localMinutesKey: string;
 	ownWriteKeys: ReadonlySet<string>;
 	autoResetPending: boolean;
+	localDraftPending?: boolean;
 }) => {
 	if (tidChanged || rosterChanged) {
 		return false;
@@ -34,6 +36,13 @@ export const shouldPreserveLocalMinutesDraft = ({
 	// flight. A stale custom response must not restore an older draft.
 	if (autoResetPending) {
 		return incomingMode !== "auto";
+	}
+
+	// A complete local draft may still be inside the debounce window. A same
+	// team/same-membership refresh can therefore contain the older persisted
+	// plan without being an own-write echo yet.
+	if (localDraftPending && incomingMinutesKey !== localMinutesKey) {
+		return true;
 	}
 
 	// A server echo for a write that is already in flight is safe only when it

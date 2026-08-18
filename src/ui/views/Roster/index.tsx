@@ -45,14 +45,54 @@ import { groupByUnique } from "../../../common/utils.ts";
 import { movePlayerPids, swapPlayerPids } from "./reorderPlayers.ts";
 import { rosterCompactControlStyle } from "./compactControlStyle.ts";
 import { useBasketballMinutesAutosave } from "./useBasketballMinutesAutosave.ts";
+import BasketballMinutesPopover from "./BasketballMinutesPopover.tsx";
 
 const saveBasketballMinutesPlan = (
 	tid: number,
 	minutesByPid: Record<number, number>,
-) => toWorker("main", "updateBasketballMinutes", { tid, minutesByPid });
+	explicitPids?: number[],
+) =>
+	toWorker("main", "updateBasketballMinutes", {
+		tid,
+		minutesByPid,
+		explicitPids,
+	});
+
+const updateBasketballNoInjuryMinutesIncrease = (
+	tid: number,
+	pid: number,
+	protectedFromIncrease: boolean,
+) =>
+	toWorker("main", "updateBasketballNoInjuryMinutesIncrease", {
+		tid,
+		pid,
+		protectedFromIncrease,
+	});
+
+const updateBasketballCurrentMinutesOverride = (
+	tid: number,
+	pid: number,
+	minutes: number | null,
+) =>
+	toWorker("main", "updateBasketballCurrentMinutesOverride", {
+		tid,
+		pid,
+		minutes,
+	});
 
 const resetBasketballMinutesPlan = (tid: number) =>
 	toWorker("main", "resetPlayingTime", [tid]);
+
+const updateBasketballRotationProfile = (
+	tid: number,
+	rotationDepth: "short" | "normal" | "long",
+	coreReliance: "high" | "balanced" | "low",
+) =>
+	toWorker("main", "updateBasketballRotationProfile", {
+		tid,
+		rotationDepth,
+		coreReliance,
+	});
 
 const reportBasketballMinutesError = (error: unknown) => {
 	logEvent({
@@ -157,8 +197,11 @@ const Roster = ({
 		plannedMinutesValid,
 		plannedMinutesChanged,
 		minutesSaveStatus,
+		autoFilledPids,
 		autoResetPending,
 		handleMinutesChange,
+		handleAutoMinutesFocus,
+		handleAutoMinutesBlur,
 		handleAutoMinutes,
 	} = useBasketballMinutesAutosave({
 		basketballMinutes,
@@ -169,6 +212,14 @@ const Roster = ({
 		resetToAuto: resetBasketballMinutesPlan,
 		onError: reportBasketballMinutesError,
 	});
+	const noInjuryMinutesIncreasePids = new Set(
+		basketballMinutes?.noInjuryMinutesIncreasePids ?? [],
+	);
+	const rotationDepth = basketballMinutes?.rotationDepth ?? "normal";
+	const coreReliance = basketballMinutes?.coreReliance ?? "balanced";
+	const currentMinutesOverrideByPid =
+		basketballMinutes?.currentMinutesOverrideByPid ?? {};
+	const unavailablePids = new Set(basketballMinutes?.unavailablePids ?? []);
 
 	useTitleBar({
 		title: "Roster",
@@ -228,7 +279,7 @@ const Roster = ({
 				desc: "Country",
 			},
 			PT: {
-				width: isSport("basketball") ? "56px" : undefined,
+				width: isSport("basketball") ? "110px" : undefined,
 				titleReact: (
 					<>
 						{isSport("basketball") ? (
@@ -353,6 +404,39 @@ const Roster = ({
 
 	const rows: DataTableRow[] = playersSorted.map((p, i) => {
 		const showRatings = !challengeNoRatings || p.tid === PLAYER.RETIRED;
+		const isAutoFilled = autoFilledPids.has(p.pid);
+		const effectiveMinutes = basketballMinutes?.effectiveMinutesByPid?.[p.pid];
+		const baseMinutes = Number(minutesDraft[p.pid]);
+		const healthyMinutes =
+			basketballMinutes?.healthyMinutesByPid?.[p.pid] ?? baseMinutes;
+		const currentOverride = currentMinutesOverrideByPid[p.pid];
+		const currentMinutes =
+			effectiveMinutes ??
+			(isAutoFilled && healthyMinutes > 0 ? healthyMinutes : undefined);
+		const showEffectiveMinutes =
+			currentMinutes !== undefined &&
+			(isAutoFilled
+				? healthyMinutes > 0 ||
+					Math.abs(currentMinutes - healthyMinutes) > 1e-7 ||
+					currentOverride !== undefined
+				: Number.isFinite(baseMinutes) &&
+					(Math.abs(currentMinutes - baseMinutes) > 1e-7 ||
+						currentOverride !== undefined));
+		const effectiveMinutesText =
+			currentMinutes === undefined
+				? ""
+				: Number.isInteger(currentMinutes)
+					? String(currentMinutes)
+					: currentMinutes.toFixed(1);
+		const rosterDelta = Number.isFinite(baseMinutes)
+			? isAutoFilled
+				? healthyMinutes
+				: healthyMinutes - baseMinutes
+			: undefined;
+		const injuryDelta =
+			effectiveMinutes !== undefined && Number.isFinite(healthyMinutes)
+				? effectiveMinutes - healthyMinutes
+				: undefined;
 
 		return {
 			key: p.pid,
@@ -435,24 +519,69 @@ const Roster = ({
 				...(editable
 					? isSport("basketball")
 						? [
-								<input
-									className="form-control form-control-sm"
-									type="number"
-									min={0}
-									max={48}
-									step={1}
-									value={minutesDraft[p.pid] ?? ""}
-									onChange={(event) =>
-										handleMinutesChange(p.pid, event.target.value)
-									}
-									aria-label={`Planned minutes for ${p.firstName} ${p.lastName}`}
-									style={{
-										...rosterCompactControlStyle,
-										width: "56px",
-										minWidth: "56px",
-										textAlign: "center",
-									}}
-								/>,
+								<div className="d-flex align-items-center gap-1">
+									<input
+										className="form-control form-control-sm"
+										type={isAutoFilled ? "text" : "number"}
+										min={isAutoFilled ? undefined : 0}
+										max={isAutoFilled ? undefined : 48}
+										step={isAutoFilled ? undefined : 1}
+										value={isAutoFilled ? "Auto" : (minutesDraft[p.pid] ?? "")}
+										onFocus={(event) => {
+											if (isAutoFilled) {
+												handleAutoMinutesFocus(p.pid);
+												event.currentTarget.select();
+											}
+										}}
+										onBlur={() => {
+											if (isAutoFilled) {
+												handleAutoMinutesBlur(p.pid);
+											}
+										}}
+										onChange={(event) =>
+											handleMinutesChange(p.pid, event.target.value)
+										}
+										aria-label={`Planned minutes for ${p.firstName} ${p.lastName}`}
+										style={{
+											...rosterCompactControlStyle,
+											width: "52px",
+											minWidth: "52px",
+											textAlign: "center",
+										}}
+									/>
+									{showEffectiveMinutes ? (
+										<span
+											aria-label={`Current injury-effective planned minutes: ${effectiveMinutesText}`}
+										>
+											→ {effectiveMinutesText}
+										</span>
+									) : null}
+									<BasketballMinutesPopover
+										pid={p.pid}
+										playerName={`${p.firstName} ${p.lastName}`}
+										baseLabel={isAutoFilled ? "Auto" : String(baseMinutes)}
+										rosterDelta={rosterDelta}
+										injuryDelta={injuryDelta}
+										currentMinutes={currentMinutes}
+										currentOverride={currentOverride}
+										unavailable={unavailablePids.has(p.pid)}
+										protectionEnabled={noInjuryMinutesIncreasePids.has(p.pid)}
+										onCurrentOverrideChange={(minutes) =>
+											updateBasketballCurrentMinutesOverride(
+												tid,
+												p.pid,
+												minutes,
+											)
+										}
+										onProtectionChange={(protectedFromIncrease) =>
+											updateBasketballNoInjuryMinutesIncrease(
+												tid,
+												p.pid,
+												protectedFromIncrease,
+											)
+										}
+									/>
+								</div>,
 							]
 						: [<PlayingTime p={p} userTid={userTid} godMode={godMode} />]
 					: []),
@@ -568,6 +697,21 @@ const Roster = ({
 						>
 							Total {plannedMinutesTotal} / {basketballMinutes.required}
 						</span>
+						{!plannedMinutesValid ? (
+							<span className="text-danger">
+								Fix the total before starting a game
+							</span>
+						) : null}
+						{basketballMinutes.protectionOverridePids?.length ? (
+							<span className="text-warning">
+								Injury protection overridden: too few healthy players
+							</span>
+						) : null}
+						{basketballMinutes.currentMinutesOverrideError ? (
+							<span className="text-danger">
+								{basketballMinutes.currentMinutesOverrideError}
+							</span>
+						) : null}
 						{minutesSaveStatus === "saving" ? (
 							<span className="text-body-secondary small">Saving…</span>
 						) : minutesSaveStatus === "saved" ? (
@@ -579,6 +723,48 @@ const Roster = ({
 						>
 							Auto Minutes
 						</button>
+					</div>
+					<div className="d-flex flex-wrap align-items-center gap-2 mt-2 small">
+						<label className="d-flex align-items-center gap-1">
+							<span>Depth</span>
+							<select
+								className="form-select form-select-sm"
+								style={rosterCompactControlStyle}
+								value={rotationDepth}
+								onChange={(event) => {
+									void updateBasketballRotationProfile(
+										tid,
+										event.target.value as "short" | "normal" | "long",
+										coreReliance,
+									).catch(reportBasketballMinutesError);
+								}}
+								aria-label="Rotation depth"
+							>
+								<option value="short">Short</option>
+								<option value="normal">Normal</option>
+								<option value="long">Long</option>
+							</select>
+						</label>
+						<label className="d-flex align-items-center gap-1">
+							<span>Core</span>
+							<select
+								className="form-select form-select-sm"
+								style={rosterCompactControlStyle}
+								value={coreReliance}
+								onChange={(event) => {
+									void updateBasketballRotationProfile(
+										tid,
+										rotationDepth,
+										event.target.value as "high" | "balanced" | "low",
+									).catch(reportBasketballMinutesError);
+								}}
+								aria-label="Core reliance"
+							>
+								<option value="high">High</option>
+								<option value="balanced">Balanced</option>
+								<option value="low">Low</option>
+							</select>
+						</label>
 					</div>
 				</div>
 			) : null}

@@ -1585,9 +1585,25 @@ export type SortType =
 	| "string"
 	| "pos";
 
+export type BasketballMinutesOverrideContext = {
+	/** The roster membership that the current override was created for. */
+	rosterPids: number[];
+	/** Players unavailable under the current play-through-injuries setting. */
+	unavailablePids: number[];
+	numPlayersOnCourt: number;
+	regulationMinutes: number;
+};
+
 export type BasketballRotation = {
 	version: 1;
 	mode: "auto" | "custom";
+	/** Team-level coaching intent used when deriving healthy Auto and injury coverage. */
+	rotationDepth?: "short" | "normal" | "long";
+	coreReliance?: "high" | "balanced" | "low";
+	/** Pids whose current healthy minutes are unowned/Auto after a roster change. */
+	autoFilledPids?: number[];
+	/** A roster-change vacancy is still being filled as a temporary healthy overlay. */
+	rosterAutoFillActive?: boolean;
 	/**
 	 * Planned minutes are always stored in the normal 48-minute convention,
 	 * regardless of the league's quarter length. This is only populated for a
@@ -1595,6 +1611,16 @@ export type BasketballRotation = {
 	 */
 	minutesByPid?: Record<number, number>;
 	numPlayersOnCourtAtSave?: number;
+	/**
+	 * Players who must not receive additional planned minutes when another
+	 * player is unavailable. This is an injury-redistribution upper bound, not
+	 * a hard cap on actual single-game minutes.
+	 */
+	noInjuryMinutesIncreasePids?: number[];
+	/** Current-context targets that do not change the healthy Custom baseline. */
+	currentMinutesOverrideByPid?: Record<number, number>;
+	/** Roster/availability context for currentMinutesOverrideByPid. */
+	currentMinutesOverrideContext?: BasketballMinutesOverrideContext;
 };
 
 export type Team = {

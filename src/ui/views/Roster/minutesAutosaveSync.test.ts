@@ -30,6 +30,23 @@ describe("basketball minutes autosave source synchronization", () => {
 		).toBe(true);
 	});
 
+	test("preserves a complete local draft before its debounce write starts", () => {
+		const incomingKey = serializeMinutesByPid(planA);
+		const localKey = serializeMinutesByPid(planB);
+
+		expect(
+			shouldPreserveLocalMinutesDraft({
+				tidChanged: false,
+				incomingMode: "custom",
+				incomingMinutesKey: incomingKey,
+				localMinutesKey: localKey,
+				ownWriteKeys: new Set(),
+				autoResetPending: false,
+				localDraftPending: true,
+			}),
+		).toBe(true);
+	});
+
 	test("accepts the server echo once it matches the local draft", () => {
 		const localKey = serializeMinutesByPid(planB);
 

@@ -20,6 +20,7 @@ import { getMidLevelExceptionAmount } from "../worker/core/contracts/contractMid
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { defaultGameAttributes, g, local, lock } from "../worker/util/index.ts";
+import { beforeNonLeague } from "../worker/util/beforeView.ts";
 
 import "../worker/index.ts";
 
@@ -196,6 +197,7 @@ describe("full league-year gameplay smoke", () => {
 			lifecycleLocation = "playing time";
 			// Unified Dynamic minutes production API. Start from the generated Auto
 			// plan, make one legal edit, and atomically save it as Custom.
+			const rotationPid = initialRoster[1]!.pid;
 			const initialRosterView = await readView("roster", {
 				abbrev: userAbbrev(),
 				season: String(g.get("season")),
@@ -372,14 +374,69 @@ describe("full league-year gameplay smoke", () => {
 			const persistedRotation = (await idb.cache.teams.get(0))!
 				.basketballRotation!;
 			assert.strictEqual(persistedRotation.mode, "custom");
-			assert.closeTo(
-				Object.values(persistedRotation.minutesByPid!).reduce(
+			const persistedBaselineMinutes = persistedRotation.minutesByPid!;
+			const persistedBaselineTotal = Object.values(
+				persistedBaselineMinutes,
+			).reduce((total, minutes) => total + minutes, 0);
+			const reloadedRosterPids = new Set(
+				(await getUserPlayers()).map((player) => player.pid),
+			);
+			if (reloadedRosterPids.has(rotationPid)) {
+				assert.strictEqual(
+					persistedBaselineMinutes[rotationPid],
+					customMinutes[rotationPid],
+				);
+			}
+			for (const [pidString, minutes] of Object.entries(customMinutes)) {
+				const pid = Number(pidString);
+				if (reloadedRosterPids.has(pid)) {
+					assert.strictEqual(
+						persistedBaselineMinutes[pid],
+						minutes,
+						`Custom baseline changed for retained pid ${pid}`,
+					);
+				}
+			}
+			const reloadedRosterView = await readView("roster", {
+				abbrev: userAbbrev(),
+				season: String(g.get("season")),
+			});
+			const reloadedBasketballMinutes = reloadedRosterView.basketballMinutes;
+			assert.strictEqual(reloadedBasketballMinutes.mode, "custom");
+			assert.strictEqual(reloadedBasketballMinutes.required, 240);
+			assert.isTrue(reloadedBasketballMinutes.gameReady);
+			const reloadedHealthyMinutes =
+				reloadedBasketballMinutes.healthyMinutesByPid as Record<number, number>;
+			assert.strictEqual(
+				Object.values(reloadedHealthyMinutes).reduce(
 					(total, minutes) => total + minutes,
 					0,
 				),
 				240,
-				8,
 			);
+			if (persistedBaselineTotal < 240) {
+				assert.isTrue(persistedRotation.rosterAutoFillActive);
+				assert.isTrue(reloadedBasketballMinutes.rosterAutoFillActive);
+				const reloadedRosterOverlay =
+					reloadedBasketballMinutes.rosterOverlayByPid as Record<
+						number,
+						number
+					>;
+				assert.isAbove(
+					Object.values(reloadedRosterOverlay).reduce(
+						(total, minutes) => total + minutes,
+						0,
+					),
+					0,
+				);
+			}
+			for (const pid of reloadedRosterPids) {
+				assert.strictEqual(
+					reloadedBasketballMinutes.minutesByPid[pid],
+					persistedBaselineMinutes[pid],
+					`Roster view rewrote the Custom baseline for pid ${pid}`,
+				);
+			}
 			assert.strictEqual((await idb.cache.players.get(tradeFor.pid))!.tid, 0);
 			await playOneDay("One day after reload");
 
@@ -530,20 +587,63 @@ describe("full league-year gameplay smoke", () => {
 				Object.keys(nextSeasonRotation.minutesByPid!).map(Number),
 				nextSeasonRoster.map((p) => p.pid),
 			);
-			assert.closeTo(
-				Object.values(nextSeasonRotation.minutesByPid!).reduce(
+			const nextSeasonRosterView = await readView("roster", {
+				abbrev: userAbbrev(),
+				season: String(g.get("season")),
+			});
+			const nextSeasonBasketballMinutes =
+				nextSeasonRosterView.basketballMinutes;
+			assert.strictEqual(nextSeasonBasketballMinutes.mode, "custom");
+			assert.strictEqual(nextSeasonBasketballMinutes.required, 240);
+			assert.isTrue(nextSeasonBasketballMinutes.gameReady);
+			const nextSeasonHealthyMinutes =
+				nextSeasonBasketballMinutes.healthyMinutesByPid as Record<
+					number,
+					number
+				>;
+			assert.strictEqual(
+				Object.values(nextSeasonHealthyMinutes).reduce(
 					(total, minutes) => total + minutes,
 					0,
 				),
 				240,
-				8,
 			);
+			const nextSeasonBaselineTotal = Object.values(
+				nextSeasonRotation.minutesByPid!,
+			).reduce((total, minutes) => total + minutes, 0);
+			if (nextSeasonBaselineTotal < 240) {
+				assert.isTrue(nextSeasonRotation.rosterAutoFillActive);
+				assert.isTrue(nextSeasonBasketballMinutes.rosterAutoFillActive);
+				const nextSeasonRosterOverlay =
+					nextSeasonBasketballMinutes.rosterOverlayByPid as Record<
+						number,
+						number
+					>;
+				assert.isAbove(
+					Object.values(nextSeasonRosterOverlay).reduce(
+						(total, minutes) => total + minutes,
+						0,
+					),
+					0,
+				);
+			}
+			for (const player of nextSeasonRoster) {
+				assert.strictEqual(
+					nextSeasonBasketballMinutes.minutesByPid[player.pid],
+					nextSeasonRotation.minutesByPid![player.pid],
+					`Next-season Roster view rewrote the Custom baseline for pid ${player.pid}`,
+				);
+			}
 			assertPlayable("second consecutive next-season One day");
 		},
 	);
 
 	afterAll(async () => {
 		try {
+			// runBefore starts the normal league heartbeat. Stop that lifecycle
+			// before closing/deleting meta, otherwise its 1-second callback races
+			// the cleanup and produces unhandled IDB "connection is closing" errors.
+			await beforeNonLeague(conditions);
 			await league.remove(lid);
 		} finally {
 			await idb.meta.close();

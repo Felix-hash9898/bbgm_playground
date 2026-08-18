@@ -1,4 +1,4 @@
-import { assert, beforeEach, test } from "vitest";
+import { assert, beforeEach, expect, test } from "vitest";
 import { DEFAULT_LEVEL } from "../../../common/budgetLevels.ts";
 import { PHASE } from "../../../common/index.ts";
 import { resetCache, resetG } from "../../../test/helpers.ts";
@@ -220,6 +220,39 @@ test("loadTeams gives user and AI teams exact Dynamic plans, including old-save 
 	assert.notDeepEqual(
 		loaded[1].player.map((p: any) => p.plannedMinutes),
 		[48, 48, 48, 48, 48, 0, 0, 0, 0, 0],
+	);
+});
+
+test("loadTeams blocks an invalid-total persisted custom draft without rewriting it", async () => {
+	const plan = [...PLAN];
+	plan[0] = plan[0]! - 1;
+	const rosters = await setup({ plan });
+
+	await expect(loadTeams([0, 1], {})).rejects.toThrow(
+		/must total 240.*Roster page/,
+	);
+	assert.deepEqual(
+		(await idb.cache.teams.get(0))!.basketballRotation!.minutesByPid,
+		Object.fromEntries(rosters[0]!.map((p, i) => [p.pid!, plan[i]!])),
+	);
+});
+
+test("loadTeams applies injury no-increase protection only to effective planned minutes", async () => {
+	const rosters = await setup({ injuredIndex: 0 });
+	const userTeam = (await idb.cache.teams.get(0))!;
+	userTeam.basketballRotation!.noInjuryMinutesIncreasePids = [
+		rosters[0]![1]!.pid!,
+	];
+	await idb.cache.teams.put(userTeam);
+
+	const loaded = await loadTeams([0, 1], {});
+	assert(loaded[0]);
+	assert.strictEqual(loaded[0].player[0]!.plannedMinutes, 0);
+	assert.isAtMost(loaded[0].player[1]!.plannedMinutes, PLAN[1]!);
+	assert.closeTo(
+		loaded[0].player.reduce((sum: number, p: any) => sum + p.plannedMinutes, 0),
+		240,
+		1e-7,
 	);
 });
 

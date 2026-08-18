@@ -16,6 +16,9 @@ import {
 } from "../../../common/index.ts";
 import playThroughInjuriesFactor from "../../../common/playThroughInjuriesFactor.ts";
 import {
+	getBasketballGameAvailability,
+	getBasketballOvrPercentiles,
+	getBasketballRotationPlayerInput,
 	getBasketballRotationMinutes,
 	getGameEffectiveBasketballMinutes,
 } from "../team/basketballMinutes.ts";
@@ -148,6 +151,7 @@ export const processTeam = async (
 		playThroughInjuries: [number, number];
 		depth?: any;
 		basketballRotation?: BasketballRotation;
+		rotationOvrPercentiles?: ReadonlyMap<number, number>;
 	},
 	teamSeason: {
 		won: number;
@@ -426,16 +430,14 @@ export const processTeam = async (
 			g.get("userTids").includes(t.id) && !g.get("spectator");
 		const minutesPlayers = players.map((p) => {
 			const ratings = p.ratings.at(-1)!;
-			return {
+			return getBasketballRotationPlayerInput({
 				pid: p.pid,
 				rosterOrder: p.rosterOrder,
-				endurance:
-					userControlled && g.get("challengeNoRatings")
-						? 0.5
-						: userControlled
-							? player.fuzzRating(ratings.endu, ratings.fuzz) / 100
-							: ratings.endu / 100,
-			};
+				ratings: ratings as unknown as Record<string, unknown>,
+				challengeNoRatings: userControlled && g.get("challengeNoRatings"),
+				useFuzzedRatings: userControlled,
+				ovrPercentile: teamInput.rotationOvrPercentiles?.get(p.pid),
+			});
 		});
 		const planned = getBasketballRotationMinutes({
 			rotation: userControlled ? teamInput.basketballRotation : undefined,
@@ -443,17 +445,43 @@ export const processTeam = async (
 			numPlayersOnCourt: g.get("numPlayersOnCourt"),
 			playoffs,
 		});
-		const numAvailable = t.player.filter((p: any) => !p.injured).length;
+		if (!planned.gameReady) {
+			throw new Error(
+				`Cannot start a basketball game: planned minutes must total ${48 * g.get("numPlayersOnCourt")} before simulating. Fix the custom plan on the Roster page.`,
+			);
+		}
+		const available = getBasketballGameAvailability({
+			players,
+			playThroughInjuries,
+			numPlayersOnCourt: g.get("numPlayersOnCourt"),
+		});
 		const effective = getGameEffectiveBasketballMinutes({
 			players: minutesPlayers.map((p, i) => ({
 				...p,
-				available:
-					numAvailable < g.get("numPlayersOnCourt") || !t.player[i]!.injured,
-				value: t.player[i]!.valueNoPot,
+				available: available[i]!,
+				value:
+					userControlled && g.get("challengeNoRatings")
+						? undefined
+						: t.player[i]!.valueNoPot,
 			})),
 			minutesByPid: planned.minutesByPid,
 			numPlayersOnCourt: g.get("numPlayersOnCourt"),
 			regulationMinutes: g.get("quarterLength") * g.get("numPeriods"),
+			noInjuryMinutesIncreasePids: userControlled
+				? (teamInput.basketballRotation?.noInjuryMinutesIncreasePids ?? [])
+				: [],
+			rotationDepth: userControlled
+				? teamInput.basketballRotation?.rotationDepth
+				: undefined,
+			coreReliance: userControlled
+				? teamInput.basketballRotation?.coreReliance
+				: undefined,
+			currentMinutesOverrideByPid: userControlled
+				? teamInput.basketballRotation?.currentMinutesOverrideByPid
+				: undefined,
+			currentMinutesOverrideContext: userControlled
+				? teamInput.basketballRotation?.currentMinutesOverrideContext
+				: undefined,
 		});
 		for (const p of t.player) {
 			p.plannedMinutes = effective[p.id] ?? 0;
@@ -505,6 +533,31 @@ export const processTeam = async (
  * @param {IDBTransaction} ot An IndexedDB transaction on players and teams.
  * @returns {Promise<Record<number, undefined | ReturnType<typeof processTeam>>>} Resolves to a record of team objects, ordered by tid.
  */
+const getLeagueRotationOvrPercentiles = async () => {
+	const players = await idb.cache.players.indexGetAll("playersByTid", [
+		0,
+		Infinity,
+	]);
+	return {
+		trueOvrPercentiles: getBasketballOvrPercentiles(
+			players
+				.filter((p) => p.tid >= 0)
+				.map((p) => ({ pid: p.pid, ovr: p.ratings.at(-1)!.ovr })),
+		),
+		fuzzedOvrPercentiles: getBasketballOvrPercentiles(
+			players
+				.filter((p) => p.tid >= 0)
+				.map((p) => {
+					const ratings = p.ratings.at(-1)!;
+					return {
+						pid: p.pid,
+						ovr: player.fuzzRating(ratings.ovr, ratings.fuzz),
+					};
+				}),
+		),
+	};
+};
+
 const loadTeams = async (tids: number[], conditions: Conditions) => {
 	const teams: Record<
 		number,
@@ -573,9 +626,17 @@ const loadTeams = async (tids: number[], conditions: Conditions) => {
 			);
 		}
 	} else {
+		const leagueRotationQuality = isSport("basketball")
+			? await getLeagueRotationOvrPercentiles()
+			: undefined;
 		if (isSport("basketball") && !g.get("spectator")) {
 			await reconcileBasketballRotation(
 				tids.filter((tid) => g.get("userTids").includes(tid)),
+				{
+					rotationOvrPercentiles: g.get("challengeNoRatings")
+						? undefined
+						: leagueRotationQuality?.fuzzedOvrPercentiles,
+				},
 			);
 		}
 		await Promise.all(
@@ -596,7 +657,20 @@ const loadTeams = async (tids: number[], conditions: Conditions) => {
 					throw new Error("Team season not found");
 				}
 
-				teams[tid] = await processTeam(team, teamSeason, players);
+				const userControlled =
+					g.get("userTids").includes(tid) && !g.get("spectator");
+				teams[tid] = await processTeam(
+					{
+						...team,
+						rotationOvrPercentiles: userControlled
+							? g.get("challengeNoRatings")
+								? undefined
+								: leagueRotationQuality?.fuzzedOvrPercentiles
+							: leagueRotationQuality?.trueOvrPercentiles,
+					},
+					teamSeason,
+					players,
+				);
 			}),
 		);
 	}
