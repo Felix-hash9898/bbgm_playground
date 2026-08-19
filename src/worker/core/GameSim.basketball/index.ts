@@ -3,6 +3,7 @@ import { PHASE, STARTING_NUM_TIMEOUTS } from "../../../common/index.ts";
 import jumpBallWinnerStartsThisPeriodWithPossession from "./jumpBallWinnerStartsThisPeriodWithPossession.ts";
 import getInjuryRate, { getInjuryOverloadFactor } from "./getInjuryRate.ts";
 import getDynamicMinutesMultiplier, {
+	DYNAMIC_MINUTES_CONFIG,
 	getPlanAwareCourtTimer,
 } from "./dynamicMinutes.ts";
 import type {
@@ -1206,7 +1207,7 @@ class GameSim extends GameSimBase {
 								ovrs[p.id] = -Infinity;
 								continue;
 							}
-							value *= getDynamicMinutesMultiplier({
+							let dynamicMinutesMultiplier = getDynamicMinutesMultiplier({
 								targetMinutes: p.plannedMinutes,
 								regulationMinutes,
 								elapsed,
@@ -1218,6 +1219,22 @@ class GameSim extends GameSimBase {
 									p.id,
 								),
 							});
+							if (lateGame && p.plannedMinutes > 0) {
+								if (
+									p.plannedMinutes < DYNAMIC_MINUTES_CONFIG.tinyTargetMaxMinutes
+								) {
+									dynamicMinutesMultiplier = Math.min(
+										1.05,
+										dynamicMinutesMultiplier,
+									);
+								} else {
+									dynamicMinutesMultiplier = Math.min(
+										1.05,
+										Math.max(0.95, dynamicMinutesMultiplier),
+									);
+								}
+							}
+							value *= dynamicMinutesMultiplier;
 						}
 
 						if (blowout) {

@@ -173,6 +173,91 @@ const forceRemovalComparison = async ({
 	return observed;
 };
 
+const forceLateGameComparison = async ({
+	seed,
+	clockSeconds,
+	incomingBaseValue = 80,
+	incomingTargetMinutes,
+	servedTinyTarget = false,
+	zeroTargetBench = false,
+}: {
+	seed: number;
+	clockSeconds: number;
+	incomingBaseValue?: number;
+	incomingTargetMinutes?: number;
+	servedTinyTarget?: boolean;
+	zeroTargetBench?: boolean;
+}) => {
+	let observed:
+		| {
+				lateGame: boolean;
+				removed: boolean;
+				incomingOnCourt: boolean;
+		  }
+		| undefined;
+	await setup();
+	await simOne(seed, (sim) => {
+		sim.o = 0;
+		sim.d = 1;
+		sim.t = clockSeconds;
+		sim.team[0]!.stat.pts = 108;
+		sim.team[1]!.stat.pts = 102;
+		sim.team[0]!.stat.ptsQtrs = [27, 27, 27, 27];
+		sim.team[1]!.stat.ptsQtrs = [25, 25, 26, 26];
+
+		const onCourt = sim.playersOnCourt[0]![0]!;
+		const incoming = sim.team[0]!.player.find(
+			(p) =>
+				!sim.playersOnCourt[0]!.includes(p) &&
+				(zeroTargetBench ? p.plannedMinutes === 0 : true),
+		)!;
+		if (zeroTargetBench) {
+			assert.strictEqual(incoming.plannedMinutes, 0);
+		}
+		if (incomingTargetMinutes !== undefined) {
+			incoming.plannedMinutes = incomingTargetMinutes;
+		}
+		const elapsed = 48 - clockSeconds / 60;
+
+		for (const p of sim.team[0]!.player) {
+			p.injured = false;
+			p.stat.energy = 1;
+			p.stat.courtTime = 3;
+			p.stat.benchTime = 3;
+			p.stat.min = p.plannedMinutes * (elapsed / 48);
+			p.valueNoPot = sim.playersOnCourt[0]!.includes(p) ? 1000 : 0.1;
+		}
+		onCourt.valueNoPot = 100;
+		incoming.valueNoPot = incomingBaseValue;
+		onCourt.stat.min = onCourt.plannedMinutes * (elapsed / 48) + 1.25;
+		if (zeroTargetBench) {
+			incoming.stat.min = 0;
+		} else {
+			incoming.stat.min = Math.max(
+				0,
+				incoming.plannedMinutes * (elapsed / 48) - 1.25,
+			);
+		}
+		incoming.pos = onCourt.pos;
+
+		if (servedTinyTarget) {
+			onCourt.stat.min = onCourt.plannedMinutes * (elapsed / 48);
+			incoming.stat.min = incoming.plannedMinutes;
+			sim.dynamicMinutesState[0].positiveTargetCompletedStint.add(incoming.id);
+		}
+
+		sim.updatePlayersOnCourt();
+
+		observed = {
+			lateGame: sim.isLateGame(),
+			removed: !sim.playersOnCourt[0]!.includes(onCourt),
+			incomingOnCourt: sim.playersOnCourt[0]!.includes(incoming),
+		};
+	});
+	assert(observed);
+	return observed;
+};
+
 beforeEach(() => {
 	resetG();
 	g.setWithoutSavingToDB("season", 2024);
@@ -384,6 +469,79 @@ test("a tiny positive target receives a bounded real stint", async () => {
 	const mean = minutes / games;
 	assert(games >= 30);
 	assert(mean > 0.5 && mean < 4.5, `tiny target realized ${mean} minutes`);
+});
+
+test("late-game Dynamic keeps the materially stronger closer ahead of minute debt", async () => {
+	for (const [i, clockSeconds] of [359, 180, 90].entries()) {
+		const observed = await forceLateGameComparison({
+			seed: 70_000 + i,
+			clockSeconds,
+		});
+		assert(observed.lateGame);
+		assert(
+			!observed.removed,
+			`100-value closer was removed at ${clockSeconds}s`,
+		);
+		assert(!observed.incomingOnCourt);
+	}
+
+	const strongerGap = await forceLateGameComparison({
+		seed: 70_003,
+		clockSeconds: 90,
+		incomingBaseValue: 90,
+	});
+	assert(!strongerGap.removed);
+	assert(!strongerGap.incomingOnCourt);
+});
+
+test("late-game Dynamic caps tiny-target catch-up without removing the stronger closer", async () => {
+	const observed = await forceLateGameComparison({
+		seed: 71_000,
+		clockSeconds: 90,
+		incomingBaseValue: 80,
+		incomingTargetMinutes: 4,
+	});
+	assert(observed.lateGame);
+	assert(!observed.removed);
+	assert(!observed.incomingOnCourt);
+});
+
+test("late-game Dynamic preserves served tiny-target re-entry suppression", async () => {
+	const observed = await forceLateGameComparison({
+		seed: 71_001,
+		clockSeconds: 90,
+		incomingBaseValue: 200,
+		incomingTargetMinutes: 4,
+		servedTinyTarget: true,
+	});
+	assert(observed.lateGame);
+	assert(!observed.removed);
+	assert(!observed.incomingOnCourt);
+});
+
+test("late-game Dynamic keeps a 0-minute bench player locked out", async () => {
+	const observed = await forceLateGameComparison({
+		seed: 71_002,
+		clockSeconds: 90,
+		incomingBaseValue: 10_000,
+		zeroTargetBench: true,
+	});
+	assert(observed.lateGame);
+	assert(!observed.removed);
+	assert(!observed.incomingOnCourt);
+});
+
+test("the late-game boundary remains strictly below 6:00", async () => {
+	const atSixMinutes = await forceLateGameComparison({
+		seed: 71_003,
+		clockSeconds: 360,
+	});
+	const underSixMinutes = await forceLateGameComparison({
+		seed: 71_004,
+		clockSeconds: 359,
+	});
+	assert(!atSixMinutes.lateGame);
+	assert(underSixMinutes.lateGame);
 });
 
 test("symmetric court-removal 0.75 uses the loaded target in both directions", async () => {
