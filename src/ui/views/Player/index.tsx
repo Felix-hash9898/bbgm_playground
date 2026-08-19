@@ -12,10 +12,14 @@ import SeasonIcons from "./SeasonIcons.tsx";
 import TopStuff from "./TopStuff.tsx";
 import { isSport, PLAYER, PLAYER_STATS_TABLES } from "../../../common/index.ts";
 import HideableSection from "../../components/HideableSection.tsx";
-import { StatsTable } from "./StatsTable.tsx";
+import { hasStats, StatsTable } from "./StatsTable.tsx";
 import { highlightLeaderText, MaybeBold, SeasonLink } from "./common.tsx";
 import { wrappedTeamAbbrevLink } from "../../components/TeamAbbrevLink.tsx";
 import { wrappedCurrency } from "../../components/wrappedCurrency.ts";
+import SectionNavigation, {
+	getPlayerSectionId,
+	getPlayerStatsSectionId,
+} from "./SectionNavigation.tsx";
 
 const Player2 = ({
 	bestPos,
@@ -31,6 +35,7 @@ const Player2 = ({
 	leaders,
 	phase,
 	player,
+	playerNavigation,
 	randomDebutsForeverPids,
 	ratings,
 	retired,
@@ -51,6 +56,17 @@ const Player2 = ({
 	useTitleBar({
 		title: player.name,
 		customMenu,
+		playerNavigation: playerNavigation
+			? {
+					currentPid: player.pid,
+					title: playerNavigation.title,
+					items: playerNavigation.players.map(({ pid, name }) => ({
+						pid,
+						name,
+						url: helpers.leagueUrl(["player", pid]),
+					})),
+				}
+			: undefined,
 		dropdownView: "player",
 		dropdownFields:
 			player.tid !== PLAYER.UNDRAFTED
@@ -87,8 +103,39 @@ const Player2 = ({
 		}
 	}
 
+	const hasPer36Section =
+		isSport("basketball") &&
+		!!player.per36Stats &&
+		!!player.per36CareerStats &&
+		!!player.per36CareerStatsCombined &&
+		!!player.per36CareerStatsPlayoffs &&
+		(hasStats(player.per36CareerStats, undefined) ||
+			hasStats(player.per36CareerStatsPlayoffs, undefined));
+	const playerSections = [
+		...statTables.flatMap(({ name, onlyShowIf }, i) =>
+			hasStats(player.careerStats, onlyShowIf) ||
+			hasStats(player.careerStatsPlayoffs, onlyShowIf)
+				? [{ id: getPlayerStatsSectionId(name, i), label: name }]
+				: [],
+		),
+		...(hasPer36Section
+			? [{ id: getPlayerSectionId("Per 36"), label: "Per 36" }]
+			: []),
+		{ id: getPlayerSectionId("Ratings"), label: "Ratings" },
+		{ id: getPlayerSectionId("Awards"), label: "Awards" },
+		{ id: getPlayerSectionId("Salaries"), label: "Salaries" },
+		{
+			id: getPlayerSectionId("Statistical Feats"),
+			label: "Statistical Feats",
+		},
+		{ id: getPlayerSectionId("Injuries"), label: "Injuries" },
+		{ id: getPlayerSectionId("Transactions"), label: "Transactions" },
+	];
+
 	return (
 		<>
+			<SectionNavigation sections={playerSections} />
+
 			<TopStuff
 				bestPos={bestPos}
 				currentSeason={currentSeason}
@@ -115,10 +162,11 @@ const Player2 = ({
 				willingToSign={willingToSign}
 			/>
 
-			{statTables.map(({ name, onlyShowIf, stats, superCols }) => (
+			{statTables.map(({ name, onlyShowIf, stats, superCols }, i) => (
 				<StatsTable
 					key={name}
 					name={name}
+					sectionId={getPlayerStatsSectionId(name, i)}
 					onlyShowIf={onlyShowIf}
 					stats={stats}
 					superCols={superCols}
@@ -127,20 +175,17 @@ const Player2 = ({
 				/>
 			))}
 
-			{isSport("basketball") &&
-			player.per36Stats &&
-			player.per36CareerStats &&
-			player.per36CareerStatsCombined &&
-			player.per36CareerStatsPlayoffs ? (
+			{hasPer36Section ? (
 				<StatsTable
 					name="Per 36"
+					sectionId={getPlayerSectionId("Per 36")}
 					p={player}
 					stats={PLAYER_STATS_TABLES.regular!.stats}
 					statsSource={{
-						stats: player.per36Stats,
-						careerStats: player.per36CareerStats,
-						careerStatsCombined: player.per36CareerStatsCombined,
-						careerStatsPlayoffs: player.per36CareerStatsPlayoffs,
+						stats: player.per36Stats!,
+						careerStats: player.per36CareerStats!,
+						careerStatsCombined: player.per36CareerStatsCombined!,
+						careerStatsPlayoffs: player.per36CareerStatsPlayoffs!,
 					}}
 					tableStatType="per36"
 					leaders={leaders}
@@ -148,6 +193,7 @@ const Player2 = ({
 			) : null}
 
 			<HideableSection
+				id={getPlayerSectionId("Ratings")}
 				title="Ratings"
 				description={hasLeader && showRatings ? highlightLeaderText : null}
 			>
@@ -225,7 +271,7 @@ const Player2 = ({
 
 			<div className="row">
 				<div className="col-6 col-md-3">
-					<HideableSection title="Awards">
+					<HideableSection id={getPlayerSectionId("Awards")} title="Awards">
 						{awardsGrouped.length > 0 ? (
 							<table className="table table-nonfluid table-striped table-borderless table-sm player-awards">
 								<tbody>
@@ -246,7 +292,7 @@ const Player2 = ({
 					</HideableSection>
 				</div>
 				<div className="col-6 col-md-3">
-					<HideableSection title="Salaries">
+					<HideableSection id={getPlayerSectionId("Salaries")} title="Salaries">
 						<DataTable
 							className="datatable-negative-margin-top mb-3"
 							cols={getCols(["Year", "Amount"])}
@@ -290,7 +336,10 @@ const Player2 = ({
 					</HideableSection>
 				</div>
 				<div className="col-md-6">
-					<HideableSection title="Statistical Feats">
+					<HideableSection
+						id={getPlayerSectionId("Statistical Feats")}
+						title="Statistical Feats"
+					>
 						<div
 							className="small-scrollbar"
 							style={{
@@ -313,12 +362,15 @@ const Player2 = ({
 
 			<div className="row" style={{ marginBottom: "-1rem" }}>
 				<div className="col-md-6 col-lg-4">
-					<HideableSection title="Injuries">
+					<HideableSection id={getPlayerSectionId("Injuries")} title="Injuries">
 						<Injuries injuries={player.injuries} showRatings={showRatings} />
 					</HideableSection>
 				</div>
 				<div className="col-md-6 col-lg-8">
-					<HideableSection title="Transactions">
+					<HideableSection
+						id={getPlayerSectionId("Transactions")}
+						title="Transactions"
+					>
 						{events.map((e) => {
 							return (
 								<p key={e.eid}>

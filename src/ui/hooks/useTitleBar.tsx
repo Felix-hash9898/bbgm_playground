@@ -19,6 +19,7 @@ const useTitleBar = <DropdownFields extends Record<string, number | string>>({
 	moreInfoAbbrev,
 	moreInfoSeason,
 	moreInfoTid,
+	playerNavigation,
 }: {
 	title?: string;
 	titleLong?: string;
@@ -33,6 +34,7 @@ const useTitleBar = <DropdownFields extends Record<string, number | string>>({
 	moreInfoAbbrev?: string;
 	moreInfoSeason?: number;
 	moreInfoTid?: number;
+	playerNavigation?: LocalStateUI["playerNavigation"];
 } = {}) => {
 	const state = useLocalPartial(["hideDisabledTeams", "teamInfoCache"]);
 
@@ -94,6 +96,7 @@ const useTitleBar = <DropdownFields extends Record<string, number | string>>({
 			moreInfoAbbrev,
 			moreInfoSeason,
 			moreInfoTid,
+			playerNavigation,
 		});
 	}, [
 		title,
@@ -108,6 +111,7 @@ const useTitleBar = <DropdownFields extends Record<string, number | string>>({
 		moreInfoAbbrev,
 		moreInfoSeason,
 		moreInfoTid,
+		playerNavigation,
 	]);
 };
 

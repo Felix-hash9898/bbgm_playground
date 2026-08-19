@@ -46,6 +46,7 @@ import { movePlayerPids, swapPlayerPids } from "./reorderPlayers.ts";
 import { rosterCompactControlStyle } from "./compactControlStyle.ts";
 import { useBasketballMinutesAutosave } from "./useBasketballMinutesAutosave.ts";
 import BasketballMinutesPopover from "./BasketballMinutesPopover.tsx";
+import RosterBalance from "./RosterBalance.tsx";
 
 const saveBasketballMinutesPlan = (
 	tid: number,
@@ -215,6 +216,25 @@ const Roster = ({
 	const noInjuryMinutesIncreasePids = new Set(
 		basketballMinutes?.noInjuryMinutesIncreasePids ?? [],
 	);
+	const healthyPlanMinutesByPid = Object.fromEntries(
+		players.map((p) => {
+			const draftValue = minutesDraft[p.pid];
+			const healthyMinutes =
+				basketballMinutes?.healthyMinutesByPid?.[p.pid] ??
+				basketballMinutes?.minutesByPid[p.pid] ??
+				0;
+			const useHealthyPlan =
+				basketballMinutes?.mode === "auto" && !plannedMinutesChanged;
+			const minutes =
+				!useHealthyPlan && draftValue !== undefined && draftValue.trim() !== ""
+					? Number(draftValue)
+					: healthyMinutes;
+			return [
+				p.pid,
+				Number.isFinite(minutes) && minutes >= 0 ? minutes : healthyMinutes,
+			];
+		}),
+	) as Record<number, number>;
 	const rotationDepth = basketballMinutes?.rotationDepth ?? "normal";
 	const coreReliance = basketballMinutes?.coreReliance ?? "balanced";
 	const currentMinutesOverrideByPid =
@@ -767,6 +787,13 @@ const Roster = ({
 						</label>
 					</div>
 				</div>
+			) : null}
+
+			{isSport("basketball") && basketballMinutes ? (
+				<RosterBalance
+					players={players}
+					minutesByPid={healthyPlanMinutesByPid}
+				/>
 			) : null}
 
 			<DataTable

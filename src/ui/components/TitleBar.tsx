@@ -1,8 +1,9 @@
 import Dropdown from "./Dropdown.tsx";
 import DropdownLinks from "./DropdownLinks.tsx";
 import NewWindowLink from "./NewWindowLink.tsx";
-import { useLocalPartial } from "../util/index.ts";
+import { realtimeUpdate, useLocalPartial } from "../util/index.ts";
 import type { MenuItemHeader } from "../../common/types.ts";
+import NextPrevButtons from "./NextPrevButtons.tsx";
 
 const genPath = (parts: string[], season: string | undefined) => {
 	if (season !== undefined) {
@@ -26,6 +27,7 @@ const TitleBar = () => {
 		moreInfoAbbrev,
 		moreInfoSeason,
 		moreInfoTid,
+		playerNavigation,
 		lid,
 	} = useLocalPartial([
 		"title",
@@ -40,6 +42,7 @@ const TitleBar = () => {
 		"moreInfoAbbrev",
 		"moreInfoSeason",
 		"moreInfoTid",
+		"playerNavigation",
 		"lid",
 	]);
 
@@ -191,6 +194,18 @@ const TitleBar = () => {
 					customOptions={dropdownCustomOptions}
 					view={dropdownView}
 					fields={dropdownFields}
+				/>
+			) : null}
+			{playerNavigation ? (
+				<NextPrevButtons
+					currentItem={playerNavigation.items.find(
+						(item) => item.pid === playerNavigation.currentPid,
+					)}
+					getItemTitle={(item) => item.name}
+					items={playerNavigation.items}
+					onChange={(item) => {
+						void realtimeUpdate([], item.url);
+					}}
 				/>
 			) : null}
 			<DropdownLinks

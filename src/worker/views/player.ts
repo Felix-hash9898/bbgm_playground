@@ -23,6 +23,7 @@ import type {
 	MenuItemLink,
 	MinimalPlayerRatings,
 	Player,
+	PlayerNavigation,
 	UpdateEvents,
 	ViewInput,
 } from "../../common/types.ts";
@@ -360,6 +361,7 @@ export const getCommon = async (pid?: number, season?: number) => {
 
 	// Quick links to other players...
 	let customMenu: MenuItemHeader | undefined;
+	let playerNavigation: PlayerNavigation | undefined;
 	let customMenuInfo:
 		| {
 				title: string;
@@ -392,11 +394,8 @@ export const getCommon = async (pid?: number, season?: number) => {
 	}
 
 	if (customMenuInfo) {
-		const children: MenuItemLink[] = orderBy(
-			customMenuInfo.players,
-			"value",
-			"desc",
-		).map((p2) => {
+		const orderedPlayers = orderBy(customMenuInfo.players, "value", "desc");
+		const children: MenuItemLink[] = orderedPlayers.map((p2) => {
 			const ratings = p2.ratings.at(-1);
 
 			const age = g.get("season") - p2.born.year;
@@ -424,6 +423,13 @@ export const getCommon = async (pid?: number, season?: number) => {
 			short: customMenuInfo.title,
 			league: true,
 			children,
+		};
+		playerNavigation = {
+			title: customMenuInfo.title,
+			players: orderedPlayers.map((p2) => ({
+				pid: p2.pid,
+				name: `${p2.firstName} ${p2.lastName}`,
+			})),
 		};
 	}
 
@@ -522,6 +528,7 @@ export const getCommon = async (pid?: number, season?: number) => {
 		phase: g.get("phase"),
 		pid, // Needed for state.pid check
 		player: p,
+		playerNavigation,
 		randomDebutsForeverPids,
 		retired,
 		showContract:

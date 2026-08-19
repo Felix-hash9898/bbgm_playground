@@ -7,6 +7,7 @@ const NextPrevButtons = <T extends unknown>({
 	disabled,
 	onChange,
 	style,
+	getItemTitle,
 }: {
 	currentItem?: T;
 	items: T[];
@@ -14,8 +15,10 @@ const NextPrevButtons = <T extends unknown>({
 	disabled?: boolean;
 	onChange: (newItem: T) => void;
 	style?: CSSProperties;
+	getItemTitle?: (item: T) => string;
 }) => {
 	const index = items.indexOf(currentItem as any);
+	const currentItemMissing = index < 0;
 
 	type ButtonInfo = {
 		disabled: boolean;
@@ -24,7 +27,7 @@ const NextPrevButtons = <T extends unknown>({
 
 	const buttonInfo: [ButtonInfo, ButtonInfo] = [
 		{
-			disabled: disabled || index <= 0,
+			disabled: disabled || currentItemMissing || index <= 0,
 			onClick: (event) => {
 				event.preventDefault();
 				const newItem = items[index - 1];
@@ -34,7 +37,7 @@ const NextPrevButtons = <T extends unknown>({
 			},
 		},
 		{
-			disabled: disabled || index >= items.length - 1,
+			disabled: disabled || currentItemMissing || index >= items.length - 1,
 			onClick: (event) => {
 				event.preventDefault();
 				const newItem = items[index + 1];
@@ -49,6 +52,14 @@ const NextPrevButtons = <T extends unknown>({
 	if (reverse) {
 		buttonInfo.reverse();
 	}
+	const previousTitle =
+		getItemTitle && index > 0
+			? `Previous: ${getItemTitle(items[index - 1]!)}`
+			: "Previous";
+	const nextTitle =
+		getItemTitle && index < items.length - 1
+			? `Next: ${getItemTitle(items[index + 1]!)}`
+			: "Next";
 
 	return (
 		<div className="btn-group" style={style}>
@@ -56,7 +67,8 @@ const NextPrevButtons = <T extends unknown>({
 				className="btn btn-light-bordered btn-xs"
 				disabled={buttonInfo[0].disabled}
 				onClick={buttonInfo[0].onClick}
-				title="Previous"
+				aria-label={previousTitle}
+				title={previousTitle}
 				type="button"
 			>
 				<span className="glyphicon glyphicon-menu-left" />
@@ -65,7 +77,8 @@ const NextPrevButtons = <T extends unknown>({
 				className="btn btn-light-bordered btn-xs"
 				disabled={buttonInfo[1].disabled}
 				onClick={buttonInfo[1].onClick}
-				title="Next"
+				aria-label={nextTitle}
+				title={nextTitle}
 				type="button"
 			>
 				<span className="glyphicon glyphicon-menu-right" />

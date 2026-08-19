@@ -155,6 +155,7 @@ const PlayerGameLog = ({
 	numGamesPlayoffSeires,
 	phase,
 	player,
+	playerNavigation,
 	randomDebutsForeverPids,
 	retired,
 	showContract,
@@ -179,6 +180,17 @@ const PlayerGameLog = ({
 	useTitleBar({
 		title: player.name,
 		customMenu,
+		playerNavigation: playerNavigation
+			? {
+					currentPid: player.pid,
+					title: playerNavigation.title,
+					items: playerNavigation.players.map(({ pid, name }) => ({
+						pid,
+						name,
+						url: helpers.leagueUrl(["player_game_log", pid, season]),
+					})),
+				}
+			: undefined,
 		dropdownView: "player_game_log",
 		dropdownFields: {
 			playerProfile: "gameLog",

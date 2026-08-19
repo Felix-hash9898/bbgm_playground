@@ -960,6 +960,14 @@ export type MenuItemHeader = {
 	children: (MenuItemLink | MenuItemText)[];
 };
 
+export type PlayerNavigation = {
+	title: string;
+	players: {
+		pid: number;
+		name: string;
+	}[];
+};
+
 export type MenuItemText = {
 	type: "text";
 	text: string;
@@ -1009,6 +1017,15 @@ export type LocalStateUI = {
 	challengeNoRatings: boolean;
 	currencyFormat: GameAttributesLeague["currencyFormat"];
 	customMenu?: MenuItemHeader;
+	playerNavigation?: {
+		currentPid: number;
+		title: string;
+		items: {
+			pid: number;
+			name: string;
+			url: string;
+		}[];
+	};
 	email?: string;
 	flagOverrides: Record<string, string>;
 	gameSimInProgress: boolean;

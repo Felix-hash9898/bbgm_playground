@@ -10,7 +10,6 @@ import InstructionsAndSortButtons from "./InstructionsAndSortButtons.tsx";
 import PlayThroughInjurySliders from "./PlayThroughInjuriesSliders.tsx";
 import type { View } from "../../../common/types.ts";
 import { bySport } from "../../../common/index.ts";
-import Note from "../Player/Note.tsx";
 
 const fontSizeLarger = { fontSize: "larger" };
 
@@ -360,25 +359,7 @@ const TopStuff = ({
 				tid={tid}
 			/>
 
-			<div className="mb-3">
-				<Note
-					key={JSON.stringify([tid, season])}
-					note={t.seasonAttrs.note}
-					info={{
-						type: "teamSeason",
-						tid,
-						season,
-					}}
-				/>
-			</div>
-
-			{editable ? (
-				<div className="mb-3">
-					Click or drag row handles to move players between the starting lineup{" "}
-					<span className="table-info legend-square" /> and the bench{" "}
-					<span className="table-secondary legend-square" />.
-				</div>
-			) : season !== currentSeason ? (
+			{!editable && season !== currentSeason ? (
 				<div className="mb-3">
 					Players still on this team are{" "}
 					<span className="text-info">highlighted in blue</span>. Players in the

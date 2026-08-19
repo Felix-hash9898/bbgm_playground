@@ -14,7 +14,7 @@ import type { FooterRow } from "../../components/DataTable/Footer.tsx";
 import { wrappedTeamAbbrevLink } from "../../components/TeamAbbrevLink.tsx";
 import type { SuperCol } from "../../components/DataTable/index.tsx";
 
-const hasStats = (
+export const hasStats = (
 	careerStats: View<"player">["player"]["careerStats"],
 	onlyShowIf: string[] | undefined,
 ) => {
@@ -49,6 +49,7 @@ export const StatsTable = ({
 	superCols,
 	tableStatType,
 	leaders,
+	sectionId,
 }: {
 	name: string;
 	onlyShowIf?: string[];
@@ -61,6 +62,7 @@ export const StatsTable = ({
 	superCols?: SuperCol[];
 	tableStatType?: string;
 	leaders: View<"player">["leaders"];
+	sectionId?: string;
 }) => {
 	const source = statsSource ?? p;
 	const hasRegularSeasonStats = hasStats(source.careerStats, onlyShowIf);
@@ -334,6 +336,7 @@ export const StatsTable = ({
 
 	return (
 		<HideableSection
+			id={sectionId}
 			title={name}
 			description={hasLeader ? highlightLeaderText : null}
 		>
