@@ -92,6 +92,7 @@ import type {
 	RealPlayerPhotos,
 	View,
 	NonEmptyArray,
+	Team,
 } from "../../common/types.ts";
 import { deleteScheduledTeamInfoFields } from "./scheduledEventTeamInfo.ts";
 import {
@@ -169,9 +170,12 @@ import { getNumPlayoffTeamsRaw } from "../core/season/getNumPlayoffTeams.ts";
 import type { NewLeagueSettings } from "../views/newLeague.ts";
 import { decideUserTeamOption } from "../core/contracts/contractOptionDecisions.ts";
 import {
+	cleanupBasketballCurrentMinutesOverrideState,
 	currentMinutesOverrideContextMatches,
 	getBasketballGameAvailability,
 	getBasketballMinutesOverrideContext,
+	getLeagueRotationOvrPercentiles,
+	validateBasketballCurrentMinutesState,
 	validateBasketballMinutes,
 } from "../core/team/basketballMinutes.ts";
 import reconcileBasketballRotation from "../core/team/reconcileBasketballRotation.ts";
@@ -3930,11 +3934,15 @@ const updateDefaultSettingsOverrides = async (
 const updateGameAttributes = async (
 	gameAttributes: Partial<GameAttributesLeague>,
 ) => {
-	const courtSizeChanged =
-		gameAttributes.numPlayersOnCourt !== undefined &&
-		gameAttributes.numPlayersOnCourt !== g.get("numPlayersOnCourt");
+	const basketballMinutesContextChanged =
+		(gameAttributes.numPlayersOnCourt !== undefined &&
+			gameAttributes.numPlayersOnCourt !== g.get("numPlayersOnCourt")) ||
+		(gameAttributes.quarterLength !== undefined &&
+			gameAttributes.quarterLength !== g.get("quarterLength")) ||
+		(gameAttributes.numPeriods !== undefined &&
+			gameAttributes.numPeriods !== g.get("numPeriods"));
 	await league.setGameAttributes(gameAttributes);
-	if (courtSizeChanged) {
+	if (basketballMinutesContextChanged) {
 		await reconcileBasketballRotation(g.get("userTids"));
 	}
 	await toUI("realtimeUpdate", [["gameAttributes"]]);
@@ -3994,11 +4002,17 @@ const updateGameAttributesGodMode = async (
 	const currentRpdPot = g.get("rpdPot");
 	const currentRealPlayerDeterminism = g.get("realPlayerDeterminism");
 	const currentNumPlayersOnCourt = g.get("numPlayersOnCourt");
+	const currentQuarterLength = g.get("quarterLength");
+	const currentNumPeriods = g.get("numPeriods");
 
 	await league.setGameAttributes(gameAttributes);
 	if (
-		gameAttributes.numPlayersOnCourt !== undefined &&
-		gameAttributes.numPlayersOnCourt !== currentNumPlayersOnCourt
+		(gameAttributes.numPlayersOnCourt !== undefined &&
+			gameAttributes.numPlayersOnCourt !== currentNumPlayersOnCourt) ||
+		(gameAttributes.quarterLength !== undefined &&
+			gameAttributes.quarterLength !== currentQuarterLength) ||
+		(gameAttributes.numPeriods !== undefined &&
+			gameAttributes.numPeriods !== currentNumPeriods)
 	) {
 		await reconcileBasketballRotation(g.get("userTids"));
 	}
@@ -4369,6 +4383,30 @@ const updatePlayingTime = async (args: {
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 };
 
+const normalizeBasketballCurrentMinutesOverridePair = (
+	rotation: NonNullable<Team["basketballRotation"]>,
+) => {
+	const overrides = rotation.currentMinutesOverrideByPid;
+	const context = rotation.currentMinutesOverrideContext;
+	if (
+		overrides === undefined ||
+		context === undefined ||
+		Object.keys(overrides).length === 0
+	) {
+		delete rotation.currentMinutesOverrideByPid;
+		delete rotation.currentMinutesOverrideContext;
+		return false;
+	}
+	return true;
+};
+
+const getBasketballRotationLeagueOvrPercentiles = async () =>
+	g.get("challengeNoRatings")
+		? undefined
+		: getLeagueRotationOvrPercentiles(
+				await idb.cache.players.indexGetAll("playersByTid", [0, Infinity]),
+			);
+
 const updateBasketballMinutes = async ({
 	tid,
 	minutesByPid,
@@ -4440,7 +4478,7 @@ const updateBasketballMinutes = async ({
 				}
 			: {};
 
-	t.basketballRotation = {
+	const nextRotation: NonNullable<Team["basketballRotation"]> = {
 		version: 1,
 		mode: "custom",
 		...(previousRotation?.rotationDepth
@@ -4463,6 +4501,17 @@ const updateBasketballMinutes = async ({
 		...(rosterAutoFillActive ? { rosterAutoFillActive: true } : {}),
 		...currentOverrideFields,
 	};
+	cleanupBasketballCurrentMinutesOverrideState({
+		t,
+		players,
+		rotation: nextRotation,
+		numPlayersOnCourt: g.get("numPlayersOnCourt"),
+		regulationMinutes: g.get("quarterLength") * g.get("numPeriods"),
+		playoffs: g.get("phase") === PHASE.PLAYOFFS,
+		challengeNoRatings: g.get("challengeNoRatings"),
+		rotationOvrPercentiles: await getBasketballRotationLeagueOvrPercentiles(),
+	});
+	t.basketballRotation = nextRotation;
 	await idb.cache.teams.put(t);
 	if (rosterAutoFillActive || autoFilledPids.length > 0) {
 		await reconcileBasketballRotation([tid]);
@@ -4571,7 +4620,7 @@ const updateBasketballCurrentMinutesOverride = async ({
 		throw new Error("Leave one available player for the remaining minutes");
 	}
 
-	t.basketballRotation = {
+	const nextRotation: NonNullable<Team["basketballRotation"]> = {
 		...rotation,
 		version: 1,
 		...(Object.keys(previousOverrides).length > 0
@@ -4582,9 +4631,25 @@ const updateBasketballCurrentMinutesOverride = async ({
 			: {}),
 	};
 	if (Object.keys(previousOverrides).length === 0) {
-		delete t.basketballRotation.currentMinutesOverrideByPid;
-		delete t.basketballRotation.currentMinutesOverrideContext;
+		delete nextRotation.currentMinutesOverrideByPid;
+		delete nextRotation.currentMinutesOverrideContext;
+	} else {
+		const validation = validateBasketballCurrentMinutesState({
+			t,
+			players,
+			rotation: nextRotation,
+			numPlayersOnCourt: g.get("numPlayersOnCourt"),
+			regulationMinutes,
+			playoffs,
+			challengeNoRatings: g.get("challengeNoRatings"),
+			rotationOvrPercentiles: await getBasketballRotationLeagueOvrPercentiles(),
+		});
+		if (validation.error) {
+			throw new Error(validation.error);
+		}
 	}
+	normalizeBasketballCurrentMinutesOverridePair(nextRotation);
+	t.basketballRotation = nextRotation;
 	await idb.cache.teams.put(t);
 	await toUI("realtimeUpdate", [["playerMovement", "team"]]);
 };
@@ -4631,7 +4696,7 @@ const updateBasketballNoInjuryMinutesIncrease = async ({
 		version: 1,
 		mode: "auto" as const,
 	};
-	t.basketballRotation = {
+	const nextRotation: NonNullable<Team["basketballRotation"]> = {
 		...rotation,
 		version: 1,
 		...(noInjuryMinutesIncreasePids.length > 0
@@ -4639,8 +4704,19 @@ const updateBasketballNoInjuryMinutesIncrease = async ({
 			: {}),
 	};
 	if (noInjuryMinutesIncreasePids.length === 0) {
-		delete t.basketballRotation.noInjuryMinutesIncreasePids;
+		delete nextRotation.noInjuryMinutesIncreasePids;
 	}
+	cleanupBasketballCurrentMinutesOverrideState({
+		t,
+		players,
+		rotation: nextRotation,
+		numPlayersOnCourt: g.get("numPlayersOnCourt"),
+		regulationMinutes: g.get("quarterLength") * g.get("numPeriods"),
+		playoffs: g.get("phase") === PHASE.PLAYOFFS,
+		challengeNoRatings: g.get("challengeNoRatings"),
+		rotationOvrPercentiles: await getBasketballRotationLeagueOvrPercentiles(),
+	});
+	t.basketballRotation = nextRotation;
 	await idb.cache.teams.put(t);
 	await toUI("realtimeUpdate", [["playerMovement", "team"]]);
 };
@@ -4661,7 +4737,10 @@ const updateBasketballRotationProfile = async ({
 	) {
 		throw new Error("You are not allowed to update this basketball profile");
 	}
-	const t = await idb.cache.teams.get(tid);
+	const [t, players] = await Promise.all([
+		idb.cache.teams.get(tid),
+		idb.cache.players.indexGetAll("playersByTid", tid),
+	]);
 	if (!t) {
 		throw new Error("Invalid tid");
 	}
@@ -4675,16 +4754,27 @@ const updateBasketballRotationProfile = async ({
 		version: 1,
 		mode: "auto" as const,
 	};
-	t.basketballRotation = {
+	const nextRotation: NonNullable<Team["basketballRotation"]> = {
 		...rotation,
 		version: 1,
 		rotationDepth,
 		coreReliance,
 	};
 	if (rotation.mode === "auto") {
-		delete t.basketballRotation.autoFilledPids;
-		delete t.basketballRotation.rosterAutoFillActive;
+		delete nextRotation.autoFilledPids;
+		delete nextRotation.rosterAutoFillActive;
 	}
+	cleanupBasketballCurrentMinutesOverrideState({
+		t,
+		players,
+		rotation: nextRotation,
+		numPlayersOnCourt: g.get("numPlayersOnCourt"),
+		regulationMinutes: g.get("quarterLength") * g.get("numPeriods"),
+		playoffs: g.get("phase") === PHASE.PLAYOFFS,
+		challengeNoRatings: g.get("challengeNoRatings"),
+		rotationOvrPercentiles: await getBasketballRotationLeagueOvrPercentiles(),
+	});
+	t.basketballRotation = nextRotation;
 	await idb.cache.teams.put(t);
 	await toUI("realtimeUpdate", [["playerMovement", "team"]]);
 };

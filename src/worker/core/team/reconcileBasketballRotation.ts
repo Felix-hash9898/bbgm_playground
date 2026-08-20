@@ -1,11 +1,11 @@
 import { PHASE, isSport } from "../../../common/index.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
-import fuzzRating from "../player/fuzzRating.ts";
 import {
 	fillBasketballRosterVacancy,
-	getBasketballOvrPercentiles,
+	cleanupBasketballCurrentMinutesOverrideState,
 	getBasketballRotationPlayerInput,
+	getLeagueRotationOvrPercentiles,
 	legalizeBasketballCustomMinutes,
 	validateBasketballMinutes,
 } from "./basketballMinutes.ts";
@@ -21,6 +21,7 @@ const reconcileBasketballRotation = async (
 		numPlayersOnCourt?: number;
 		playoffs?: boolean;
 		challengeNoRatings?: boolean;
+		regulationMinutes?: number;
 		rotationOvrPercentiles?: ReadonlyMap<number, number>;
 	} = {},
 ) => {
@@ -34,19 +35,13 @@ const reconcileBasketballRotation = async (
 	const playoffs = options.playoffs ?? g.get("phase") === PHASE.PLAYOFFS;
 	const challengeNoRatings =
 		options.challengeNoRatings ?? g.get("challengeNoRatings");
+	const regulationMinutes =
+		options.regulationMinutes ?? g.get("quarterLength") * g.get("numPeriods");
 	const rotationOvrPercentiles =
 		options.rotationOvrPercentiles ??
 		(!challengeNoRatings
-			? getBasketballOvrPercentiles(
-					(await cache.players.indexGetAll("playersByTid", [0, Infinity])).map(
-						(p) => {
-							const ratings = p.ratings.at(-1)!;
-							return {
-								pid: p.pid,
-								ovr: fuzzRating(ratings.ovr, ratings.fuzz),
-							};
-						},
-					),
+			? getLeagueRotationOvrPercentiles(
+					await cache.players.indexGetAll("playersByTid", [0, Infinity]),
 				)
 			: undefined);
 	for (const tid of new Set(tids)) {
@@ -54,16 +49,40 @@ const reconcileBasketballRotation = async (
 			continue;
 		}
 		const t = await cache.teams.get(tid);
-		if (t?.basketballRotation?.mode !== "custom") {
+		if (!t?.basketballRotation) {
 			continue;
 		}
+		const players = await cache.players.indexGetAll("playersByTid", tid);
 		const rotation = t.basketballRotation;
+		if (
+			rotation.currentMinutesOverrideByPid !== undefined ||
+			rotation.currentMinutesOverrideContext !== undefined
+		) {
+			// Revalidate the pair even when the roster/availability fingerprint
+			// still matches: ratings or derived-plan drift can make a protected
+			// pin invalid without changing the stored context.
+			const changed = cleanupBasketballCurrentMinutesOverrideState({
+				t,
+				players,
+				rotation,
+				numPlayersOnCourt,
+				regulationMinutes,
+				playoffs,
+				challengeNoRatings,
+				rotationOvrPercentiles,
+			});
+			if (changed) {
+				await cache.teams.put(t);
+			}
+		}
+		if (rotation.mode !== "custom") {
+			continue;
+		}
 		const {
 			reservePriorityPids: legacyReservePriorityPids,
 			...rotationWithoutLegacyReserve
 		} = rotation as typeof rotation & { reservePriorityPids?: unknown };
 		const hasLegacyReservePriority = legacyReservePriorityPids !== undefined;
-		const players = await cache.players.indexGetAll("playersByTid", tid);
 		if (players.length < numPlayersOnCourt) {
 			// The game cannot run with this roster either. Leave the saved intent
 			// alone until the roster-size repair adds enough players.

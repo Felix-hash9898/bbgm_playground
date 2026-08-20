@@ -1,6 +1,6 @@
 import { allStar, player, season, team } from "../index.ts";
 import { idb } from "../../db/index.ts";
-import { g, helpers, random } from "../../util/index.ts";
+import { g, helpers, random, toUI } from "../../util/index.ts";
 import type {
 	BasketballRotation,
 	Player,
@@ -21,6 +21,7 @@ import {
 	getBasketballRotationPlayerInput,
 	getBasketballRotationMinutes,
 	getGameEffectiveBasketballMinutes,
+	getLeagueRotationOvrPercentiles,
 } from "../team/basketballMinutes.ts";
 import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
 
@@ -446,9 +447,18 @@ export const processTeam = async (
 			playoffs,
 		});
 		if (!planned.gameReady) {
-			throw new Error(
-				`Cannot start a basketball game: planned minutes must total ${48 * g.get("numPlayersOnCourt")} before simulating. Fix the custom plan on the Roster page.`,
-			);
+			const message = `Cannot start a basketball game: planned minutes must total ${48 * g.get("numPlayersOnCourt")} before simulating. Fix the custom plan on the Roster page.`;
+			if (userControlled) {
+				await toUI("showEvent", [
+					{
+						type: "error",
+						text: message,
+						persistent: false,
+						extraClass: "notification-danger",
+					},
+				]);
+			}
+			throw new Error(message);
 		}
 		const available = getBasketballGameAvailability({
 			players,
@@ -533,7 +543,7 @@ export const processTeam = async (
  * @param {IDBTransaction} ot An IndexedDB transaction on players and teams.
  * @returns {Promise<Record<number, undefined | ReturnType<typeof processTeam>>>} Resolves to a record of team objects, ordered by tid.
  */
-const getLeagueRotationOvrPercentiles = async () => {
+const getLeagueRotationOvrPercentileMaps = async () => {
 	const players = await idb.cache.players.indexGetAll("playersByTid", [
 		0,
 		Infinity,
@@ -544,17 +554,7 @@ const getLeagueRotationOvrPercentiles = async () => {
 				.filter((p) => p.tid >= 0)
 				.map((p) => ({ pid: p.pid, ovr: p.ratings.at(-1)!.ovr })),
 		),
-		fuzzedOvrPercentiles: getBasketballOvrPercentiles(
-			players
-				.filter((p) => p.tid >= 0)
-				.map((p) => {
-					const ratings = p.ratings.at(-1)!;
-					return {
-						pid: p.pid,
-						ovr: player.fuzzRating(ratings.ovr, ratings.fuzz),
-					};
-				}),
-		),
+		fuzzedOvrPercentiles: getLeagueRotationOvrPercentiles(players),
 	};
 };
 
@@ -627,7 +627,7 @@ const loadTeams = async (tids: number[], conditions: Conditions) => {
 		}
 	} else {
 		const leagueRotationQuality = isSport("basketball")
-			? await getLeagueRotationOvrPercentiles()
+			? await getLeagueRotationOvrPercentileMaps()
 			: undefined;
 		if (isSport("basketball") && !g.get("spectator")) {
 			await reconcileBasketballRotation(

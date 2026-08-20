@@ -19,15 +19,15 @@ const seedRandom = (seed: number) => {
 	};
 };
 
-const makeRosters = () => {
+const makeRosters = (rosterSize = 10) => {
 	seedRandom(1000);
 	return [0, 1].map((tid) =>
-		Array.from({ length: 10 }, (_, i) => {
+		Array.from({ length: rosterSize }, (_, i) => {
 			const p = player.generate(tid, 24 + (i % 5), 2020, true, DEFAULT_LEVEL);
 			p.pid = tid * 100 + i;
 			p.rosterOrder = i;
 			const ratings = p.ratings.at(-1)!;
-			ratings.pos = POSITIONS[i]!;
+			ratings.pos = POSITIONS[i % POSITIONS.length]!;
 			ratings.endu = 75;
 			ratings.ovr = 78 - i * 3;
 			return p;
@@ -48,7 +48,7 @@ const setup = async ({
 	reverseOrder?: boolean;
 	controlledOpponent?: boolean;
 } = {}) => {
-	const rosters = makeRosters();
+	const rosters = makeRosters(Math.max(10, plan.length));
 	if (reverseOrder) {
 		for (const roster of rosters) {
 			for (const [i, p] of roster.entries()) {
@@ -338,6 +338,86 @@ test("loadTeams applies injury no-increase protection only to effective planned 
 		loaded[0].player.reduce((sum: number, p: any) => sum + p.plannedMinutes, 0),
 		240,
 		1e-7,
+	);
+});
+
+test("loadTeams keeps inactive reserves strictly zero through Current Override promotion boundaries", async () => {
+	const plan = [38, 35, 33, 30, 27, 24, 20, 18, 15, 0, 0, 0, 0, 0];
+	const rosters = await setup({ plan, injuredIndex: 0 });
+	const userTeam = (await idb.cache.teams.get(0))!;
+	userTeam.basketballRotation = {
+		...userTeam.basketballRotation!,
+		rotationDepth: "short",
+		coreReliance: "high",
+		currentMinutesOverrideByPid: { 1: 10 },
+		currentMinutesOverrideContext: {
+			rosterPids: rosters[0]!.map((p) => p.pid!).toSorted((a, b) => a - b),
+			unavailablePids: [rosters[0]![0]!.pid!],
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		},
+	};
+	await idb.cache.teams.put(userTeam);
+
+	const loaded = await loadTeams([0, 1], {});
+	assert(loaded[0]);
+	const byId = new Map<number, any>(
+		loaded[0].player.map((p: any) => [p.id, p]),
+	);
+	assert.strictEqual(byId.get(1)!.plannedMinutes, 10);
+	assert.strictEqual(byId.get(9)!.plannedMinutes, 0);
+	assert.isAbove(byId.get(10)!.plannedMinutes, 0);
+	assert.isAbove(byId.get(11)!.plannedMinutes, 0);
+	for (const pid of [12, 13]) {
+		assert.strictEqual(byId.get(pid)!.plannedMinutes, 0);
+	}
+	assert.closeTo(
+		loaded[0].player.reduce((sum: number, p: any) => sum + p.plannedMinutes, 0),
+		240,
+		1e-7,
+	);
+});
+
+test("loadTeams permanently clears a stale Current Override before a repeated injury episode", async () => {
+	const rosters = await setup({ injuredIndex: 0 });
+	const userTeam = (await idb.cache.teams.get(0))!;
+	userTeam.basketballRotation = {
+		...userTeam.basketballRotation!,
+		currentMinutesOverrideByPid: { 1: 10 },
+		currentMinutesOverrideContext: {
+			rosterPids: rosters[0]!.map((p) => p.pid!).toSorted((a, b) => a - b),
+			unavailablePids: [0],
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		},
+	};
+	await idb.cache.teams.put(userTeam);
+
+	const returned = (await idb.cache.players.get(0))!;
+	returned.injury = { type: "Healthy", gamesRemaining: 0 };
+	const newlyInjured = (await idb.cache.players.get(2))!;
+	newlyInjured.injury = { type: "Knee", gamesRemaining: 5 };
+	await idb.cache.players.put(returned);
+	await idb.cache.players.put(newlyInjured);
+	let loaded = await loadTeams([0, 1], {});
+	let rotation = (await idb.cache.teams.get(0))!.basketballRotation!;
+	assert.isUndefined(rotation.currentMinutesOverrideByPid);
+	assert.isUndefined(rotation.currentMinutesOverrideContext);
+	assert.notStrictEqual(
+		loaded[0]!.player.find((p: any) => p.id === 1)!.plannedMinutes,
+		10,
+	);
+
+	returned.injury = { type: "Ankle", gamesRemaining: 5 };
+	newlyInjured.injury = { type: "Healthy", gamesRemaining: 0 };
+	await idb.cache.players.put(returned);
+	await idb.cache.players.put(newlyInjured);
+	loaded = await loadTeams([0, 1], {});
+	rotation = (await idb.cache.teams.get(0))!.basketballRotation!;
+	assert.isUndefined(rotation.currentMinutesOverrideByPid);
+	assert.notStrictEqual(
+		loaded[0]!.player.find((p: any) => p.id === 1)!.plannedMinutes,
+		10,
 	);
 });
 

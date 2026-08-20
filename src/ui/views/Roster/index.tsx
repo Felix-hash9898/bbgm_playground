@@ -727,6 +727,11 @@ const Roster = ({
 								Injury protection overridden: too few healthy players
 							</span>
 						) : null}
+						{basketballMinutes.injuryMinutesAllocationError ? (
+							<span className="text-danger">
+								{basketballMinutes.injuryMinutesAllocationError}
+							</span>
+						) : null}
 						{basketballMinutes.currentMinutesOverrideError ? (
 							<span className="text-danger">
 								{basketballMinutes.currentMinutesOverrideError}

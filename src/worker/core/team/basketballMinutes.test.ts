@@ -806,7 +806,7 @@ describe("basketball Dynamic minute plans", () => {
 		);
 	});
 
-	test("injury protection caps healthy players and reports emergency overrides", () => {
+	test("injury protection caps healthy players and reports impossible hard-lock conflicts", () => {
 		const players = makePlayers(8);
 		const saved = Object.fromEntries(
 			players.map((p, i) => [p.pid, [40, 36, 34, 32, 30, 26, 24, 18][i]!]),
@@ -842,7 +842,7 @@ describe("basketball Dynamic minute plans", () => {
 		assert.strictEqual(protectedUnavailable.minutesByPid[101], 0);
 		assert.closeTo(sum(protectedUnavailable.minutesByPid), 240, 1e-7);
 
-		const emergency = getGameEffectiveBasketballMinutesWithStatus({
+		const conflict = getGameEffectiveBasketballMinutesWithStatus({
 			players: players.slice(0, 6).map((p, index) => ({
 				...p,
 				available: index !== 0,
@@ -860,9 +860,14 @@ describe("basketball Dynamic minute plans", () => {
 			regulationMinutes: 48,
 			noInjuryMinutesIncreasePids: [101, 102, 103, 104, 105],
 		});
-		assert.closeTo(sum(emergency.minutesByPid), 240, 1e-7);
-		assert.strictEqual(emergency.minutesByPid[100], 0);
-		assert.isAtLeast(emergency.protectionOverridePids.length, 1);
+		assert.match(
+			conflict.allocationError!,
+			/without exceeding Prevent injury increase limits/,
+		);
+		assert.deepEqual(
+			[101, 102, 103, 104, 105].map((pid) => conflict.minutesByPid[pid]),
+			[48, 48, 48, 24, 24],
+		);
 	});
 
 	test("a single reserve's absolute temporary role is quality-sensitive", () => {
@@ -1055,4 +1060,540 @@ describe("basketball Dynamic minute plans", () => {
 		});
 		assert.deepEqual(decimalCustom, { 100: 40, 101: 36, 102: 30, 103: 26 });
 	});
+	test("injury promotion follows healthy minute slots instead of unbounded proportional fill", () => {
+		const players = makePlayers(15);
+		const values = [34, 32, 32, 30, 28, 19, 19, 16, 11, 9, 7, 3, 0, 0, 0];
+		const minutesByPid = Object.fromEntries(
+			players.map((p, index) => [p.pid, values[index]!] as const),
+		);
+		const unavailable = new Set([101, 105, 106]);
+		const effective = getGameEffectiveBasketballMinutesWithStatus({
+			players: players.map((p) => ({
+				...p,
+				available: !unavailable.has(p.pid),
+				value: 1000 - p.rosterOrder,
+			})),
+			minutesByPid,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+			rotationDepth: "long",
+			coreReliance: "low",
+			noInjuryMinutesIncreasePids: [100, 102, 113],
+		});
+		assert.isAbove(effective.minutesByPid[104]!, 28);
+		assert.isAtMost(effective.minutesByPid[104]!, 33);
+		assert.isAtMost(effective.minutesByPid[103]!, 35);
+		assert.strictEqual(effective.minutesByPid[100], 34);
+		assert.strictEqual(effective.minutesByPid[102], 32);
+		assert.strictEqual(effective.minutesByPid[113], 0);
+		assert.closeTo(sum(effective.minutesByPid), 240, 1e-7);
+		assert.deepEqual(effective.protectionOverridePids, []);
+	});
+
+	test("a first-option injury promotion is bounded even when the first four slots are unavailable", () => {
+		const players = makePlayers(15);
+		const values = [34, 32, 32, 30, 28, 19, 19, 16, 11, 9, 7, 3, 0, 0, 0];
+		const minutesByPid = Object.fromEntries(
+			players.map((p, index) => [p.pid, values[index]!] as const),
+		);
+		const effective = getGameEffectiveBasketballMinutesWithStatus({
+			players: players.map((p, index) => ({
+				...p,
+				available: index >= 4,
+				value: 1000 - p.rosterOrder,
+			})),
+			minutesByPid,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+			rotationDepth: "long",
+			coreReliance: "low",
+		});
+		assert.isAbove(effective.minutesByPid[104]!, 28);
+		assert.isAtMost(effective.minutesByPid[104]!, 36);
+		assert.closeTo(sum(effective.minutesByPid), 240, 1e-7);
+	});
+
+	test("Current Override changes only the current delta and keeps injury protection active", () => {
+		const players = makePlayers(15);
+		const values = [34, 32, 32, 30, 28, 19, 19, 16, 11, 9, 7, 3, 0, 0, 0];
+		const minutesByPid = Object.fromEntries(
+			players.map((p, index) => [p.pid, values[index]!] as const),
+		);
+		const unavailable = new Set([101, 105, 106]);
+		const available = new Set(
+			players.filter((p) => !unavailable.has(p.pid)).map((p) => p.pid),
+		);
+		const context = getBasketballMinutesOverrideContext({
+			players,
+			available,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		});
+		const common = {
+			players: players.map((p) => ({
+				...p,
+				available: available.has(p.pid),
+				value: 1000 - p.rosterOrder,
+			})),
+			minutesByPid,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+			rotationDepth: "long" as const,
+			coreReliance: "low" as const,
+			noInjuryMinutesIncreasePids: [100, 102, 113],
+		};
+		const automatic = getGameEffectiveBasketballMinutesWithStatus(common);
+		const overridden = getGameEffectiveBasketballMinutesWithStatus({
+			...common,
+			currentMinutesOverrideByPid: { 103: 34 },
+			currentMinutesOverrideContext: context,
+		});
+		assert.strictEqual(overridden.minutesByPid[103], 34);
+		assert.isAtMost(overridden.minutesByPid[100]!, 34);
+		assert.isAtMost(overridden.minutesByPid[102]!, 32);
+		assert.isAtMost(overridden.minutesByPid[113]!, 0);
+		assert.closeTo(sum(overridden.minutesByPid), 240, 1e-7);
+		assert.deepEqual(overridden.protectionOverridePids, []);
+		const redistributedDelta = players
+			.filter((p) => p.pid !== 103)
+			.reduce(
+				(total, p) =>
+					total +
+					(overridden.minutesByPid[p.pid]! - automatic.minutesByPid[p.pid]!),
+				0,
+			);
+		assert.closeTo(redistributedDelta, automatic.minutesByPid[103]! - 34, 1e-7);
+	});
+
+	test("Current Override preserves active Short depth until an explicit reserve promotion is required", () => {
+		const players = makePlayers(14);
+		const values = [38, 35, 33, 30, 27, 24, 20, 18, 15, 0, 0, 0, 0, 0];
+		const minutesByPid = Object.fromEntries(
+			players.map((p, index) => [p.pid, values[index]!] as const),
+		);
+		const available = new Set(
+			players.filter((_, index) => index !== 0).map((p) => p.pid),
+		);
+		const context = getBasketballMinutesOverrideContext({
+			players,
+			available,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		});
+		const common = {
+			players: players.map((p, index) => ({
+				...p,
+				available: index !== 0,
+				value: 1000 - p.rosterOrder,
+			})),
+			minutesByPid,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+			coreReliance: "high" as const,
+			rotationDepth: "short" as const,
+		};
+		const deepPids = [109, 110, 111, 112, 113];
+		const deepUsed = (
+			result: ReturnType<typeof getGameEffectiveBasketballMinutesWithStatus>,
+		) => deepPids.filter((pid) => result.minutesByPid[pid]! > 1e-7).length;
+		const automatic = getGameEffectiveBasketballMinutesWithStatus(common);
+		assert.strictEqual(deepUsed(automatic), 2);
+
+		const downward = getGameEffectiveBasketballMinutesWithStatus({
+			...common,
+			currentMinutesOverrideByPid: { 101: 10 },
+			currentMinutesOverrideContext: context,
+		});
+		assert.strictEqual(deepUsed(downward), 2);
+		for (const pid of deepPids.slice(2)) {
+			assert.strictEqual(downward.minutesByPid[pid], 0);
+		}
+
+		const stillFits = getGameEffectiveBasketballMinutesWithStatus({
+			...common,
+			currentMinutesOverrideByPid: { 101: 0, 102: 0 },
+			currentMinutesOverrideContext: context,
+		});
+		assert.strictEqual(deepUsed(stillFits), 2);
+		for (const pid of deepPids.slice(2)) {
+			assert.strictEqual(stillFits.minutesByPid[pid], 0);
+		}
+
+		const expanded = getGameEffectiveBasketballMinutesWithStatus({
+			...common,
+			currentMinutesOverrideByPid: { 101: 0, 102: 0, 103: 30 },
+			currentMinutesOverrideContext: context,
+		});
+		assert.strictEqual(deepUsed(expanded), 3);
+		assert.isAbove(expanded.minutesByPid[111]!, 0);
+		assert.strictEqual(expanded.minutesByPid[112], 0);
+		assert.strictEqual(expanded.minutesByPid[113], 0);
+		assert.closeTo(sum(expanded.minutesByPid), 240, 1e-7);
+
+		const lowLong = getGameEffectiveBasketballMinutesWithStatus({
+			...common,
+			coreReliance: "low",
+			rotationDepth: "long",
+		});
+		assert.strictEqual(deepUsed(lowLong), 5);
+	});
+
+	test("protected capacity is used only after every unprotected emergency minute is exhausted", () => {
+		const players = makePlayers(7);
+		const minutesByPid = Object.fromEntries(
+			players.map((p, index) => [p.pid, [48, 48, 48, 48, 24, 24, 0][index]!]),
+		);
+		const effective = getGameEffectiveBasketballMinutesWithStatus({
+			players: players.map((p, index) => ({
+				...p,
+				available: index !== 0,
+				value: 1000 - p.rosterOrder,
+			})),
+			minutesByPid,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+			noInjuryMinutesIncreasePids: [101, 102, 103, 104],
+			rotationDepth: "long",
+			coreReliance: "low",
+		});
+		assert.isAbove(effective.minutesByPid[105]!, 24);
+		assert.isAbove(effective.minutesByPid[106]!, 0);
+		assert.deepEqual(effective.protectionOverridePids, []);
+		assert.closeTo(sum(effective.minutesByPid), 240, 1e-7);
+	});
+
+	test("a protected player's own Current Override cannot silently supersede its lock", () => {
+		const players = makePlayers(8);
+		const minutesByPid = Object.fromEntries(
+			players.map((p, index) => [
+				p.pid,
+				[40, 33, 37, 32, 30, 26, 24, 18][index]!,
+			]),
+		);
+		const available = new Set(players.map((p) => p.pid));
+		const context = getBasketballMinutesOverrideContext({
+			players,
+			available,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		});
+		const result = getGameEffectiveBasketballMinutesWithStatus({
+			players: players.map((p) => ({ ...p, available: true })),
+			minutesByPid,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+			noInjuryMinutesIncreasePids: [101],
+			currentMinutesOverrideByPid: { 101: 36 },
+			currentMinutesOverrideContext: context,
+		});
+		assert.match(
+			result.currentMinutesOverrideError!,
+			/Disable Prevent injury increase/,
+		);
+		assert.strictEqual(result.minutesByPid[101], 33);
+		assert.isUndefined(result.activeCurrentMinutesOverrideByPid);
+	});
+
+	test("injury allocation preserves strict zeroes and profile shape across adversarial roster sizes", () => {
+		const players = makePlayers(14);
+		const values = [38, 35, 33, 30, 27, 24, 20, 18, 15, 0, 0, 0, 0, 0];
+		const minutesByPid = Object.fromEntries(
+			players.map((p, index) => [p.pid, values[index]!] as const),
+		);
+		const deepPids = [109, 110, 111, 112, 113];
+		const profiles = [
+			["high", "short"],
+			["high", "normal"],
+			["high", "long"],
+			["balanced", "short"],
+			["balanced", "normal"],
+			["balanced", "long"],
+			["low", "short"],
+			["low", "normal"],
+			["low", "long"],
+		] as const;
+		const results = new Map<string, Record<number, number>>();
+
+		for (const [coreReliance, rotationDepth] of profiles) {
+			const result = getGameEffectiveBasketballMinutesWithStatus({
+				players: players.map((p, index) => ({
+					...p,
+					available: index !== 0,
+					value: 1000 - index,
+				})),
+				minutesByPid,
+				numPlayersOnCourt: 5,
+				regulationMinutes: 48,
+				coreReliance,
+				rotationDepth,
+			});
+			results.set(`${coreReliance}/${rotationDepth}`, result.minutesByPid);
+			assert.closeTo(sum(result.minutesByPid), 240, 1e-7);
+			for (const [index, p] of players.entries()) {
+				assert.isAtLeast(result.minutesByPid[p.pid]!, 0);
+				assert.isAtMost(result.minutesByPid[p.pid]!, 48);
+				if (index === 0) {
+					assert.strictEqual(result.minutesByPid[p.pid], 0);
+				}
+			}
+			const expectedDeep = { short: 2, normal: 3, long: 5 }[rotationDepth];
+			const activeDeep = deepPids.filter(
+				(pid) => result.minutesByPid[pid]! > 1e-7,
+			);
+			assert.strictEqual(activeDeep.length, expectedDeep);
+			for (const pid of deepPids.slice(expectedDeep)) {
+				assert.strictEqual(result.minutesByPid[pid], 0);
+			}
+		}
+
+		const coreMinutes = (coreReliance: "high" | "balanced" | "low") =>
+			[101, 102, 103, 104].reduce(
+				(total, pid) => total + results.get(`${coreReliance}/normal`)![pid]!,
+				0,
+			);
+		assert.isAbove(coreMinutes("high"), coreMinutes("balanced"));
+		assert.isAbove(coreMinutes("balanced"), coreMinutes("low"));
+
+		const healthy = getGameEffectiveBasketballMinutesWithStatus({
+			players: players.map((p) => ({ ...p, available: true })),
+			minutesByPid,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		});
+		assert.deepEqual(healthy.minutesByPid, minutesByPid);
+		assert.deepEqual(healthy.protectionOverridePids, []);
+
+		for (const availableCount of [7, 6, 5]) {
+			const available = new Set(
+				players.slice(-availableCount).map((p) => p.pid),
+			);
+			const emergency = getGameEffectiveBasketballMinutesWithStatus({
+				players: players.map((p) => ({
+					...p,
+					available: available.has(p.pid),
+				})),
+				minutesByPid,
+				numPlayersOnCourt: 5,
+				regulationMinutes: 48,
+				coreReliance: "balanced",
+				rotationDepth: "normal",
+			});
+			assert.closeTo(sum(emergency.minutesByPid), 240, 1e-7);
+			for (const p of players) {
+				assert.isAtMost(emergency.minutesByPid[p.pid]!, 48);
+				if (!available.has(p.pid)) {
+					assert.strictEqual(emergency.minutesByPid[p.pid], 0);
+				}
+			}
+		}
+	});
+
+	test("protected emergency capacity is a hard conflict, regardless of protected order", () => {
+		const players = makePlayers(7);
+		const minutesByPid = Object.fromEntries(
+			players.map((p, index) => [p.pid, [48, 40, 24, 24, 24, 30, 16][index]!]),
+		);
+		const conflict = getGameEffectiveBasketballMinutesWithStatus({
+			players: players.map((p, index) => ({
+				...p,
+				available: index !== 0,
+			})),
+			minutesByPid,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+			noInjuryMinutesIncreasePids: [101, 102, 103, 104],
+			rotationDepth: "short",
+			coreReliance: "high",
+		});
+		assert.match(
+			conflict.allocationError!,
+			/without exceeding Prevent injury increase limits/,
+		);
+		for (const pid of [101, 102, 103, 104]) {
+			assert.strictEqual(conflict.minutesByPid[pid], minutesByPid[pid]);
+		}
+		assert.throws(
+			() =>
+				getGameEffectiveBasketballMinutes({
+					players: players.map((p, index) => ({
+						...p,
+						available: index !== 0,
+					})),
+					minutesByPid,
+					numPlayersOnCourt: 5,
+					regulationMinutes: 48,
+					noInjuryMinutesIncreasePids: [101, 102, 103, 104],
+					rotationDepth: "short",
+					coreReliance: "high",
+				}),
+			/without exceeding Prevent injury increase limits/,
+		);
+	});
+
+	test("Current Override combinations preserve pins, strict zeroes, and stale-context fallback", () => {
+		const players = makePlayers(14);
+		const values = [38, 35, 33, 30, 27, 24, 20, 18, 15, 0, 0, 0, 0, 0];
+		const minutesByPid = Object.fromEntries(
+			players.map((p, index) => [p.pid, values[index]!] as const),
+		);
+		const available = new Set(
+			players.filter((_, index) => index !== 0).map((p) => p.pid),
+		);
+		const context = getBasketballMinutesOverrideContext({
+			players,
+			available,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		});
+		const common = {
+			players: players.map((p, index) => ({
+				...p,
+				available: index !== 0,
+				value: 1000 - index,
+			})),
+			minutesByPid,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+			rotationDepth: "short" as const,
+			coreReliance: "high" as const,
+			noInjuryMinutesIncreasePids: [100, 102],
+		};
+		const tiny = getGameEffectiveBasketballMinutesWithStatus({
+			...common,
+			currentMinutesOverrideByPid: { 111: 0.001 },
+			currentMinutesOverrideContext: context,
+		});
+		assert.strictEqual(tiny.minutesByPid[111], 0.001);
+		assert.deepEqual(tiny.activeCurrentMinutesOverrideByPid, { 111: 0.001 });
+		assert.closeTo(sum(tiny.minutesByPid), 240, 1e-7);
+		assert.strictEqual(tiny.minutesByPid[112], 0);
+		assert.strictEqual(tiny.minutesByPid[113], 0);
+
+		const mixed = getGameEffectiveBasketballMinutesWithStatus({
+			...common,
+			currentMinutesOverrideByPid: { 101: 48, 103: 0, 111: 0 },
+			currentMinutesOverrideContext: context,
+		});
+		assert.strictEqual(mixed.minutesByPid[101], 48);
+		assert.strictEqual(mixed.minutesByPid[103], 0);
+		assert.strictEqual(mixed.minutesByPid[111], 0);
+		assert.closeTo(sum(mixed.minutesByPid), 240, 1e-7);
+		assert.strictEqual(mixed.minutesByPid[112], 0);
+		assert.strictEqual(mixed.minutesByPid[113], 0);
+
+		const stale = getGameEffectiveBasketballMinutesWithStatus({
+			...common,
+			players: common.players.map((p) => ({
+				...p,
+				available: p.pid !== 100 && p.pid !== 101,
+			})),
+			currentMinutesOverrideByPid: { 101: 48 },
+			currentMinutesOverrideContext: context,
+		});
+		assert.isUndefined(stale.activeCurrentMinutesOverrideByPid);
+		assert.isUndefined(stale.currentMinutesOverrideError);
+		assert.strictEqual(stale.minutesByPid[100], 0);
+		assert.strictEqual(stale.minutesByPid[101], 0);
+
+		const protectedAbovePlan = getGameEffectiveBasketballMinutesWithStatus({
+			...common,
+			currentMinutesOverrideByPid: { 102: 34 },
+			currentMinutesOverrideContext: context,
+		});
+		assert.match(
+			protectedAbovePlan.currentMinutesOverrideError!,
+			/Disable Prevent injury increase/,
+		);
+		assert.strictEqual(protectedAbovePlan.minutesByPid[102], 33);
+		assert.isUndefined(protectedAbovePlan.activeCurrentMinutesOverrideByPid);
+	});
+
+	test.each([24, 36, 48, 60])(
+		"injury caps and totals scale with a %i-minute regulation game",
+		(regulationMinutes) => {
+			const players = makePlayers(14);
+			const values = [38, 35, 33, 30, 27, 24, 20, 18, 15, 0, 0, 0, 0, 0];
+			const minutesByPid = Object.fromEntries(
+				players.map((p, index) => [p.pid, values[index]!] as const),
+			);
+			const injured = getGameEffectiveBasketballMinutesWithStatus({
+				players: players.map((p, index) => ({
+					...p,
+					available: index !== 0,
+				})),
+				minutesByPid,
+				numPlayersOnCourt: 5,
+				regulationMinutes,
+				rotationDepth: "normal",
+				coreReliance: "balanced",
+			});
+			assert.closeTo(sum(injured.minutesByPid), regulationMinutes * 5, 1e-7);
+			for (const p of players) {
+				assert.isAtLeast(injured.minutesByPid[p.pid]!, 0);
+				assert.isAtMost(injured.minutesByPid[p.pid]!, regulationMinutes);
+				if (p.pid === 100) {
+					assert.strictEqual(injured.minutesByPid[p.pid], 0);
+				}
+			}
+
+			const healthy = getGameEffectiveBasketballMinutesWithStatus({
+				players: players.map((p) => ({ ...p, available: true })),
+				minutesByPid,
+				numPlayersOnCourt: 5,
+				regulationMinutes,
+			});
+			assert.closeTo(sum(healthy.minutesByPid), regulationMinutes * 5, 1e-7);
+			assert.closeTo(
+				healthy.minutesByPid[101]!,
+				values[1]! * (regulationMinutes / 48),
+				1e-7,
+			);
+		},
+	);
+
+	test.each(
+		([24, 36, 48] as const).flatMap((regulationMinutes) =>
+			(["high", "balanced", "low"] as const).flatMap((coreReliance) =>
+				(["short", "normal", "long"] as const).map((rotationDepth) => ({
+					regulationMinutes,
+					coreReliance,
+					rotationDepth,
+				})),
+			),
+		),
+	)(
+		"hard caps survive the $regulationMinutes-minute $coreReliance/$rotationDepth fallback matrix",
+		({ regulationMinutes, coreReliance, rotationDepth }) => {
+			const players = makePlayers(15);
+			const values = [34, 32, 32, 30, 28, 19, 19, 16, 11, 9, 7, 3, 0, 0, 0];
+			const minutesByPid = Object.fromEntries(
+				players.map((p, index) => [p.pid, values[index]!] as const),
+			);
+			const protectedPids = [100, 102, 113];
+			const unavailable = new Set([101, 105, 106]);
+			const result = getGameEffectiveBasketballMinutesWithStatus({
+				players: players.map((p, index) => ({
+					...p,
+					available: !unavailable.has(p.pid),
+					value: 1000 - index,
+				})),
+				minutesByPid,
+				numPlayersOnCourt: 5,
+				regulationMinutes,
+				noInjuryMinutesIncreasePids: protectedPids,
+				coreReliance,
+				rotationDepth,
+			});
+			const scale = regulationMinutes / 48;
+			for (const pid of protectedPids) {
+				assert.isAtMost(
+					result.minutesByPid[pid]!,
+					minutesByPid[pid]! * scale + 1e-7,
+				);
+			}
+			assert.strictEqual(result.minutesByPid[113], 0);
+			assert.closeTo(sum(result.minutesByPid), regulationMinutes * 5, 1e-7);
+			assert.deepEqual(result.protectionOverridePids, []);
+		},
+	);
 });

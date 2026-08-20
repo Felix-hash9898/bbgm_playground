@@ -1,5 +1,5 @@
 import { bySport, isSport, PHASE, POSITIONS } from "../../common/index.ts";
-import { finances, player, season, team } from "../core/index.ts";
+import { finances, season, team } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers, orderTeams } from "../util/index.ts";
 import type {
@@ -13,11 +13,12 @@ import addFirstNameShort from "../util/addFirstNameShort.ts";
 import { getActualPlayThroughInjuries } from "../core/game/loadTeams.ts";
 import {
 	getBasketballGameAvailability,
-	getBasketballOvrPercentiles,
 	getBasketballRotationPlayerInput,
 	getBasketballRotationMinutes,
 	getGameEffectiveBasketballMinutesWithStatus,
+	getLeagueRotationOvrPercentiles,
 } from "../core/team/basketballMinutes.ts";
+import reconcileBasketballRotation from "../core/team/reconcileBasketballRotation.ts";
 
 const sortByPos = (p: {
 	ratings: {
@@ -130,6 +131,9 @@ const updateRoster = async (
 			inputs.tid === g.get("userTid") &&
 			!g.get("spectator") &&
 			isSport("basketball");
+		if (editable) {
+			await reconcileBasketballRotation([inputs.tid]);
+		}
 
 		const showRelease =
 			inputs.season === g.get("season") &&
@@ -373,16 +377,8 @@ const updateRoster = async (
 			inputs.tid === g.get("userTid") &&
 			!g.get("spectator") &&
 			!g.get("challengeNoRatings")
-				? getBasketballOvrPercentiles(
-						(
-							await idb.cache.players.indexGetAll("playersByTid", [0, Infinity])
-						).map((p) => {
-							const ratings = p.ratings.at(-1)!;
-							return {
-								pid: p.pid,
-								ovr: player.fuzzRating(ratings.ovr, ratings.fuzz),
-							};
-						}),
+				? getLeagueRotationOvrPercentiles(
+						await idb.cache.players.indexGetAll("playersByTid", [0, Infinity]),
 					)
 				: undefined;
 
@@ -480,6 +476,7 @@ const updateRoster = async (
 							autoMinutesByPid: autoMinutes.minutesByPid,
 							effectiveMinutesByPid: effective?.minutesByPid,
 							protectionOverridePids: effective?.protectionOverridePids ?? [],
+							injuryMinutesAllocationError: effective?.allocationError,
 							currentMinutesOverrideByPid:
 								effective?.activeCurrentMinutesOverrideByPid,
 							currentMinutesOverrideError:

@@ -19,6 +19,7 @@ export type BasketballMinutesView = {
 	noInjuryMinutesIncreasePids?: number[];
 	effectiveMinutesByPid?: Record<number, number>;
 	protectionOverridePids?: number[];
+	injuryMinutesAllocationError?: string;
 	currentMinutesOverrideByPid?: Record<number, number>;
 	currentMinutesOverrideError?: string;
 	unavailablePids?: number[];
