@@ -25,6 +25,7 @@ type Props = {
 	// season is passed to RatingsStatsPopover, where it's used to determine whether to show a historical season's data. Also team link
 	season?: number;
 	playoffsCombined?: "regularSeason" | "playoffs" | "combined";
+	allowPlayoffsToggle?: boolean;
 
 	skills?: string[];
 	style?: {
@@ -139,6 +140,7 @@ const PlayerNameLabels = (props: Props) => {
 
 	const {
 		abbrev,
+		allowPlayoffsToggle,
 		awards,
 		awardsSeason,
 		count,
@@ -238,6 +240,7 @@ const PlayerNameLabels = (props: Props) => {
 					season={season}
 					defaultWatch={defaultWatch}
 					disableNameLink={disableNameLink}
+					allowPlayoffsToggle={allowPlayoffsToggle}
 				/>
 			) : null}
 			{abbrev !== undefined && tid !== undefined ? (

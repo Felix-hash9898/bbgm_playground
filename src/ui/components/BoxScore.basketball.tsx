@@ -35,19 +35,23 @@ const formatPercentage = (row: any, stat: ShotStat, percentageStat: string) => {
 
 const StatsTable = ({
 	Row,
+	allowPlayoffsToggle,
 	exhibition,
 	forceRowUpdate,
 	liveGameInProgress,
 	numPlayersOnCourt,
+	playoffsCombined,
 	season,
 	showBPMI,
 	t,
 }: {
 	Row: any;
+	allowPlayoffsToggle?: boolean;
 	exhibition?: boolean;
 	forceRowUpdate: boolean;
 	liveGameInProgress: boolean;
 	numPlayersOnCourt: number;
+	playoffsCombined?: "regularSeason" | "playoffs" | "combined";
 	season: number;
 	showBPMI: boolean;
 	t: any;
@@ -224,10 +228,12 @@ const StatsTable = ({
 						<Row
 							allStarGame={allStarGame}
 							key={p.pid}
+							allowPlayoffsToggle={allowPlayoffsToggle}
 							exhibition={exhibition}
 							lastStarter={sortBys.length === 0 && i + 1 === numPlayersOnCourt}
 							liveGameInProgress={liveGameInProgress}
 							p={p}
+							playoffsCombined={playoffsCombined}
 							forceUpdate={forceRowUpdate}
 							season={season}
 							stats={stats}
@@ -306,10 +312,14 @@ const BoxScore = ({
 						</h2>
 						<StatsTable
 							Row={Row}
+							allowPlayoffsToggle={!boxScore.exhibition}
 							exhibition={boxScore.exhibition}
 							forceRowUpdate={forceRowUpdate}
 							liveGameInProgress={liveGameInProgress}
 							numPlayersOnCourt={boxScore.numPlayersOnCourt ?? 5}
+							playoffsCombined={
+								boxScore.playoffs ? "playoffs" : "regularSeason"
+							}
 							season={boxScore.season}
 							showBPMI={showBPMI}
 							t={t}

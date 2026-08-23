@@ -1,6 +1,9 @@
 import { assert, beforeAll, describe, test } from "vitest";
 import { g, helpers } from "../util/index.ts";
-import { validateAbbrev, validateSeason } from "./processInputs.ts";
+import processInputs, {
+	validateAbbrev,
+	validateSeason,
+} from "./processInputs.ts";
 
 beforeAll(() => {
 	g.setWithoutSavingToDB("userTid", 4);
@@ -45,5 +48,38 @@ describe("validateSeason", () => {
 	test("return current season on invalid input", () => {
 		assert.strictEqual(validateSeason("fuck"), 2009);
 		assert.strictEqual(validateSeason(undefined), 2009);
+	});
+});
+
+describe("standings", () => {
+	test("defaults to conf for basketball when playoffs exist", () => {
+		g.setWithoutSavingToDB("numGamesPlayoffSeries", [7, 7, 7, 7]);
+		const result = processInputs.standings({});
+		assert.strictEqual(result.type, "conf");
+		assert.strictEqual(result.season, 2009);
+	});
+
+	test("defaults to league when numGamesPlayoffSeries is empty", () => {
+		g.setWithoutSavingToDB("numGamesPlayoffSeries", []);
+		const result = processInputs.standings({});
+		assert.strictEqual(result.type, "league");
+	});
+
+	test("respects explicit query params authoritatively", () => {
+		g.setWithoutSavingToDB("numGamesPlayoffSeries", [7, 7, 7, 7]);
+		assert.strictEqual(processInputs.standings({ type: "conf" }).type, "conf");
+		assert.strictEqual(processInputs.standings({ type: "div" }).type, "div");
+		assert.strictEqual(
+			processInputs.standings({ type: "league" }).type,
+			"league",
+		);
+	});
+
+	test("falls back to default on unrecognized type param", () => {
+		g.setWithoutSavingToDB("numGamesPlayoffSeries", [7, 7, 7, 7]);
+		assert.strictEqual(
+			processInputs.standings({ type: "invalid" as any }).type,
+			"conf",
+		);
 	});
 });

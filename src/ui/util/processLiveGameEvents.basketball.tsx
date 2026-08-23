@@ -478,6 +478,12 @@ const processLiveGameEvents = ({
 				e.s === "min" ||
 				e.s === "fg" ||
 				e.s === "fga" ||
+				e.s === "fgAtRim" ||
+				e.s === "fgaAtRim" ||
+				e.s === "fgLowPost" ||
+				e.s === "fgaLowPost" ||
+				e.s === "fgMidRange" ||
+				e.s === "fgaMidRange" ||
 				e.s === "tp" ||
 				e.s === "tpa" ||
 				e.s === "ft" ||

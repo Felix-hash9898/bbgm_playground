@@ -286,6 +286,9 @@ const Roster = ({
 			...stats.map((stat) => `stat:${stat}`),
 			...(editable ? ["PT"] : []),
 			...(editable && isSport("basketball") && season === currentSeason
+				? ["Lock"]
+				: []),
+			...(editable && isSport("basketball") && season === currentSeason
 				? ["Usage"]
 				: []),
 			...(showMood ? ["Mood"] : []),
@@ -343,6 +346,20 @@ const Roster = ({
 						)}
 					</>
 				),
+			},
+			Lock: {
+				titleReact: (
+					<>
+						Lock{" "}
+						<HelpPopover title="Prevent injury increase">
+							<p>
+								When checked, injuries to teammates will not automatically
+								increase this player's minutes.
+							</p>
+						</HelpPopover>
+					</>
+				),
+				width: "50px",
 			},
 			Usage: {
 				titleReact: (
@@ -433,15 +450,19 @@ const Roster = ({
 		const currentMinutes =
 			effectiveMinutes ??
 			(isAutoFilled && healthyMinutes > 0 ? healthyMinutes : undefined);
+		const hasInjuryContext =
+			unavailablePids.size > 0 && effectiveMinutes !== undefined;
 		const showEffectiveMinutes =
 			currentMinutes !== undefined &&
-			(isAutoFilled
-				? healthyMinutes > 0 ||
-					Math.abs(currentMinutes - healthyMinutes) > 1e-7 ||
-					currentOverride !== undefined
-				: Number.isFinite(baseMinutes) &&
-					(Math.abs(currentMinutes - baseMinutes) > 1e-7 ||
-						currentOverride !== undefined));
+			(hasInjuryContext
+				? isAutoFilled || Number.isFinite(baseMinutes)
+				: isAutoFilled
+					? healthyMinutes > 0 ||
+						Math.abs(currentMinutes - healthyMinutes) > 1e-7 ||
+						currentOverride !== undefined
+					: Number.isFinite(baseMinutes) &&
+						(Math.abs(currentMinutes - baseMinutes) > 1e-7 ||
+							currentOverride !== undefined));
 		const effectiveMinutesText =
 			currentMinutes === undefined
 				? ""
@@ -585,7 +606,6 @@ const Roster = ({
 										currentMinutes={currentMinutes}
 										currentOverride={currentOverride}
 										unavailable={unavailablePids.has(p.pid)}
-										protectionEnabled={noInjuryMinutesIncreasePids.has(p.pid)}
 										onCurrentOverrideChange={(minutes) =>
 											updateBasketballCurrentMinutesOverride(
 												tid,
@@ -593,17 +613,31 @@ const Roster = ({
 												minutes,
 											)
 										}
-										onProtectionChange={(protectedFromIncrease) =>
-											updateBasketballNoInjuryMinutesIncrease(
-												tid,
-												p.pid,
-												protectedFromIncrease,
-											)
-										}
 									/>
 								</div>,
 							]
 						: [<PlayingTime p={p} userTid={userTid} godMode={godMode} />]
+					: []),
+				...(editable && isSport("basketball") && season === currentSeason
+					? [
+							<div className="d-flex justify-content-center align-items-center">
+								<input
+									type="checkbox"
+									className="form-check-input mt-0"
+									checked={noInjuryMinutesIncreasePids.has(p.pid)}
+									onChange={(e) => {
+										updateBasketballNoInjuryMinutesIncrease(
+											tid,
+											p.pid,
+											e.target.checked,
+										).catch((error: unknown) => {
+											reportBasketballMinutesError(error);
+										});
+									}}
+									aria-label={`Prevent injury minutes increase for ${p.firstName} ${p.lastName}`}
+								/>
+							</div>,
+						]
 					: []),
 				...(editable && isSport("basketball") && season === currentSeason
 					? [<UsageBias p={p} userTid={userTid} />]

@@ -1,8 +1,9 @@
 import clsx from "clsx";
-import { type Ref, useCallback, useEffect, useState } from "react";
+import { type Ref, useCallback, useEffect, useRef, useState } from "react";
 import RatingsStats from "./RatingsStats.tsx";
 import WatchBlock from "../WatchBlock.tsx";
-import { helpers, toWorker } from "../../util/index.ts";
+import { helpers } from "../../util/index.ts";
+import toWorker from "../../util/toWorker.ts";
 import ResponsivePopover from "../ResponsivePopover.tsx";
 import { PLAYER } from "../../../common/index.ts";
 import { crossTabEmitter } from "../../util/crossTabEmitter.ts";
@@ -60,6 +61,7 @@ type Props = {
 	pid: number;
 	playoffsCombined?: "regularSeason" | "playoffs" | "combined";
 	season?: number;
+	allowPlayoffsToggle?: boolean;
 };
 
 const RatingsStatsPopover = ({
@@ -68,7 +70,39 @@ const RatingsStatsPopover = ({
 	pid,
 	playoffsCombined,
 	season,
+	allowPlayoffsToggle,
 }: Props) => {
+	const defaultPlayoffs =
+		playoffsCombined === "playoffs" ? "playoffs" : "regularSeason";
+	const [selectedPlayoffs, setSelectedPlayoffs] = useState<
+		"regularSeason" | "playoffs"
+	>(defaultPlayoffs);
+	const selectedPlayoffsRef = useRef<"regularSeason" | "playoffs">(
+		defaultPlayoffs,
+	);
+	const [prevProps, setPrevProps] = useState({
+		pid,
+		season,
+		playoffsCombined,
+	});
+
+	const requestIdRef = useRef<number>(0);
+
+	if (
+		prevProps.pid !== pid ||
+		prevProps.season !== season ||
+		prevProps.playoffsCombined !== playoffsCombined
+	) {
+		setPrevProps({ pid, season, playoffsCombined });
+		selectedPlayoffsRef.current = defaultPlayoffs;
+		setSelectedPlayoffs(defaultPlayoffs);
+		requestIdRef.current++;
+	}
+
+	const activePlayoffsCombined = allowPlayoffsToggle
+		? selectedPlayoffs
+		: playoffsCombined;
+
 	const [loadingData, setLoadingData] = useState<boolean>(false);
 	const [player, setPlayer] = useState<{
 		abbrev?: string;
@@ -96,7 +130,7 @@ const RatingsStatsPopover = ({
 		note?: string;
 	}>({
 		pid,
-		playoffsCombined,
+		playoffsCombined: activePlayoffsCombined,
 		season,
 	});
 
@@ -123,47 +157,80 @@ const RatingsStatsPopover = ({
 		return unbind;
 	}, [defaultWatch, pid]);
 
+	useEffect(() => {
+		const reqRef = requestIdRef;
+		return () => {
+			reqRef.current++;
+		};
+	}, []);
+
 	// Object.is to handle NaN
 	if (
 		!Object.is(player.pid, pid) ||
 		player.season !== season ||
-		player.playoffsCombined !== playoffsCombined
+		player.playoffsCombined !== activePlayoffsCombined
 	) {
 		setLoadingData(false);
 		setPlayer({
 			pid,
-			playoffsCombined,
+			playoffsCombined: activePlayoffsCombined,
 			season,
 		});
 	}
 
-	const loadData = useCallback(async () => {
-		const p = await toWorker("main", "ratingsStatsPopoverInfo", {
-			pid,
-			playoffsCombined,
-			season,
-		});
-		setPlayer({
-			abbrev: p.abbrev,
-			tid: p.tid,
-			age: p.age,
-			jerseyNumber: p.jerseyNumber,
-			name: p.name,
-			ratings: p.ratings,
-			stats: p.stats,
-			pid,
-			playoffsCombined,
-			season,
-			type: p.type,
-			note: p.note,
-		});
-		setLoadingData(false);
-	}, [pid, playoffsCombined, season]);
+	const loadData = useCallback(
+		async (
+			targetPlayoffsCombined?: "regularSeason" | "playoffs" | "combined",
+		) => {
+			const currentType = targetPlayoffsCombined ?? activePlayoffsCombined;
+			const requestId = ++requestIdRef.current;
+			setLoadingData(true);
+			try {
+				const p = await toWorker("main", "ratingsStatsPopoverInfo", {
+					pid,
+					playoffsCombined: currentType,
+					season,
+				});
+				if (requestId !== requestIdRef.current) {
+					return;
+				}
+				setPlayer({
+					abbrev: p.abbrev,
+					tid: p.tid,
+					age: p.age,
+					jerseyNumber: p.jerseyNumber,
+					name: p.name,
+					ratings: p.ratings,
+					stats: p.stats,
+					pid,
+					playoffsCombined: currentType,
+					season,
+					type: p.type,
+					note: p.note,
+				});
+			} finally {
+				if (requestId === requestIdRef.current) {
+					setLoadingData(false);
+				}
+			}
+		},
+		[activePlayoffsCombined, pid, season],
+	);
+
+	const handlePlayoffsToggle = async (
+		newType: "regularSeason" | "playoffs",
+	) => {
+		if (newType === selectedPlayoffsRef.current) {
+			return;
+		}
+		selectedPlayoffsRef.current = newType;
+		setSelectedPlayoffs(newType);
+		await loadData(newType);
+	};
 
 	const toggle = useCallback(() => {
 		if (!loadingData) {
 			loadData();
-			setLoadingData(true);
 		}
 	}, [loadData, loadingData]);
 
@@ -222,9 +289,47 @@ const RatingsStatsPopover = ({
 
 	const id = `ratings-stats-popover-${player.pid}`;
 
+	const playoffsToggle = allowPlayoffsToggle ? (
+		<div
+			className="btn-group btn-group-sm mb-2"
+			role="group"
+			aria-label="Season type"
+		>
+			<button
+				type="button"
+				className={clsx(
+					"btn",
+					activePlayoffsCombined === "regularSeason"
+						? "btn-primary"
+						: "btn-light-bordered",
+				)}
+				onClick={() => {
+					void handlePlayoffsToggle("regularSeason");
+				}}
+			>
+				Regular
+			</button>
+			<button
+				type="button"
+				className={clsx(
+					"btn",
+					activePlayoffsCombined === "playoffs"
+						? "btn-primary"
+						: "btn-light-bordered",
+				)}
+				onClick={() => {
+					void handlePlayoffsToggle("playoffs");
+				}}
+			>
+				Playoffs
+			</button>
+		</div>
+	) : null;
+
 	const modalHeader = nameBlock;
 	const modalBody = (
 		<>
+			{playoffsToggle}
 			<RatingsStats ratings={ratings} stats={stats} type={type} />
 			{note ? <PlayerNote className="mt-2" note={note} /> : null}
 		</>
@@ -238,6 +343,7 @@ const RatingsStatsPopover = ({
 			}}
 		>
 			<div className="mb-2">{nameBlock}</div>
+			{playoffsToggle}
 			<RatingsStats ratings={ratings} stats={stats} type={type} />
 			{note ? <PlayerNote className="mt-2" note={note} /> : null}
 		</div>

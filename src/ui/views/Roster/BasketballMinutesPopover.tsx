@@ -13,10 +13,8 @@ type Props = {
 	currentMinutes?: number;
 	currentOverride?: number;
 	unavailable?: boolean;
-	protectionEnabled: boolean;
 	error?: string;
 	onCurrentOverrideChange: (minutes: number | null) => Promise<unknown>;
-	onProtectionChange: (protectedFromIncrease: boolean) => Promise<unknown>;
 };
 
 const BasketballMinutesPopover = ({
@@ -28,10 +26,8 @@ const BasketballMinutesPopover = ({
 	currentMinutes,
 	currentOverride,
 	unavailable = false,
-	protectionEnabled,
 	error,
 	onCurrentOverrideChange,
-	onProtectionChange,
 }: Props) => {
 	const [draft, setDraft] = useState(
 		currentOverride === undefined ? "" : String(currentOverride),
@@ -139,24 +135,8 @@ const BasketballMinutesPopover = ({
 				/>
 			</div>
 			{unavailable ? (
-				<div className="text-body-secondary mt-1">Unavailable</div>
+				<div className="text-body-secondary mt-1">Out (injury)</div>
 			) : null}
-			<div className="form-check mt-2">
-				<input
-					className="form-check-input"
-					type="checkbox"
-					id={`protect-injury-${pid}`}
-					checked={protectionEnabled}
-					onChange={(event) => {
-						void onProtectionChange(event.target.checked).catch((error_) => {
-							setLocalError(String(error_));
-						});
-					}}
-				/>
-				<label className="form-check-label" htmlFor={`protect-injury-${pid}`}>
-					Prevent injury increase
-				</label>
-			</div>
 			{localError || error ? (
 				<div className="text-danger mt-1">{localError ?? error}</div>
 			) : null}
@@ -171,13 +151,14 @@ const BasketballMinutesPopover = ({
 			popoverContent={content}
 			renderTarget={({ onClick }) => (
 				<button
-					className="btn btn-link btn-sm p-0 help-icon"
+					className="btn btn-link btn-sm p-0 help-icon d-inline-flex align-items-center"
 					type="button"
 					onClick={onClick}
 					aria-label={`Explain minutes for ${playerName}`}
 				>
 					<span
 						className="glyphicon glyphicon-question-sign"
+						style={{ top: 0 }}
 						aria-hidden="true"
 					/>
 				</button>

@@ -11,21 +11,25 @@ const formatMadeAttempts = (made: unknown, attempts: unknown) =>
 		: "";
 
 const BoxScoreRow = ({
+	allowPlayoffsToggle,
 	className,
 	exhibition,
 	lastStarter,
 	liveGameInProgress,
 	onClick,
 	p,
+	playoffsCombined,
 	season,
 	stats = BOX_SCORE_STATS,
 }: {
+	allowPlayoffsToggle?: boolean;
 	className?: string;
 	exhibition?: boolean;
 	lastStarter?: boolean;
 	liveGameInProgress?: boolean;
 	onClick?: (event: MouseEvent) => void;
 	p: any;
+	playoffsCombined?: "regularSeason" | "playoffs" | "combined";
 	season: number;
 	stats?: readonly BasketballBoxScoreStat[];
 }) => {
@@ -110,6 +114,8 @@ const BoxScoreRow = ({
 					legacyName={p.name}
 					disableNameLink={exhibition}
 					season={season}
+					playoffsCombined={playoffsCombined}
+					allowPlayoffsToggle={allowPlayoffsToggle}
 				/>
 			</td>
 			{typeof p.abbrev === "string" ? (

@@ -928,7 +928,7 @@ const standings = (params: Params) => {
 			? "league"
 			: bySport({
 					baseball: "div",
-					basketball: "league",
+					basketball: "conf",
 					football: "div",
 					hockey: "div",
 				});

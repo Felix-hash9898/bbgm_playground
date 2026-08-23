@@ -25,6 +25,12 @@ vi.mock("@bugsnag/browser", () => {
 
 vi.mock("./PlayerNameLabels.tsx", () => ({
 	default: ({ legacyName }: { legacyName: string }) => legacyName,
+	CountBadge: () => null,
+	wrappedPlayerNameLabels: ({ legacyName }: { legacyName: string }) => ({
+		value: legacyName,
+		sortValue: legacyName,
+		searchValue: legacyName,
+	}),
 }));
 
 const makePlayer = (pid: number, min: number, bpmImpact?: number) => ({

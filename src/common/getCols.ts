@@ -3252,6 +3252,10 @@ const cols: {
 		noSearch: true,
 		sortSequence: [],
 	},
+	Lock: {
+		noSearch: true,
+		sortSequence: [],
+	},
 	M: {
 		desc: "Made",
 		sortSequence: ["desc", "asc"],

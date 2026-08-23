@@ -31,11 +31,13 @@ import type { FastForward } from "../components/PlayPauseNext.tsx";
 import type { BasketballBoxScoreStat } from "../../common/boxScoreStats.basketball.ts";
 
 type PlayerRowProps = {
+	allowPlayoffsToggle?: boolean;
 	exhibition?: boolean;
 	forceUpdate?: boolean;
 	i: number;
 	liveGameInProgress?: boolean;
 	p: any;
+	playoffsCombined?: "regularSeason" | "playoffs" | "combined";
 	season: number;
 	stats?: readonly BasketballBoxScoreStat[];
 };
