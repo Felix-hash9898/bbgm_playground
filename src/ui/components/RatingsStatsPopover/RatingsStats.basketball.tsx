@@ -12,9 +12,16 @@ type Props = {
 	stats: any;
 	type?: "career" | "current" | "draft" | number;
 	challengeNoRatings: boolean;
+	emptyPlayoffStats?: boolean;
 };
 
-const RatingsStats = ({ challengeNoRatings, ratings, stats, type }: Props) => {
+const RatingsStats = ({
+	challengeNoRatings,
+	emptyPlayoffStats,
+	ratings,
+	stats,
+	type,
+}: Props) => {
 	const seasonPrefix =
 		typeof type === "number" ? `${type} ` : type === "career" ? "Peak " : "";
 	const seasonPrefix2 =
@@ -89,11 +96,28 @@ const RatingsStats = ({ challengeNoRatings, ratings, stats, type }: Props) => {
 
 	let statsBlock;
 
-	if (stats) {
+	if (emptyPlayoffStats) {
+		statsBlock = (
+			<div className="row mt-2">
+				<div className="col-12">
+					<b>{seasonPrefix2}Stats</b>
+					<br />
+					<div
+						className="alert alert-info d-inline-block mt-1 mb-0"
+						role="status"
+					>
+						No playoff stats for this season.
+					</div>
+				</div>
+			</div>
+		);
+	} else if (stats) {
 		statsBlock = (
 			<div className="row">
 				<div className="col-4">
 					<b>{seasonPrefix2}Stats</b>
+					<br />
+					GP: {helpers.roundStat(stats.gp, "gp")}
 					<br />
 					PTS: {helpers.roundStat(stats.pts, "pts")}
 					<br />
@@ -113,6 +137,8 @@ const RatingsStats = ({ challengeNoRatings, ratings, stats, type }: Props) => {
 					<br />
 					TO: {helpers.roundStat(stats.tov, "tov")}
 					<br />
+					3PA: {helpers.roundStat(stats.tpa, "tpa")}
+					<br />
 					3P: {helpers.roundStat(stats.tpp, "tpp")}%
 					<br />
 					3PAr: {helpers.roundStat(stats.tpar, "tpar")}
@@ -122,6 +148,8 @@ const RatingsStats = ({ challengeNoRatings, ratings, stats, type }: Props) => {
 					MP: {helpers.roundStat(stats.min, "min")}
 					<br />
 					PER: {helpers.roundStat(stats.per, "per")}
+					<br />
+					BPM: {helpers.roundStat(stats.bpm, "bpm")}
 					<br />
 					EWA: {helpers.roundStat(stats.ewa, "ewa")}
 					<br />

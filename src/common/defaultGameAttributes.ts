@@ -8,6 +8,7 @@ import isSport from "./isSport.ts";
 import type {
 	GameAttributeKey,
 	GameAttributesLeagueWithHistory,
+	GameAttributesLeague,
 	GameAttributeWithHistory,
 } from "./types.ts";
 
@@ -17,6 +18,15 @@ const wrap = <T>(value: T): GameAttributeWithHistory<T> => [
 		value,
 	},
 ];
+
+// Used only when loading existing leagues that predate this setting. Keep their
+// retention behavior stable while new leagues receive the defaults below.
+export const legacyDefaultSaveOldBoxScores: GameAttributesLeague["saveOldBoxScores"] =
+	{
+		pastSeasons: 2,
+		pastSeasonsType: "all",
+		note: "all",
+	};
 
 // gameAttributes is mixed up between league settings, game state, teams, and cache
 export const gameAttributesKeysGameState: GameAttributeKey[] = [
@@ -382,9 +392,14 @@ const defaultGameAttributes: GameAttributesLeagueWithHistory = {
 	tradeProposalsSeed: 0,
 	rpdPot: true,
 	saveOldBoxScores: {
-		pastSeasons: 2,
-		pastSeasonsType: "all",
+		pastSeasons: 20,
+		pastSeasonsType: "your",
 		note: "all",
+		playoffs: "your",
+		finals: "all",
+		playerFeat: "your",
+		clutchPlays: "your",
+		allStar: "all",
 	},
 	currencyFormat: ["$", ".", ""],
 	forceRetireRealPlayers: false,

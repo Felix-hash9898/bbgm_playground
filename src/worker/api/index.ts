@@ -2875,6 +2875,7 @@ const ratingsStatsPopoverInfo = async ({
 
 		// If player has no stats that season and is not a draft prospect, show career stats
 		if (
+			season === undefined &&
 			p.draft.year < actualSeason &&
 			!p.ratings.some((row) => row.season === actualSeason)
 		) {
@@ -2890,6 +2891,9 @@ const ratingsStatsPopoverInfo = async ({
 	const stats = bySport({
 		baseball: ["keyStats"],
 		basketball: [
+			"gp",
+			"tpa",
+			"bpm",
 			"pts",
 			"trb",
 			"ast",
@@ -2909,6 +2913,12 @@ const ratingsStatsPopoverInfo = async ({
 		football: ["keyStats"],
 		hockey: ["keyStatsWithGoalieGP"],
 	});
+	const hasPlayoffStats = p.stats.some(
+		(row) =>
+			(actualSeason === undefined || row.season === actualSeason) &&
+			row.playoffs &&
+			(row.gp ?? 0) > 0,
+	);
 
 	const attrs = ["name", "jerseyNumber", "tid", "age", "note"];
 	const ratings = ["pos", "ovr", "pot", "season", "tid", ...RATINGS];
@@ -2927,7 +2937,7 @@ const ratingsStatsPopoverInfo = async ({
 		season: actualSeason,
 		showNoStats: true,
 		showRetired: true,
-		oldStats: true,
+		oldStats: season === undefined,
 		fuzz: true,
 	});
 	if (actualSeason === undefined) {
@@ -2971,6 +2981,7 @@ const ratingsStatsPopoverInfo = async ({
 	}
 	return {
 		...p2,
+		hasPlayoffStats,
 		type,
 	};
 };

@@ -14,6 +14,11 @@ import {
 	processPlayerStats,
 } from "../util/index.ts";
 import { getCommon } from "./player.ts";
+import {
+	buildPlayerGameLogSummaries,
+	identifyPlayerSeries,
+} from "./playerGameLogSeries.basketball.ts";
+import getPlayoffsByConf from "../core/season/getPlayoffsByConf.ts";
 
 const updatePlayerGameLog = async (
 	{ pid, season }: ViewInput<"playerGameLog">,
@@ -57,6 +62,53 @@ const updatePlayerGameLog = async (
 		);
 
 		const games = await idb.getCopies.games({ season }, "noCopyCache");
+		let seriesStats;
+		if (
+			isSport("basketball") &&
+			pid !== undefined &&
+			games.some(
+				(game) =>
+					game.playoffs &&
+					game.teams.some((team) =>
+						team.players.some(
+							(row) =>
+								row.pid === pid && ((row.gp ?? 0) > 0 || (row.min ?? 0) > 0),
+						),
+					),
+			)
+		) {
+			const [playoffSeries, headToHead, playoffsByConf] = await Promise.all([
+				idb.getCopy.playoffSeries({ season }, "noCopyCache"),
+				idb.getCopy.headToHeads({ season }, "noCopyCache"),
+				getPlayoffsByConf(season),
+			]);
+			const numGamesByRound = g.get("numGamesPlayoffSeries", season);
+			const numRounds = numGamesByRound.length;
+			const series = identifyPlayerSeries(
+				games,
+				pid,
+				playoffSeries,
+				headToHead,
+				(round) => helpers.playoffRoundName(round, numRounds, playoffsByConf),
+				numGamesByRound,
+			);
+			const oppAbbrevs: Record<number, string> = {};
+			for (const item of series) {
+				oppAbbrevs[item.oppTid] =
+					(await getTeamInfoBySeason(item.oppTid, season))?.abbrev ?? "???";
+			}
+			seriesStats = buildPlayerGameLogSummaries(games, pid, series, oppAbbrevs);
+			for (const summary of seriesStats) {
+				for (const value of Object.values(summary.stats.gameHighs ?? {})) {
+					if (Array.isArray(value) && value.length === 3) {
+						const tid = value[2] as number;
+						const abbrev =
+							(await getTeamInfoBySeason(tid, season))?.abbrev ?? "???";
+						value.splice(2, 1, abbrev, tid, season);
+					}
+				}
+			}
+		}
 
 		const abbrevsByTid: Record<number, string> = {};
 		const getAbbrev = async (tid: number) => {
@@ -218,6 +270,7 @@ const updatePlayerGameLog = async (
 
 		return {
 			...topStuff,
+			seriesStats,
 			showDecisionColumn,
 			gameLog,
 			numGamesPlayoffSeires: g.get("numGamesPlayoffSeries", season),

@@ -7,6 +7,7 @@ import { NoGamesMessage } from "./GameLog.tsx";
 import type { DataTableRow } from "../components/DataTable/index.tsx";
 import { isSport } from "../../common/index.ts";
 import clsx from "clsx";
+import SeriesStats from "./PlayerGameLogSeriesStats.tsx";
 
 type DecisionPlayer = {
 	w: number;
@@ -176,6 +177,7 @@ const PlayerGameLog = ({
 	showDecisionColumn,
 	stats,
 	superCols,
+	seriesStats,
 }: View<"playerGameLog">) => {
 	useTitleBar({
 		title: player.name,
@@ -391,15 +393,21 @@ const PlayerGameLog = ({
 					) : null}
 					{rowsPlayoffs.length > 0 ? (
 						<>
-							<DataTable
+							<div
 								className={rowsRegularSeason.length > 0 ? "mt-5" : undefined}
+							>
+								<h2>Playoffs</h2>
+								{isSport("basketball") && seriesStats ? (
+									<SeriesStats seriesStats={seriesStats} />
+								) : null}
+							</div>
+							<DataTable
 								cols={cols}
 								defaultSort={[0, "asc"]}
 								name="PlayerGameLogPlayoffs"
 								rows={rowsPlayoffs}
 								striped={striped}
 								superCols={superCols}
-								title={<h2>Playoffs</h2>}
 							/>
 						</>
 					) : null}

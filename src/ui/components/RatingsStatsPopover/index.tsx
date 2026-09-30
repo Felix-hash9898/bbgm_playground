@@ -5,7 +5,7 @@ import WatchBlock from "../WatchBlock.tsx";
 import { helpers } from "../../util/index.ts";
 import toWorker from "../../util/toWorker.ts";
 import ResponsivePopover from "../ResponsivePopover.tsx";
-import { PLAYER } from "../../../common/index.ts";
+import { isSport, PLAYER } from "../../../common/index.ts";
 import { crossTabEmitter } from "../../util/crossTabEmitter.ts";
 
 const PlayerNote = ({
@@ -72,6 +72,13 @@ const RatingsStatsPopover = ({
 	season,
 	allowPlayoffsToggle,
 }: Props) => {
+	// Normal basketball player names share one season-scope control. Explicit false
+	// remains available to exhibition and other special data sources.
+	const shouldShowPlayoffsToggle =
+		allowPlayoffsToggle ??
+		(isSport("basketball") &&
+			playoffsCombined !== "combined" &&
+			!disableNameLink);
 	const defaultPlayoffs =
 		playoffsCombined === "playoffs" ? "playoffs" : "regularSeason";
 	const [selectedPlayoffs, setSelectedPlayoffs] = useState<
@@ -87,6 +94,8 @@ const RatingsStatsPopover = ({
 	});
 
 	const requestIdRef = useRef<number>(0);
+	const hasOpenedRef = useRef(false);
+	const previousContextRef = useRef({ pid, season, playoffsCombined });
 
 	if (
 		prevProps.pid !== pid ||
@@ -99,7 +108,7 @@ const RatingsStatsPopover = ({
 		requestIdRef.current++;
 	}
 
-	const activePlayoffsCombined = allowPlayoffsToggle
+	const activePlayoffsCombined = shouldShowPlayoffsToggle
 		? selectedPlayoffs
 		: playoffsCombined;
 
@@ -126,6 +135,7 @@ const RatingsStatsPopover = ({
 		pid: number;
 		playoffsCombined?: "regularSeason" | "playoffs" | "combined";
 		season?: number;
+		hasPlayoffStats?: boolean;
 		type?: "career" | "current" | "draft" | number;
 		note?: string;
 	}>({
@@ -170,11 +180,15 @@ const RatingsStatsPopover = ({
 		player.season !== season ||
 		player.playoffsCombined !== activePlayoffsCombined
 	) {
+		const samePlayerSeason =
+			Object.is(player.pid, pid) && player.season === season;
 		setLoadingData(false);
 		setPlayer({
 			pid,
 			playoffsCombined: activePlayoffsCombined,
 			season,
+			hasPlayoffStats: samePlayerSeason ? player.hasPlayoffStats : undefined,
+			type: samePlayerSeason ? player.type : undefined,
 		});
 	}
 
@@ -205,6 +219,7 @@ const RatingsStatsPopover = ({
 					pid,
 					playoffsCombined: currentType,
 					season,
+					hasPlayoffStats: p.hasPlayoffStats,
 					type: p.type,
 					note: p.note,
 				});
@@ -228,7 +243,20 @@ const RatingsStatsPopover = ({
 		await loadData(newType);
 	};
 
+	useEffect(() => {
+		const previous = previousContextRef.current;
+		const contextChanged =
+			previous.pid !== pid ||
+			previous.season !== season ||
+			previous.playoffsCombined !== playoffsCombined;
+		previousContextRef.current = { pid, season, playoffsCombined };
+		if (contextChanged && hasOpenedRef.current) {
+			void loadData();
+		}
+	}, [pid, season, playoffsCombined, loadData]);
+
 	const toggle = useCallback(() => {
+		hasOpenedRef.current = true;
 		if (!loadingData) {
 			loadData();
 		}
@@ -288,49 +316,61 @@ const RatingsStatsPopover = ({
 	}
 
 	const id = `ratings-stats-popover-${player.pid}`;
+	const emptyPlayoffStats =
+		shouldShowPlayoffsToggle &&
+		isSport("basketball") &&
+		activePlayoffsCombined === "playoffs" &&
+		player.hasPlayoffStats === false &&
+		type !== "draft";
 
-	const playoffsToggle = allowPlayoffsToggle ? (
-		<div
-			className="btn-group btn-group-sm mb-2"
-			role="group"
-			aria-label="Season type"
-		>
-			<button
-				type="button"
-				className={clsx(
-					"btn",
-					activePlayoffsCombined === "regularSeason"
-						? "btn-primary"
-						: "btn-light-bordered",
-				)}
-				onClick={() => {
-					void handlePlayoffsToggle("regularSeason");
-				}}
+	const playoffsToggle =
+		shouldShowPlayoffsToggle && type !== "draft" ? (
+			<div
+				className="btn-group btn-group-sm mb-2"
+				role="group"
+				aria-label="Season type"
 			>
-				Regular
-			</button>
-			<button
-				type="button"
-				className={clsx(
-					"btn",
-					activePlayoffsCombined === "playoffs"
-						? "btn-primary"
-						: "btn-light-bordered",
-				)}
-				onClick={() => {
-					void handlePlayoffsToggle("playoffs");
-				}}
-			>
-				Playoffs
-			</button>
-		</div>
-	) : null;
+				<button
+					type="button"
+					className={clsx(
+						"btn",
+						activePlayoffsCombined === "regularSeason"
+							? "btn-primary"
+							: "btn-light-bordered",
+					)}
+					onClick={() => {
+						void handlePlayoffsToggle("regularSeason");
+					}}
+				>
+					Regular
+				</button>
+				<button
+					type="button"
+					className={clsx(
+						"btn",
+						activePlayoffsCombined === "playoffs"
+							? "btn-primary"
+							: "btn-light-bordered",
+					)}
+					onClick={() => {
+						void handlePlayoffsToggle("playoffs");
+					}}
+				>
+					Playoffs
+				</button>
+			</div>
+		) : null;
 
 	const modalHeader = nameBlock;
 	const modalBody = (
 		<>
 			{playoffsToggle}
-			<RatingsStats ratings={ratings} stats={stats} type={type} />
+			<RatingsStats
+				emptyPlayoffStats={emptyPlayoffStats}
+				ratings={ratings}
+				stats={stats}
+				type={type}
+			/>
 			{note ? <PlayerNote className="mt-2" note={note} /> : null}
 		</>
 	);
@@ -344,7 +384,12 @@ const RatingsStatsPopover = ({
 		>
 			<div className="mb-2">{nameBlock}</div>
 			{playoffsToggle}
-			<RatingsStats ratings={ratings} stats={stats} type={type} />
+			<RatingsStats
+				emptyPlayoffStats={emptyPlayoffStats}
+				ratings={ratings}
+				stats={stats}
+				type={type}
+			/>
 			{note ? <PlayerNote className="mt-2" note={note} /> : null}
 		</div>
 	);

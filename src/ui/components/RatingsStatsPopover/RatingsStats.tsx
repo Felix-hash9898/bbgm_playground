@@ -9,24 +9,27 @@ const RatingsStats = (props: {
 	ratings: any;
 	stats: any;
 	type?: "career" | "current" | "draft" | number;
+	emptyPlayoffStats?: boolean;
 }) => {
 	const challengeNoRatings = useLocal((state) => state.challengeNoRatings);
+	const { emptyPlayoffStats, ...ratingsStatsProps } = props;
 
 	return bySport({
 		baseball: RatingsStatsBaseball({
-			...props,
+			...ratingsStatsProps,
 			challengeNoRatings,
 		}),
 		basketball: RatingsStatsBasketball({
-			...props,
+			...ratingsStatsProps,
 			challengeNoRatings,
+			emptyPlayoffStats,
 		}),
 		football: RatingsStatsFootball({
-			...props,
+			...ratingsStatsProps,
 			challengeNoRatings,
 		}),
 		hockey: RatingsStatsHockey({
-			...props,
+			...ratingsStatsProps,
 			challengeNoRatings,
 		}),
 	});

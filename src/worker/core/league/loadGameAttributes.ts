@@ -1,6 +1,7 @@
 import { league } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { defaultGameAttributes, g } from "../../util/index.ts";
+import { legacyDefaultSaveOldBoxScores } from "../../../common/defaultGameAttributes.ts";
 import {
 	gameAttributeHasHistory,
 	helpers,
@@ -90,6 +91,8 @@ const loadGameAttributes = async () => {
 					),
 				});
 				delete (g as any).numPlayoffRounds;
+			} else if (key === "saveOldBoxScores") {
+				g.setWithoutSavingToDB(key, legacyDefaultSaveOldBoxScores);
 			} else {
 				g.setWithoutSavingToDB(key, defaultGameAttributes[key]);
 			}
