@@ -4,6 +4,7 @@ import {
 	getContractException,
 	getMaxContractForPlayer,
 	getMaxSalaryTier,
+	clampContractAmountForPlayer,
 } from "../core/contracts/contractLimits.ts";
 import {
 	canOfferTwoWay,
@@ -19,9 +20,15 @@ import {
 	getMidLevelExceptionAmount,
 	isMidLevelExceptionAvailable,
 } from "../core/contracts/contractMidLevel.ts";
+import { getBasketballContractMarketDemand } from "../core/contracts/contractMarket/index.ts";
+import {
+	getTermAdjustedContractOffer,
+	getIncumbentInjuredAsk,
+} from "../core/contracts/contractMarket/injuryAdjustment.ts";
 import {
 	canContractHaveOption,
 	getRealAmountForEffectiveOffer,
+	isPlayerOptionInjuryHorizonSafe,
 } from "../core/contracts/contractOption.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
@@ -79,6 +86,7 @@ const generateContractOptions = async (
 	payroll: number,
 	userTeam: Pick<Team, "midLevelExceptionUsedSeason" | "tid"> | undefined,
 	birdException: boolean,
+	resigning: boolean,
 ) => {
 	let growthFactor = 0.15;
 
@@ -105,11 +113,13 @@ const generateContractOptions = async (
 		option?: PlayerContract["option"];
 		contractExceptionType?: ContractExceptionType;
 		disabledReason?: string;
+		healthyAmount?: number;
 	}[] = allowedLengths.map((contractLength, i) => {
 		const contractOption = {
 			exp: exp + contractLength,
 			years: contractLength,
 			amount: 0,
+			healthyAmount: undefined as number | undefined,
 			smallestAmount: false,
 		};
 
@@ -129,11 +139,63 @@ const generateContractOptions = async (
 	}
 
 	// From the desired contract, ask for more money for less or more years
+	const referenceTermYears = contractOptions[found]!.years;
+	const referenceRawAmount = isSport("basketball")
+		? getBasketballContractMarketDemand(p, referenceTermYears).rawAmount
+		: 0;
+	const rawAmountByYears = new Map<number, number>([
+		[referenceTermYears, referenceRawAmount],
+	]);
 	for (const [i, contractOption] of contractOptions.entries()) {
 		const factor = 1 + Math.abs(found - i) * growthFactor;
-		contractOption.amount = contractOptions[found]!.amount * factor;
-		contractOption.amount =
-			helpers.roundContract(contractOption.amount * 1000) / 1000;
+		if (isSport("basketball")) {
+			let offeredRawAmount = rawAmountByYears.get(contractOption.years);
+			if (offeredRawAmount === undefined) {
+				offeredRawAmount = getBasketballContractMarketDemand(
+					p,
+					contractOption.years,
+				).rawAmount;
+				rawAmountByYears.set(contractOption.years, offeredRawAmount);
+			}
+			if (resigning) {
+				// Price the term-specific healthy V4 anchor with the user's existing
+				// mood logic before PO/TO economics and the row-specific injury adjustment.
+				const rowV4PointAmount = getBasketballContractMarketDemand(
+					p,
+					contractOption.years,
+				).pointAmount;
+				const rowHealthyV4 = clampContractAmountForPlayer(
+					p,
+					helpers.roundContract(
+						Math.max(playerMinimum, rowV4PointAmount * factor),
+					),
+				);
+				const rowMood = await player.moodInfo(p, g.get("userTid"), {
+					contractAmount: rowHealthyV4,
+				});
+				const rowHealthyH = rowMood.contractAmount;
+				contractOption.healthyAmount = rowHealthyH;
+				contractOption.amount =
+					getIncumbentInjuredAsk({
+						p,
+						healthyH: rowHealthyH,
+						contractYears: contractOption.years,
+					}) / 1000;
+			} else if (!resigning) {
+				contractOption.amount =
+					getTermAdjustedContractOffer({
+						baseOfferAmount: contractOptions[found]!.amount * 1000,
+						referenceRawAmount,
+						offeredRawAmount,
+						factor,
+						minimumAmount: playerMinimum,
+					}) / 1000;
+			}
+		} else {
+			contractOption.amount = contractOptions[found]!.amount * factor;
+			contractOption.amount =
+				helpers.roundContract(contractOption.amount * 1000) / 1000;
+		}
 	}
 
 	const possible = contractOptions.filter((contractOption) => {
@@ -163,18 +225,44 @@ const generateContractOptions = async (
 		};
 		if (canContractHaveOption(contractForOption)) {
 			for (const option of ["player", "team"] as const) {
+				if (
+					option === "player" &&
+					!isPlayerOptionInjuryHorizonSafe(p, contractForOption)
+				) {
+					continue;
+				}
+
+				let finalAmountOption;
+				if (
+					isSport("basketball") &&
+					resigning &&
+					contractOption.healthyAmount !== undefined
+				) {
+					const healthyHOption = getRealAmountForEffectiveOffer(
+						contractOption.healthyAmount,
+						option,
+					);
+					finalAmountOption = getIncumbentInjuredAsk({
+						p,
+						healthyH: healthyHOption,
+						contractYears: contractOption.years,
+					});
+				} else {
+					finalAmountOption = getRealAmountForEffectiveOffer(
+						contractForOption.amount,
+						option,
+					);
+				}
+
 				possibleWithOptions.push({
 					...contractOption,
-					amount:
-						getRealAmountForEffectiveOffer(contractForOption.amount, option) /
-						1000,
+					amount: finalAmountOption / 1000,
 					option,
 					smallestAmount: false,
 				});
 			}
 		}
 	}
-
 	for (const row of possibleWithOptions) {
 		const disabledReason = await contractNegotiation.accept({
 			pid,
@@ -277,6 +365,7 @@ const updateNegotiation = async (
 			payroll,
 			userTeam,
 			birdException,
+			negotiation.resigning,
 		);
 		if (!negotiation.resigning && canOfferTwoWay(p2)) {
 			const players = await idb.cache.players.indexGetAll(

@@ -32,6 +32,10 @@ import type {
 } from "../../../common/types.ts";
 import { groupByUnique, maxBy } from "../../../common/utils.ts";
 import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
+import {
+	getBasketballContractYears,
+	type BasketballMechanism,
+} from "../contracts/contractTerm.ts";
 
 const newPhasePreseason = async (
 	conditions: Conditions,
@@ -417,16 +421,35 @@ const newPhasePreseason = async (
 				p.tid = tid ?? PLAYER.FREE_AGENT;
 
 				if (p.tid >= 0 && p.contract.exp < newSeason) {
-					p.contract = {
-						amount: player.genContract(p).amount,
-						exp:
-							newSeason -
-							1 +
-							random.randInt(
-								g.get("minContractLength"),
-								g.get("maxContractLength"),
-							),
-					};
+					if (isSport("basketball")) {
+						const mechanism: BasketballMechanism =
+							g.get("salaryCapType") === "none"
+								? "none"
+								: g.get("salaryCapType") === "hard"
+									? "capSpace"
+									: "bird";
+						const contractYears = getBasketballContractYears(p, {
+							mechanism,
+						});
+						if (contractYears !== null) {
+							p.contract = {
+								amount: player.genContract(p, true, false, contractYears)
+									.amount,
+								exp: newSeason - 1 + contractYears,
+							};
+						}
+					} else {
+						p.contract = {
+							amount: player.genContract(p, true, false).amount,
+							exp:
+								newSeason -
+								1 +
+								random.randInt(
+									g.get("minContractLength"),
+									g.get("maxContractLength"),
+								),
+						};
+					}
 				}
 			}
 		}

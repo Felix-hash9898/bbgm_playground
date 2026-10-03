@@ -1,5 +1,6 @@
 import {
 	bySport,
+	isSport,
 	PHASE,
 	PLAYER,
 	POSITION_COUNTS,
@@ -16,8 +17,13 @@ import { helpers, local, logEvent } from "../../util/index.ts";
 import type { Conditions, PhaseReturn } from "../../../common/types.ts";
 import { orderBy } from "../../../common/utils.ts";
 import { processContractOptions } from "../contracts/contractOptionDecisions.ts";
-import { getContractException } from "../contracts/contractLimits.ts";
+import {
+	getContractException,
+	clampContractAmountForPlayer,
+} from "../contracts/contractLimits.ts";
+import { getRealAmountForEffectiveOffer } from "../contracts/contractOption.ts";
 import { getContractCapHit } from "../contracts/contractMinimum.ts";
+import { isTwoWayContract } from "../contracts/contractTwoWay.ts";
 import { getTradeReputationByTid } from "../player/getTradeReputation.ts";
 import {
 	captureSigningContext,
@@ -25,6 +31,12 @@ import {
 } from "../capturedContext.ts";
 import { applySigningTransaction } from "../signingTransaction.ts";
 import reconcileBasketballRotation from "../team/reconcileBasketballRotation.ts";
+import { getBasketballContractMarketDemand } from "../contracts/contractMarket/index.ts";
+import {
+	getBasketballContractYears,
+	getContractYearsFromExpiration,
+	getContractExpirationForYears,
+} from "../contracts/contractTerm.ts";
 
 export const FREE_AGENCY_DAYS = 30;
 
@@ -142,7 +154,7 @@ const newPhaseResignPlayers = async (
 			);
 			const expiringPayroll = players
 				.filter((p) => p.tid === tid && p.contract.exp <= signingContext.season)
-				.reduce((total, p) => total + p.contract.amount, 0);
+				.reduce((total, p) => total + getContractCapHit(p.contract), 0);
 			payrollsByTid.set(tid, payroll - expiringPayroll);
 		}
 	}
@@ -213,6 +225,7 @@ const newPhaseResignPlayers = async (
 					? p.usageBias
 					: 1;
 
+			delete (p.contract as any).healthyAmount;
 			await player.addToFreeAgents(p, tradeReputationByTid);
 
 			await signingContext.cache.players.put(p);
@@ -242,6 +255,20 @@ const newPhaseResignPlayers = async (
 				...p.contract,
 			};
 			const payroll = payrollsByTid.get(p.tid);
+			let hardCapSpaceYears: number | null | undefined;
+			if (
+				isSport("basketball") &&
+				signingContext.salaryCapType === "soft" &&
+				!draftPick &&
+				getBasketballContractYears(p, {
+					mechanism: "bird",
+					context: signingContext,
+				}) === null
+			) {
+				// Bird has the largest capped re-sign term limit. If it is unavailable,
+				// no capped mechanism can meet the configured minimum term.
+				reSignPlayer = false;
+			}
 
 			const positionInfo = positionInfoByTid.get(p.tid);
 			const pos = p.ratings.at(-1)!.pos;
@@ -252,7 +279,16 @@ const newPhaseResignPlayers = async (
 						"Payroll should always be defined if there is a hard cap",
 					);
 				}
-				if (contract.amount + payroll > signingContext.salaryCap) {
+				if (isSport("basketball") && !draftPick) {
+					hardCapSpaceYears = getBasketballContractYears(p, {
+						mechanism: "capSpace",
+						context: signingContext,
+					});
+					if (hardCapSpaceYears === null) {
+						reSignPlayer = false;
+					}
+				}
+				if (getContractCapHit(contract) + payroll > signingContext.salaryCap) {
 					reSignPlayer = false;
 				}
 
@@ -292,10 +328,32 @@ const newPhaseResignPlayers = async (
 					const dv = await team.valueChange(p.tid, [], [p.pid], [], []);
 					assertActive();
 
-					// Skip re-signing some low value players, otherwise teams fill up their rosters too readily
+					// Skip re-signing some low value players, otherwise teams fill up their rosters too readily.
+					// Use the healthy (non-injury-discounted) V4 market amount so injured rotation players
+					// aren't incorrectly discarded before the market even evaluates them (Defect D fix).
+					const skipAmount = isSport("basketball")
+						? (() => {
+								const years = getContractYearsFromExpiration({
+									expiration: contract.exp,
+									context: signingContext,
+								});
+								let healthy = clampContractAmountForPlayer(
+									p,
+									helpers.roundContract(
+										getBasketballContractMarketDemand(p, years).pointAmount,
+									),
+								);
+								if (contract.option) {
+									healthy = getRealAmountForEffectiveOffer(
+										healthy,
+										contract.option,
+									);
+								}
+								return healthy;
+							})()
+						: contract.amount;
 					const skipBadPlayer =
-						contract.amount < signingContext.minContract * 2 &&
-						Math.random() < 0.5;
+						skipAmount < signingContext.minContract * 2 && Math.random() < 0.5;
 
 					// More randomness if hard cap
 					const whatever =
@@ -308,7 +366,31 @@ const newPhaseResignPlayers = async (
 						(mood.willing && dv < 0 && !skipBadPlayer && whatever)
 					) {
 						const signingTid = p.tid;
-						const signingContract = contract;
+						// Hard-cap AI: enforce cap-space max 4-year term (Defect F fix).
+						// Bird (5-year) is only valid under soft cap. Hard cap uses cap space max.
+						const signingContract: typeof contract = { ...contract };
+						if (
+							isSport("basketball") &&
+							signingContext.salaryCapType === "hard" &&
+							!draftPick
+						) {
+							if (
+								hardCapSpaceYears !== null &&
+								hardCapSpaceYears !== undefined
+							) {
+								const currentContractYears = getContractYearsFromExpiration({
+									expiration: signingContract.exp,
+									context: signingContext,
+								});
+								if (currentContractYears > hardCapSpaceYears) {
+									// Requote with cap-space legal max
+									signingContract.exp = getContractExpirationForYears({
+										years: hardCapSpaceYears,
+										context: signingContext,
+									});
+								}
+							}
+						}
 						let expectedContractException: "bird" | "capSpace" | undefined;
 						if (signingContext.salaryCapType === "soft") {
 							const currentTeam =
@@ -335,8 +417,16 @@ const newPhaseResignPlayers = async (
 								signingContext.season + 1,
 								signingContext.cache,
 							);
+							const existingCapHit =
+								p.tid === signingTid &&
+								!isTwoWayContract(p.contract) &&
+								p.contract.exp >= signingContext.season + 1
+									? getContractCapHit(p.contract)
+									: 0;
 							if (
-								currentPayroll + getContractCapHit(signingContract) >
+								currentPayroll -
+									existingCapHit +
+									getContractCapHit(signingContract) >
 								signingContext.salaryCap
 							) {
 								throw new Error("Hard cap does not allow this re-signing");
@@ -361,15 +451,26 @@ const newPhaseResignPlayers = async (
 													signingContext.season + 1,
 													signingContext.cache,
 												);
+												const currentTeam =
+													await signingContext.cache.teams.get(signingTid);
 												if (signingContext.salaryCapType === "hard") {
-													return currentPayroll +
-														getContractCapHit(signingContract) <=
-														signingContext.salaryCap
+													const existingCapHit =
+														currentPlayer.tid === signingTid &&
+														!isTwoWayContract(currentPlayer.contract) &&
+														currentPlayer.contract.exp >=
+															signingContext.season + 1
+															? getContractCapHit(currentPlayer.contract)
+															: 0;
+													return getContractException({
+														birdException: false,
+														contract: signingContract,
+														p: currentPlayer,
+														payroll: currentPayroll - existingCapHit,
+														team: currentTeam,
+													}).type === "capSpace"
 														? "capSpace"
 														: undefined;
 												}
-												const currentTeam =
-													await signingContext.cache.teams.get(signingTid);
 												return getContractException({
 													birdException: true,
 													contract: signingContract,
@@ -400,7 +501,7 @@ const newPhaseResignPlayers = async (
 						}
 
 						if (payroll !== undefined) {
-							payrollsByTid.set(p.tid, contract.amount + payroll);
+							payrollsByTid.set(p.tid, getContractCapHit(p.contract) + payroll);
 						}
 					} else {
 						reSignPlayer = false;
@@ -409,6 +510,7 @@ const newPhaseResignPlayers = async (
 			}
 
 			if (!reSignPlayer) {
+				delete (p.contract as any).healthyAmount;
 				await player.addToFreeAgents(p, tradeReputationByTid);
 			}
 

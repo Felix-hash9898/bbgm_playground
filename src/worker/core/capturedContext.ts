@@ -106,3 +106,25 @@ export const isCapturedContextActive = (context: CapturedLeagueContext) =>
 	idb.cache === context.cache &&
 	idb.league === context.leagueDB &&
 	g.get("lid") === context.lid;
+
+export const isCapturedSigningContextCurrent = (
+	context: CapturedSigningContext,
+) => {
+	const userTids = g.get("userTids");
+	return (
+		isCapturedContextActive(context) &&
+		g.get("season") === context.season &&
+		g.get("phase") === context.phase &&
+		g.get("numGames") === context.numGames &&
+		g.get("numActiveTeams") === context.numActiveTeams &&
+		g.get("salaryCapType") === context.salaryCapType &&
+		g.get("salaryCap") === context.salaryCap &&
+		g.get("minContract") === context.minContract &&
+		g.get("minContractLength") === context.minContractLength &&
+		g.get("maxContractLength") === context.maxContractLength &&
+		g.get("minRosterSize") === context.minRosterSize &&
+		g.get("maxRosterSize") === context.maxRosterSize &&
+		userTids.length === context.userTids.length &&
+		userTids.every((tid, index) => tid === context.userTids[index])
+	);
+};

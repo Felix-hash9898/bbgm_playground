@@ -5,11 +5,23 @@ import type {
 	PlayerContract,
 	Team,
 } from "../../common/types.ts";
+import { isSport, PHASE } from "../../common/index.ts";
 import type { ContractExceptionType } from "./contracts/contractMidLevel.ts";
+import { getMidLevelExceptionAmount } from "./contracts/contractMidLevel.ts";
+import { getMaxContractForPlayer } from "./contracts/contractLimits.ts";
+import { getMinContractForPlayer } from "./contracts/contractMinimum.ts";
+import {
+	canContractHaveOption,
+	isPlayerOptionInjuryHorizonSafe,
+} from "./contracts/contractOption.ts";
+import {
+	getBasketballMechanismMaxContractLength,
+	type BasketballMechanism,
+} from "./contracts/contractTerm.ts";
 import { helpers } from "../util/index.ts";
 import sign from "./player/sign.ts";
 import {
-	isCapturedContextActive,
+	isCapturedSigningContextCurrent,
 	type CapturedSigningContext,
 } from "./capturedContext.ts";
 import type { FlushRecordScope, Store } from "../db/Cache.ts";
@@ -110,7 +122,7 @@ const applySigningTransactionInQueue = async (
 	let staged = false;
 
 	try {
-		if (!isCapturedContextActive(context)) {
+		if (!isCapturedSigningContextCurrent(context)) {
 			throw new Error("Signing league context changed before mutation");
 		}
 
@@ -136,7 +148,7 @@ const applySigningTransactionInQueue = async (
 		let currentTeam: Team | undefined;
 		if (input.team) {
 			currentTeam = await context.cache.teams.get(input.team.tid);
-			if (!isCapturedContextActive(context)) {
+			if (!isCapturedSigningContextCurrent(context)) {
 				throw new Error("Signing league context changed before team mutation");
 			}
 			teamWasPresent = currentTeam !== undefined;
@@ -173,8 +185,93 @@ const applySigningTransactionInQueue = async (
 				);
 			}
 		}
-		if (!isCapturedContextActive(context)) {
+		if (!isCapturedSigningContextCurrent(context)) {
 			throw new Error("Signing league context changed after validation");
+		}
+
+		const contractToCommit = { ...input.contract };
+		delete (contractToCommit as PlayerContract & { healthyAmount?: number })
+			.healthyAmount;
+
+		if (isSport("basketball") && contractToCommit.type !== "twoWay") {
+			// Use captured context for term validation, not live g.get() (Defect H fix).
+			// Computing contractLength from captured context season+phase avoids reading
+			// the live g.season/g.phase which can drift between queue entry and commit.
+			const contractLength =
+				contractToCommit.exp -
+				context.season +
+				(context.phase <= PHASE.PLAYOFFS ? 1 : 0);
+			const minContractLength = context.minContractLength;
+			const maxContractLength = context.maxContractLength;
+			if (
+				contractLength < minContractLength ||
+				contractLength > maxContractLength
+			) {
+				throw new Error(
+					`Contract length ${contractLength} is outside configured limits [${minContractLength}, ${maxContractLength}]`,
+				);
+			}
+		}
+		if (isSport("basketball") && contractToCommit.option !== undefined) {
+			const optionContract = {
+				...contractToCommit,
+				rookie: contractToCommit.rookie ?? currentPlayer.contract.rookie,
+			};
+			if (!canContractHaveOption(optionContract, context)) {
+				throw new Error("Contract option is not legal for this term");
+			}
+			if (contractToCommit.amount < getMinContractForPlayer(currentPlayer)) {
+				throw new Error("Option salary is below the player minimum");
+			}
+			if (
+				contractToCommit.option === "team" &&
+				contractToCommit.amount > getMaxContractForPlayer(currentPlayer)
+			) {
+				throw new Error("Team-option salary is above the player maximum");
+			}
+			if (
+				contractToCommit.option === "player" &&
+				!isPlayerOptionInjuryHorizonSafe(currentPlayer, contractToCommit)
+			) {
+				throw new Error("Player option is not legal for this injury horizon");
+			}
+		}
+
+		const mechanismException =
+			input.exceptionValidator?.expected ??
+			(contractToCommit.exception === "midLevel" ? "midLevel" : undefined);
+		if (isSport("basketball") && mechanismException !== undefined) {
+			const mechanism: BasketballMechanism =
+				mechanismException === "midLevel" ? "midLevel" : mechanismException;
+			if (
+				context.salaryCapType === "none" ||
+				(mechanism === "bird" && context.salaryCapType !== "soft") ||
+				(mechanism === "midLevel" && context.salaryCapType !== "soft")
+			) {
+				throw new Error("Contract mechanism is not available in this league");
+			}
+			const mechanismMax = getBasketballMechanismMaxContractLength(
+				mechanism,
+				context.maxContractLength,
+			);
+			if (
+				context.minContractLength > mechanismMax ||
+				(contractToCommit.type !== "twoWay" &&
+					contractToCommit.exp -
+						context.season +
+						(context.phase <= PHASE.PLAYOFFS ? 1 : 0) >
+						mechanismMax)
+			) {
+				throw new Error(
+					`Contract term exceeds the ${mechanism} mechanism maximum`,
+				);
+			}
+			if (
+				mechanism === "midLevel" &&
+				(!input.team || contractToCommit.amount > getMidLevelExceptionAmount())
+			) {
+				throw new Error("Mid-Level Exception contract is not valid");
+			}
 		}
 
 		// A player on the same roster (for example an AI in-place re-sign) keeps
@@ -195,7 +292,7 @@ const applySigningTransactionInQueue = async (
 		eventId = await sign(
 			playerToSign,
 			input.tid,
-			input.contract,
+			contractToCommit,
 			input.phase,
 			context,
 		);

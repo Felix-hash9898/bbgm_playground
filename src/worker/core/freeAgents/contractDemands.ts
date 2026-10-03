@@ -12,10 +12,17 @@ import {
 	clampContractDemandForPlayer,
 	getMaxContractDemandForPlayer,
 } from "../contracts/contractLowEnd.ts";
+import { clampContractAmountForPlayer } from "../contracts/contractLimits.ts";
+import {
+	getBasketballContractTerm,
+	getContractYearsFromExpiration,
+	type BasketballMechanism,
+} from "../contracts/contractTerm.ts";
 import {
 	getMinContractForPlayer,
 	withContractCapHitForPlayer,
 } from "../contracts/contractMinimum.ts";
+import { getIncumbentInjuredAsk } from "../contracts/contractMarket/injuryAdjustment.ts";
 import { getAIContractWithOption } from "../contracts/contractOption.ts";
 import { getContractValue } from "../contracts/contractValue.ts";
 import { draft, player } from "../index.ts";
@@ -48,6 +55,35 @@ const getExpiration = (
 	nextSeason?: boolean,
 	context?: CapturedSigningContext,
 ) => {
+	if (isSport("basketball")) {
+		// For incumbents, prefer bird for soft-cap, capSpace for hard-cap
+		// Fall back through mechanisms if one is unavailable (minTerm > mechanism max)
+
+		const salaryCapType = context?.salaryCapType ?? g.get("salaryCapType");
+		const isIncumbent = p.tid >= 0;
+		const mechanisms: BasketballMechanism[] =
+			salaryCapType === "none"
+				? ["none"]
+				: isIncumbent
+					? salaryCapType === "hard"
+						? ["capSpace", "minimum"]
+						: ["bird", "capSpace", "minimum"]
+					: ["capSpace", "minimum"];
+
+		for (const mechanism of mechanisms) {
+			const term = getBasketballContractTerm(p, {
+				randomizeExpiration: randomizeExp,
+				nextSeason,
+				context,
+				mechanism,
+			});
+			if (term !== null) {
+				return term.expiration;
+			}
+		}
+		return null;
+	}
+
 	const { ovr, pot } = p.ratings.at(-1);
 
 	// pot is predictable via age+ovr with R^2=0.94, so skip it b/c wasn't in data
@@ -148,14 +184,15 @@ export const getContractDemandResults = ({
 
 	let numRounds = DEFAULT_ROUNDS;
 
-	// 0 for FBGM because we don't actually do bidding there, it had too much variance. Instead, use the old genContract formula. Same if minContract and maxContract are the same, no point in doing auction.
+	// Basketball uses direct V4 demand; other sports keep their existing auction or fast path.
 	if (
+		isSport("basketball") ||
 		bySport({
 			baseball: true,
 			basketball: false,
 			football: true,
 
-			// For hockey, we want the fast method (numRounds 0) for any in-season free agents created by releasing players. For basketball (due to fewer players) this optimization is not needed.
+			// Hockey uses the fast method for released players during the season.
 			hockey: type === "dummyExpiringContracts" && pids !== undefined,
 		}) ||
 		minContract === maxContract ||
@@ -311,6 +348,46 @@ export const getContractDemandResults = ({
 		);
 	});
 
+	const basketballTerms = new Map<
+		number,
+		{ expiration: number; years: number } | null
+	>();
+	if (isSport("basketball")) {
+		for (const info of playerInfosToUpdate) {
+			const p = info.p;
+			if (rookieSalaries && p.draft.year === season) {
+				const expiration =
+					season + draft.getRookieContractLength(p.draft.round);
+				basketballTerms.set(p.pid, {
+					expiration,
+					years: getContractYearsFromExpiration({
+						expiration,
+						nextSeason,
+						context,
+					}),
+				});
+			} else {
+				const expiration = getExpiration(
+					p,
+					type === "newLeague",
+					nextSeason,
+					context,
+				);
+				if (expiration === null) {
+					basketballTerms.set(p.pid, null);
+				} else {
+					basketballTerms.set(p.pid, {
+						expiration,
+						years: getContractYearsFromExpiration({
+							expiration,
+							nextSeason,
+							context,
+						}),
+					});
+				}
+			}
+		}
+	}
 	// Set contract amounts to final values, especially for numRounds=0
 	for (const info of playerInfosToUpdate) {
 		const p = info.p;
@@ -318,7 +395,16 @@ export const getContractDemandResults = ({
 			const pickIndex = (p.draft.round - 1) * numActiveTeams + p.draft.pick - 1;
 			info.contractAmount = rookieSalaries[pickIndex] ?? rookieSalaries.at(-1)!;
 		} else if (numRounds === 0) {
-			info.contractAmount = player.genContract(p, type === "newLeague").amount;
+			if (isSport("basketball") && basketballTerms.get(p.pid) === null) {
+				// Skip modifying amount, the player will be filtered out below anyway
+			} else {
+				info.contractAmount = player.genContract(
+					p,
+					type === "newLeague",
+					false,
+					basketballTerms.get(p.pid)?.years,
+				).amount;
+			}
 		} else if (type === "newLeague") {
 			info.contractAmount *= random.uniform(0.4, 1.1);
 			info.contractAmount = clampContractDemandForPlayer(
@@ -407,11 +493,24 @@ export const getContractDemandResults = ({
 	const results = new Map<number, ContractDemandResult>();
 	for (const info of playerInfosToUpdate) {
 		const p = info.p;
+		let exp: number | null;
 
-		const exp =
-			rookieSalaries && p.draft.year === season
-				? season + draft.getRookieContractLength(p.draft.round)
-				: getExpiration(p, type === "newLeague", nextSeason, context);
+		if (isSport("basketball") && !rookieSalaries) {
+			const term = basketballTerms.get(p.pid);
+			if (term === null) {
+				continue; // Skip generating demand if no mechanism is available
+			}
+			exp = term?.expiration ?? null;
+		} else {
+			exp =
+				rookieSalaries && p.draft.year === season
+					? season + draft.getRookieContractLength(p.draft.round)
+					: getExpiration(p, type === "newLeague", nextSeason, context);
+		}
+
+		if (exp === null) {
+			continue;
+		}
 
 		let amount = info.contractAmount;
 
@@ -427,14 +526,18 @@ export const getContractDemandResults = ({
 		}
 
 		// During regular season, should only look for short contracts that teams will actually sign
-		if (type === "dummyExpiringContracts") {
+		// This legacy short-contract adjustment is outside basketball's direct V4
+		// demand path; keep it scoped to the other sports.
+		if (type === "dummyExpiringContracts" && !isSport("basketball")) {
 			const playerMaxContract = getMaxContractForPlayer(p);
 			if (info.contractAmount >= playerMaxContract / 4) {
 				info.contractAmount = (info.contractAmount + playerMaxContract / 4) / 2;
 			}
 		}
 
-		amount = clampContractDemandForPlayer(p, helpers.roundContract(amount));
+		amount = isSport("basketball")
+			? clampContractAmountForPlayer(p, helpers.roundContract(amount))
+			: clampContractDemandForPlayer(p, helpers.roundContract(amount));
 
 		let contract: PlayerContract = {
 			amount,
@@ -442,9 +545,30 @@ export const getContractDemandResults = ({
 				p.tid === PLAYER.FREE_AGENT && exp < minNewContractExp
 					? minNewContractExp
 					: exp,
+			...(labelAsRookieContract ? { rookie: true } : {}),
 		};
 		if (type !== "newLeague") {
-			contract = getAIContractWithOption(p, contract);
+			contract = getAIContractWithOption(p, contract, context);
+		}
+		if (
+			isSport("basketball") &&
+			type === "includeExpiringContracts" &&
+			p.tid >= 0
+		) {
+			const healthyAmount = contract.amount;
+			const contractYears = getContractYearsFromExpiration({
+				expiration: contract.exp,
+				nextSeason,
+				context,
+			});
+			contract.amount = getIncumbentInjuredAsk({
+				p,
+				healthyH: healthyAmount,
+				contractYears,
+				context,
+			});
+			// Do NOT persist healthyAmount to cache (Defect D fix).
+			// Healthy H is recomputed on demand when needed (e.g. cheap-player gate).
 		}
 		contract = withContractCapHitForPlayer(p, contract);
 

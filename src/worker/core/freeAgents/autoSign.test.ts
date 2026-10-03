@@ -6,6 +6,9 @@ import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
 import { freeAgents, player, team } from "../index.ts";
 import { getMidLevelExceptionAmount } from "../contracts/contractMidLevel.ts";
+import { getContractException } from "../contracts/contractLimits.ts";
+import { getBasketballContractForMechanism } from "../contracts/contractTerm.ts";
+import { getMinContractForPlayer } from "../contracts/contractMinimum.ts";
 import {
 	countStandardContracts,
 	countTwoWayContracts,
@@ -139,6 +142,186 @@ test("AI team with available two-way slot can sign an eligible low-end young fre
 	assert.strictEqual(
 		players.some((p) => isTwoWayContract(p.contract)),
 		true,
+	);
+});
+
+test("autoSign skips an unavailable cached minimum ask and continues to a legal two-way candidate", async () => {
+	g.setWithoutSavingToDB("salaryCapType", "hard");
+	g.setWithoutSavingToDB("salaryCap", 100000);
+	g.setWithoutSavingToDB("minContractLength", 5);
+	g.setWithoutSavingToDB("maxContractLength", 5);
+	g.setWithoutSavingToDB("minRosterSize", 12);
+	g.setWithoutSavingToDB("maxRosterSize", 15);
+	const impossibleFA = makePlayer({
+		tid: PLAYER.FREE_AGENT,
+		age: 30,
+		draftRound: 2,
+		draftYearsAgo: 8,
+		ovr: 70,
+		pot: 70,
+		value: 90,
+		contractAmount: g.get("minContract"),
+	});
+	impossibleFA.contract.amount = getMinContractForPlayer(impossibleFA);
+	const twoWayFA = makeEligibleTwoWayFreeAgent(45);
+	await resetCacheForAutoSign({
+		aiStandardPlayers: 12,
+		freeAgentPlayers: [impossibleFA, twoWayFA],
+	});
+	const freeAgentPlayers = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		PLAYER.FREE_AGENT,
+	);
+	const impossibleFreeAgent = freeAgentPlayers.find((p) => p.value === 90)!;
+	const legalTwoWayFreeAgent = freeAgentPlayers.find((p) => p.value === 45)!;
+
+	const teamPlayersBefore = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		1,
+	);
+	assert.strictEqual(teamPlayersBefore.length, 12);
+	teamPlayersBefore[0]!.contract.amount = 120000;
+	await idb.cache.players.put(teamPlayersBefore[0]!);
+	const rosterContractsBefore = new Map(
+		teamPlayersBefore.map((p) => [p.pid, structuredClone(p.contract)]),
+	);
+	const impossibleBefore = await idb.cache.players.get(impossibleFreeAgent.pid);
+	const twoWayBefore = await idb.cache.players.get(legalTwoWayFreeAgent.pid);
+	const teamBefore = await idb.cache.teams.get(1);
+	const eventsBefore = await idb.cache.events.getAll();
+	assert.isDefined(impossibleBefore);
+	assert.isDefined(twoWayBefore);
+	assert.isDefined(teamBefore);
+	assert.strictEqual(
+		impossibleBefore!.contract.amount,
+		getMinContractForPlayer(impossibleBefore!),
+	);
+	assert.isAbove(await team.getPayroll(1), g.get("salaryCap"));
+
+	let error: unknown;
+	try {
+		await autoSignWithoutRandomSkip();
+	} catch (error_) {
+		error = error_;
+	}
+
+	assert.isUndefined(
+		error,
+		`an unavailable capSpace/minimum term must be skipped without aborting autoSign: ${String(error)}`,
+	);
+	const skippedAfter = await idb.cache.players.get(impossibleFreeAgent.pid);
+	const legalAfter = await idb.cache.players.get(legalTwoWayFreeAgent.pid);
+	assert.strictEqual(skippedAfter?.tid, PLAYER.FREE_AGENT);
+	assert.deepStrictEqual(
+		skippedAfter,
+		impossibleBefore,
+		"the impossible cached free agent must remain unchanged",
+	);
+	assert.strictEqual(legalAfter?.tid, 1);
+	assert.isTrue(isTwoWayContract(legalAfter!.contract));
+	assert.strictEqual(
+		countTwoWayContracts(
+			await idb.cache.players.indexGetAll("playersByTid", 1),
+			1,
+		),
+		1,
+	);
+	for (const [pid, contract] of rosterContractsBefore) {
+		assert.deepStrictEqual(
+			(await idb.cache.players.get(pid))?.contract,
+			contract,
+			"skipping the unavailable quote must not alter an existing roster contract",
+		);
+	}
+	assert.strictEqual(
+		(await idb.cache.teams.get(1))?.midLevelExceptionUsedSeason,
+		teamBefore!.midLevelExceptionUsedSeason,
+		"a skipped cached quote must not consume a team exception marker",
+	);
+	const eventsAfter = await idb.cache.events.getAll();
+	assert.deepStrictEqual(
+		eventsAfter.filter((event) =>
+			event.pids?.includes(impossibleFreeAgent.pid),
+		),
+		eventsBefore.filter((event) =>
+			event.pids?.includes(impossibleFreeAgent.pid),
+		),
+		"the unavailable FA must not produce a signing event",
+	);
+	assert.isTrue(
+		eventsAfter.some((event) => event.pids?.includes(legalTwoWayFreeAgent.pid)),
+		"autoSign must continue and commit the legal two-way candidate",
+	);
+});
+
+test("autoSign skips a stale five-year ask when all hard-cap mechanisms are unavailable", async () => {
+	g.setWithoutSavingToDB("salaryCapType", "hard");
+	g.setWithoutSavingToDB("salaryCap", 1000000);
+	g.setWithoutSavingToDB("minContractLength", 5);
+	g.setWithoutSavingToDB("maxContractLength", 5);
+	g.setWithoutSavingToDB("minRosterSize", 12);
+	g.setWithoutSavingToDB("maxRosterSize", 15);
+	const staleCapSpaceFA = makePlayer({
+		tid: PLAYER.FREE_AGENT,
+		age: 25,
+		draftRound: 2,
+		draftYearsAgo: 3,
+		ovr: 70,
+		pot: 70,
+		value: 90,
+		contractAmount: 20000,
+	});
+	staleCapSpaceFA.contract.exp = g.get("season") + 5;
+	await resetCacheForAutoSign({
+		aiStandardPlayers: 12,
+		freeAgentPlayers: [staleCapSpaceFA],
+	});
+	const candidate = (
+		await idb.cache.players.indexGetAll("playersByTid", PLAYER.FREE_AGENT)
+	).find((p) => p.value === 90)!;
+	const candidateContractBefore = structuredClone(candidate.contract);
+	const teamBefore = await idb.cache.teams.get(1);
+	const eventsBefore = await idb.cache.events.getAll();
+	const payroll = await team.getPayroll(1);
+	const candidateTeam = await idb.cache.teams.get(1);
+	assert.isUndefined(
+		getContractException({
+			birdException: false,
+			contract: candidate.contract,
+			p: candidate,
+			payroll,
+			team: candidateTeam,
+		}).type,
+		"the cached five-year term does not qualify for any capped exception despite available payroll",
+	);
+	assert.isNull(
+		getBasketballContractForMechanism(candidate, "capSpace"),
+		"the capSpace mechanism must be unavailable with a five-year configured minimum",
+	);
+
+	let error: unknown;
+	try {
+		await autoSignWithoutRandomSkip();
+	} catch (error_) {
+		error = error_;
+	}
+
+	assert.isUndefined(
+		error,
+		`autoSign must not pass its affordable but mechanism-illegal cached term to signing: ${String(error)}`,
+	);
+	const after = await idb.cache.players.get(candidate.pid);
+	assert.strictEqual(after?.tid, PLAYER.FREE_AGENT);
+	assert.deepStrictEqual(after?.contract, candidateContractBefore);
+	assert.strictEqual(
+		(await idb.cache.teams.get(1))?.midLevelExceptionUsedSeason,
+		teamBefore?.midLevelExceptionUsedSeason,
+	);
+	assert.deepStrictEqual(
+		(await idb.cache.events.getAll()).filter((event) =>
+			event.pids?.includes(candidate.pid),
+		),
+		eventsBefore.filter((event) => event.pids?.includes(candidate.pid)),
 	);
 });
 

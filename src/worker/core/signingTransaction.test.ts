@@ -976,9 +976,9 @@ describe("captured signing transaction", () => {
 	});
 
 	test("concurrent hard-cap re-signings re-read payroll inside the team queue", async () => {
+		g.setWithoutSavingToDB("salaryCapType", "hard");
+		g.setWithoutSavingToDB("salaryCap", 1500);
 		const context = captureSigningContext();
-		context.salaryCapType = "hard";
-		context.salaryCap = 1500;
 		const makeExpiringPlayer = () => {
 			const p = player.generate(
 				harness.team.tid,

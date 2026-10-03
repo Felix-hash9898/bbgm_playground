@@ -11,6 +11,8 @@ import {
 	isStandardContract,
 	makeTwoWayContract,
 } from "../contracts/contractTwoWay.ts";
+import { getBasketballSigningPriority } from "../contracts/contractMarket/injuryAdjustment.ts";
+import { getBasketballContractForMechanism } from "../contracts/contractTerm.ts";
 import { captureSigningContext } from "../capturedContext.ts";
 import { applySigningTransaction } from "../signingTransaction.ts";
 
@@ -33,8 +35,33 @@ const autoSign = async () => {
 		return;
 	}
 
-	// List of free agents, sorted by value
-	let playersSorted = orderBy(players, "value", "desc");
+	// For midseason FA signings, pre-count remaining schedule games per team so that
+	// signing priority uses real remaining games rather than a league-wide daysLeft
+	// countdown (Defect A fix). We compute this once here and pass to signPriority.
+	const scheduleGamesByTid = isSport("basketball")
+		? await (async () => {
+				const schedule = await context.cache.schedule.getAll();
+				const byTid = new Map<number, number>();
+				for (const game of schedule) {
+					byTid.set(game.homeTid, (byTid.get(game.homeTid) ?? 0) + 1);
+					byTid.set(game.awayTid, (byTid.get(game.awayTid) ?? 0) + 1);
+				}
+				return byTid;
+			})()
+		: null;
+
+	// List of free agents, sorted by value / signing priority
+	// For basketball midseason signings, signing priority incorporates team-specific
+	// schedule remaining for injured players (Defect A fix). Since we're sorting
+	// FAs for all teams at once, use undefined (fallback to numGames) here; the
+	// per-team priority is re-evaluated at signing time when needed for ordering.
+	let playersSorted = isSport("basketball")
+		? orderBy(
+				players,
+				[(p) => getBasketballSigningPriority(p, context), "value"],
+				["desc", "desc"],
+			)
+		: orderBy(players, "value", "desc");
 
 	// Randomly order teams
 	const teams = await context.cache.teams.getAll();
@@ -182,18 +209,114 @@ const autoSign = async () => {
 
 		// Ignore roster size, will drop bad player if necessary in checkRosterSizes, and getBest won't sign min contract player unless under the roster limit
 		const payroll = await team.getPayroll(t.tid, undefined, context.cache);
-		const p = getBest(playersOnRoster, playersSorted, payroll);
-		if (p) {
-			// Remove from list of free agents
-			playersSorted = playersSorted.filter((p2) => p2 !== p);
 
-			const signedPlayer = await completeSigning(p, t.tid);
-			playersOnRoster = [...playersOnRoster, signedPlayer];
+		// For basketball midseason signings, re-sort FAs using this team's specific
+		// remaining schedule games so injured player priority is team-specific (Defect A fix).
+		let playersSortedForTeam = playersSorted;
+		if (isSport("basketball") && scheduleGamesByTid !== null) {
+			const teamScheduleGames = scheduleGamesByTid.get(t.tid);
+			playersSortedForTeam = orderBy(
+				playersSorted,
+				[
+					(p) => getBasketballSigningPriority(p, context, teamScheduleGames),
+					"value",
+				],
+				["desc", "desc"],
+			);
 		}
 
-		if (!p) {
+		const p = getBest(playersOnRoster, playersSortedForTeam, payroll);
+		let signedViaGetBest = false;
+		if (p) {
+			// Mechanism-specific contract derivation (Defect B fix):
+			// If p.contract is legal under cap space, sign it directly.
+			// Otherwise (e.g. over-cap team), sign minimum exception (<=2 years).
+			let contractToSign: (typeof players)[number]["contract"] | undefined =
+				p.contract;
+			if (isSport("basketball") && context.salaryCapType !== "none") {
+				const currentException = getContractException({
+					birdException: false,
+					contract: p.contract,
+					p,
+					payroll,
+					team: t,
+				}).type;
+				if (currentException === "capSpace") {
+					contractToSign = p.contract;
+				} else {
+					contractToSign = undefined;
+					const capSpaceContract = getBasketballContractForMechanism(
+						p,
+						"capSpace",
+						{ context, realAmount: p.contract.amount },
+					);
+					let canUseCapSpace = false;
+					if (capSpaceContract) {
+						const exception = getContractException({
+							birdException: false,
+							contract: capSpaceContract,
+							p,
+							payroll,
+							team: t,
+						}).type;
+						if (exception === "capSpace") {
+							contractToSign = capSpaceContract;
+							canUseCapSpace = true;
+						}
+					}
+					if (!canUseCapSpace && isMinimumContractForPlayer(p, p.contract)) {
+						const minContract = getBasketballContractForMechanism(
+							p,
+							"minimum",
+							{ context },
+						);
+						contractToSign = minContract ?? undefined;
+					}
+				}
+			}
+
+			if (contractToSign !== undefined) {
+				playersSorted = playersSorted.filter((p2) => p2 !== p);
+				const signedPlayer = await completeSigning(
+					p,
+					t.tid,
+					undefined,
+					contractToSign,
+				);
+				playersOnRoster = [...playersOnRoster, signedPlayer];
+				signedViaGetBest = true;
+			}
+		}
+
+		if (!signedViaGetBest) {
+			let mleContractForSigning:
+				| (typeof players)[number]["contract"]
+				| undefined;
 			const pMidLevel = playersSorted.find((p2) => {
 				if (isMinimumContractForPlayer(p2, p2.contract)) {
+					return false;
+				}
+
+				if (isSport("basketball")) {
+					const mleContract = getBasketballContractForMechanism(
+						p2,
+						"midLevel",
+						{ context },
+					);
+					if (!mleContract) {
+						return false;
+					}
+					const exception = getContractException({
+						birdException: false,
+						contract: mleContract,
+						p: p2,
+						payroll,
+						team: t,
+					}).type;
+					if (exception === "midLevel") {
+						mleContractForSigning = mleContract;
+						return true;
+					}
 					return false;
 				}
 
@@ -213,12 +336,15 @@ const autoSign = async () => {
 				const teamWithMLE = helpers.deepCopy(t);
 				teamWithMLE.midLevelExceptionUsedSeason = context.mleSeason;
 				const pMidLevelForSigning = helpers.deepCopy(pMidLevel);
-				pMidLevelForSigning.contract.exception = "midLevel";
+				const contractToUse =
+					mleContractForSigning ?? pMidLevelForSigning.contract;
+				contractToUse.exception = "midLevel";
+				pMidLevelForSigning.contract = contractToUse;
 				const signedPlayer = await completeSigning(
 					pMidLevelForSigning,
 					t.tid,
 					teamWithMLE,
-					pMidLevelForSigning.contract,
+					contractToUse,
 				);
 				playersOnRoster = [...playersOnRoster, signedPlayer];
 			}

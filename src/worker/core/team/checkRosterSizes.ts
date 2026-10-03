@@ -1,4 +1,9 @@
-import { bySport, PLAYER, POSITION_COUNTS } from "../../../common/index.ts";
+import {
+	bySport,
+	isSport,
+	PLAYER,
+	POSITION_COUNTS,
+} from "../../../common/index.ts";
 import { player, freeAgents, team } from "../index.ts";
 import rosterAutoSort from "./rosterAutoSort.ts";
 import { g, helpers, local } from "../../util/index.ts";
@@ -11,6 +16,7 @@ import {
 	canOfferTwoWay,
 	canTeamAddTwoWay,
 } from "../contracts/contractTwoWay.ts";
+import { getBasketballContractForMechanism } from "../contracts/contractTerm.ts";
 import { applySigningTransaction } from "../signingTransaction.ts";
 import { captureSigningContext } from "../capturedContext.ts";
 
@@ -204,7 +210,35 @@ const checkRosterSizes = async (
 					if (!p) {
 						p = await player.genRandomFreeAgent(context);
 					}
-					const contractToSign = p.contract;
+					let contractToSign = p.contract;
+					if (isSport("basketball")) {
+						if (context.salaryCapType === "none") {
+							const noCapContract = getBasketballContractForMechanism(
+								p,
+								"none",
+								{ context, realAmount: p.contract.amount },
+							);
+							if (noCapContract) {
+								contractToSign = noCapContract;
+							}
+						} else {
+							const minMech = getBasketballContractForMechanism(p, "minimum", {
+								context,
+							});
+							const capMech = getBasketballContractForMechanism(p, "capSpace", {
+								context,
+								realAmount: p.contract.amount,
+							});
+							if (minMech) {
+								contractToSign = minMech;
+							} else if (capMech) {
+								contractToSign = capMech;
+							} else {
+								// No legal mechanism available in a capped league. Cannot repair roster.
+								break;
+							}
+						}
+					}
 					let expectedContractException: "capSpace" | "minimum" | undefined;
 					if (
 						contractToSign.type !== "twoWay" &&
