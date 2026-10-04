@@ -10,6 +10,7 @@ import {
 import { getMidLevelExceptionAmount } from "../contracts/contractMidLevel.ts";
 import { getRealAmountForEffectiveOffer } from "../contracts/contractOption.ts";
 import { player, team } from "../index.ts";
+import api from "../../api/index.ts";
 
 beforeEach(beforeTests);
 afterEach(() => idb.cache.negotiations.clear());
@@ -44,6 +45,33 @@ const makeFreeAgentVeteran = async (pid: number) => {
 	await idb.cache.players.put(p);
 
 	return p;
+};
+
+const setupApiSigningReconcileFailure = async () => {
+	const userPlayers = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		g.get("userTid"),
+	);
+	const userTeam = await idb.cache.teams.get(g.get("userTid"));
+	if (!userTeam) {
+		throw new Error("Invalid user team");
+	}
+	userTeam.basketballRotation = {
+		version: 1,
+		mode: "custom",
+		minutesByPid: Object.fromEntries(
+			userPlayers.map((p, index) => [p.pid, index < 5 ? 48 : 0]),
+		),
+		numPlayersOnCourtAtSave: g.get("numPlayersOnCourt"),
+	};
+	await idb.cache.teams.put(userTeam);
+
+	const malformedPlayer = await idb.cache.players.get(2);
+	if (!malformedPlayer) {
+		throw new Error("Invalid malformed player");
+	}
+	malformedPlayer.ratings.splice(0);
+	await idb.cache.players.put(malformedPlayer);
 };
 
 test("signing minimum contracts over the salary cap is allowed", async () => {
@@ -665,6 +693,68 @@ test("rosterAutoSort failure does not roll back a durable core signing", async (
 	assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
 	assert.strictEqual((await idb.cache.events.getAll()).length, 1);
 	assert.strictEqual((await idb.cache.players.get(pid))?.tid, g.get("userTid"));
+});
+
+test("API negotiated signing survives a post-signing rotation reconcile failure", async () => {
+	const pid = 0;
+	await setupApiSigningReconcileFailure();
+	await givePlayerMinContract(pid);
+	const createError = await contractNegotiation.create(pid, false);
+	assert.strictEqual(createError, undefined);
+	const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+	try {
+		const result = await api.main.acceptContractNegotiation({
+			pid,
+			amount: g.get("minContract"),
+			exp: g.get("season") + 1,
+		});
+		assert.strictEqual(result, undefined);
+		assert.strictEqual(
+			(await idb.cache.players.get(pid))?.tid,
+			g.get("userTid"),
+		);
+		assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
+		assert.isTrue(
+			warning.mock.calls.some(
+				([message]) =>
+					message ===
+					"Signing succeeded; post-signing basketball rotation reconciliation failed",
+			),
+		);
+	} finally {
+		warning.mockRestore();
+	}
+});
+
+test("API direct signing survives a post-signing rotation reconcile failure", async () => {
+	const pid = 0;
+	await setupApiSigningReconcileFailure();
+	await givePlayerMinContract(pid);
+	const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+	try {
+		const result = await api.main.sign({
+			pid,
+			amount: g.get("minContract"),
+			exp: g.get("season") + 1,
+		});
+		assert.strictEqual(result, undefined);
+		assert.strictEqual(
+			(await idb.cache.players.get(pid))?.tid,
+			g.get("userTid"),
+		);
+		assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
+		assert.isTrue(
+			warning.mock.calls.some(
+				([message]) =>
+					message ===
+					"Signing succeeded; post-signing basketball rotation reconciliation failed",
+			),
+		);
+	} finally {
+		warning.mockRestore();
+	}
 });
 
 test("accept passes the signed player tid to keepRosterSorted decisions", async () => {

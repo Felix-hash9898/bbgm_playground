@@ -180,6 +180,20 @@ import {
 } from "../core/team/basketballMinutes.ts";
 import reconcileBasketballRotation from "../core/team/reconcileBasketballRotation.ts";
 
+const reconcileBasketballRotationAfterSigning = async () => {
+	try {
+		await reconcileBasketballRotation(g.get("userTids"));
+	} catch (error) {
+		// The signing transaction and the core signing refresh have already
+		// completed. A stale or malformed Custom rotation must not turn a durable
+		// signing into a rejected API call.
+		console.warn(
+			"Signing succeeded; post-signing basketball rotation reconciliation failed",
+			error,
+		);
+	}
+};
+
 const acceptContractNegotiation = async ({
 	pid,
 	amount,
@@ -201,7 +215,7 @@ const acceptContractNegotiation = async ({
 		option,
 	});
 	if (!result) {
-		await reconcileBasketballRotation(g.get("userTids"));
+		await reconcileBasketballRotationAfterSigning();
 	}
 	return result;
 };
@@ -3720,7 +3734,7 @@ const sign = async ({
 	if (errorMsg !== undefined && errorMsg) {
 		return errorMsg;
 	}
-	await reconcileBasketballRotation(g.get("userTids"));
+	await reconcileBasketballRotationAfterSigning();
 };
 
 const reSignAll = async (players: any[]) => {
