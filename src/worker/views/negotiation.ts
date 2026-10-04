@@ -2,7 +2,7 @@ import { PHASE, isSport } from "../../common/index.ts";
 import { contractNegotiation, player, team } from "../core/index.ts";
 import {
 	getContractException,
-	getMaxContractForPlayer,
+	getMaxContractForPlayerAndTerm,
 	getMaxSalaryTier,
 	clampContractAmountForPlayer,
 } from "../core/contracts/contractLimits.ts";
@@ -21,6 +21,7 @@ import {
 	isMidLevelExceptionAvailable,
 } from "../core/contracts/contractMidLevel.ts";
 import { getBasketballContractMarketDemand } from "../core/contracts/contractMarket/index.ts";
+import { getContractYearsFromExpiration } from "../core/contracts/contractTerm.ts";
 import {
 	getTermAdjustedContractOffer,
 	getIncumbentInjuredAsk,
@@ -440,7 +441,14 @@ const updateNegotiation = async (
 					maxSalaryTier: getMaxSalaryTier(p2),
 					...midLevelExceptionInfo,
 					playerMinimum,
-					playerMaxContract: getMaxContractForPlayer(p2) / 1000,
+					playerMaxContract:
+						getMaxContractForPlayerAndTerm(
+							p2,
+							userTid,
+							getContractYearsFromExpiration({
+								expiration: p.contract.exp,
+							}),
+						) / 1000,
 				}
 			: undefined;
 

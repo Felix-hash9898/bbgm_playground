@@ -1586,6 +1586,7 @@ test("newPhaseResignPlayers bases the next hard-cap decision on the actual prior
 		contractAmount: 1000,
 		exp: 2026,
 	});
+	first.draft.year = g.get("season") - 10;
 	const second = makePlayer({
 		tid: 1,
 		age: 27,
@@ -1596,6 +1597,7 @@ test("newPhaseResignPlayers bases the next hard-cap decision on the actual prior
 		contractAmount: 1000,
 		exp: 2026,
 	});
+	second.draft.year = g.get("season") - 10;
 	await runResignPhase([existing, first, second]);
 	const teamPlayers = await idb.cache.players.indexGetAll("playersByTid", 1);
 	const firstBefore = teamPlayers.find((p) => p.value === 95);

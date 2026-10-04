@@ -10,6 +10,7 @@ import {
 import { getMidLevelExceptionAmount } from "../contracts/contractMidLevel.ts";
 import { getRealAmountForEffectiveOffer } from "../contracts/contractOption.ts";
 import { player, team } from "../index.ts";
+import { PLAYER } from "../../../common/index.ts";
 import api from "../../api/index.ts";
 
 beforeEach(beforeTests);
@@ -481,6 +482,31 @@ test("reject offers above the player's dynamic max", async () => {
 	});
 	assert.strictEqual(
 		error2,
+		"You cannot offer this player a contract higher than their maximum salary.",
+	);
+});
+
+test("forged five-year supermax offer without designation eligibility is rejected", async () => {
+	g.setWithoutSavingToDB("salaryCapType", "none");
+	g.setWithoutSavingToDB("maxContractLength", 8);
+	g.setWithoutSavingToDB("salaryCap", 100000);
+	const pid = 0;
+	await givePlayerMinContract(pid);
+	const p = await idb.cache.players.get(pid);
+	assert(p);
+	p.draft.year = g.get("season") - 8;
+	p.draft.originalTid = g.get("userTid");
+	p.tid = PLAYER.FREE_AGENT;
+	p.awards = [];
+	await idb.cache.players.put(p);
+	assert.strictEqual(await contractNegotiation.create(pid, true), undefined);
+	const error = await contractNegotiation.accept({
+		pid,
+		amount: 40000,
+		exp: g.get("season") + 5,
+	});
+	assert.strictEqual(
+		error,
 		"You cannot offer this player a contract higher than their maximum salary.",
 	);
 });

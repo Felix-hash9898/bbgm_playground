@@ -8,7 +8,8 @@ import type {
 import { isSport, PHASE } from "../../common/index.ts";
 import type { ContractExceptionType } from "./contracts/contractMidLevel.ts";
 import { getMidLevelExceptionAmount } from "./contracts/contractMidLevel.ts";
-import { getMaxContractForPlayer } from "./contracts/contractLimits.ts";
+import { getMaxContractForPlayerAndTerm } from "./contracts/contractLimits.ts";
+import { getContractYearsFromExpiration } from "./contracts/contractTerm.ts";
 import { getMinContractForPlayer } from "./contracts/contractMinimum.ts";
 import {
 	canContractHaveOption,
@@ -197,18 +198,27 @@ const applySigningTransactionInQueue = async (
 			// Use captured context for term validation, not live g.get() (Defect H fix).
 			// Computing contractLength from captured context season+phase avoids reading
 			// the live g.season/g.phase which can drift between queue entry and commit.
-			const contractLength =
-				contractToCommit.exp -
-				context.season +
-				(context.phase <= PHASE.PLAYOFFS ? 1 : 0);
+			const contractLength = getContractYearsFromExpiration({
+				expiration: contractToCommit.exp,
+				context,
+			});
 			const minContractLength = context.minContractLength;
 			const maxContractLength = context.maxContractLength;
 			if (
-				contractLength < minContractLength ||
-				contractLength > maxContractLength
+				contractToCommit.exp >= context.season &&
+				(contractLength < minContractLength ||
+					contractLength > maxContractLength)
 			) {
 				throw new Error(
 					`Contract length ${contractLength} is outside configured limits [${minContractLength}, ${maxContractLength}]`,
+				);
+			}
+			if (
+				contractToCommit.amount >
+				getMaxContractForPlayerAndTerm(currentPlayer, input.tid, contractLength)
+			) {
+				throw new Error(
+					"Contract salary exceeds the legal maximum for this team and term",
 				);
 			}
 		}
@@ -225,7 +235,12 @@ const applySigningTransactionInQueue = async (
 			}
 			if (
 				contractToCommit.option === "team" &&
-				contractToCommit.amount > getMaxContractForPlayer(currentPlayer)
+				contractToCommit.amount >
+					getMaxContractForPlayerAndTerm(
+						currentPlayer,
+						input.tid,
+						contractLength,
+					)
 			) {
 				throw new Error("Team-option salary is above the player maximum");
 			}

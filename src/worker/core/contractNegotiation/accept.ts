@@ -11,8 +11,9 @@ import type { PlayerContract } from "../../../common/types.ts";
 import { PHASE, PLAYER } from "../../../common/index.ts";
 import {
 	getContractException,
-	getMaxContractForPlayer,
+	getMaxContractForPlayerAndTerm,
 } from "../contracts/contractLimits.ts";
+import { getContractYearsFromExpiration } from "../contracts/contractTerm.ts";
 import {
 	canOfferTwoWay,
 	canTeamAddTwoWay,
@@ -79,7 +80,15 @@ const acceptUnsafe = async ({
 	const contractType = type ?? "standard";
 	const isTwoWay = contractType === "twoWay";
 	const amountActual = isTwoWay ? getTwoWayContractAmount() : amount;
-	const maxContract = getMaxContractForPlayer(p);
+	const contractYears = getContractYearsFromExpiration({
+		expiration: exp,
+		context,
+	});
+	const maxContract = getMaxContractForPlayerAndTerm(
+		p,
+		context.userTid,
+		contractYears,
+	);
 	// This error is for sanity checking in multi team mode. Need to check for existence of negotiation.tid because it
 	// wasn't there originally and I didn't write upgrade code. Can safely get rid of it later.
 	if (negotiation.tid !== undefined && negotiation.tid !== context.userTid) {

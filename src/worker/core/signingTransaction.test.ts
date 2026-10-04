@@ -189,6 +189,24 @@ const reopenHarnessDatabase = async () => {
 };
 
 describe("captured signing transaction", () => {
+	test("commit-time validation rejects forged offers above a 7-YOS max", async () => {
+		g.setWithoutSavingToDB("salaryCap", 100000);
+		const current = (await harness.cache.players.get(harness.player.pid))!;
+		current.draft.year = g.get("season") - 7;
+		await harness.cache.players.put(current);
+		await expectRejected(
+			runSigning({
+				player: current,
+				negotiation: undefined,
+				contract: {
+					amount: 40000,
+					exp: g.get("season") + 1,
+				},
+			}),
+		);
+		assert.strictEqual((await harness.cache.events.getAll()).length, 0);
+	});
+
 	test("writes player, event, negotiation deletion, and reopens durably", async () => {
 		const result = await runSigning();
 		const eventId = result.eventId!;
