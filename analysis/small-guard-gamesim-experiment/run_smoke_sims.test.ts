@@ -1,11 +1,13 @@
-import { test, expect } from "vitest";
+import { test as vitestTest, expect } from "vitest";
 import fs from "fs";
 import zlib from "zlib";
-import path from "path";
 import { resetCache, resetG } from "../../src/test/helpers.ts";
 import loadTeams from "../../src/worker/core/game/loadTeams.ts";
 import GameSim from "../../src/worker/core/GameSim.basketball/index.ts";
 import { g } from "../../src/worker/util/index.ts";
+
+// Opt in with BBGM_RUN_RESEARCH_SIMS=1; these runs overwrite their result files.
+const test = vitestTest.skipIf(process.env.BBGM_RUN_RESEARCH_SIMS !== "1");
 
 // Recalculation helpers
 const COMPOSITE_WEIGHTS = {
@@ -279,7 +281,10 @@ test("run 100-game smoke matchup simulations for all variants", async () => {
 
 	// 1. Load Save Game
 	const rawData = fs.readFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/real_saves/BBGM_League_3_2025_re_sign_players.json.gz",
+		new URL(
+			"../../real_saves/BBGM_League_3_2025_re_sign_players.json.gz",
+			import.meta.url,
+		),
 	);
 	const data = JSON.parse(zlib.gunzipSync(rawData).toString("utf-8"));
 
@@ -662,7 +667,7 @@ test("run 100-game smoke matchup simulations for all variants", async () => {
 		.map((row) => row.map(escapeCSVField).join(","))
 		.join("\n");
 	fs.writeFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/analysis/small-guard-gamesim-experiment/results_smoke100.csv",
+		new URL("./results_smoke100.csv", import.meta.url),
 		csvContent,
 	);
 	console.log("Wrote results_smoke100.csv");
@@ -696,7 +701,7 @@ test("run 100-game smoke matchup simulations for all variants", async () => {
 	mdContent += `\n`;
 
 	fs.writeFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/analysis/small-guard-gamesim-experiment/results_smoke100.md",
+		new URL("./results_smoke100.md", import.meta.url),
 		mdContent,
 	);
 	console.log("Wrote results_smoke100.md");
@@ -715,7 +720,7 @@ test("run 100-game smoke matchup simulations for all variants", async () => {
 	notesContent += runNotes.join("\n");
 
 	fs.writeFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/analysis/small-guard-gamesim-experiment/smoke_run_notes.md",
+		new URL("./smoke_run_notes.md", import.meta.url),
 		notesContent,
 	);
 	console.log("Wrote smoke_run_notes.md");

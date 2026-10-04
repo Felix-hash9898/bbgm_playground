@@ -1,11 +1,13 @@
-import { test, expect } from "vitest";
+import { test as vitestTest, expect } from "vitest";
 import fs from "fs";
 import zlib from "zlib";
-import path from "path";
 import { resetCache, resetG } from "../../src/test/helpers.ts";
 import loadTeams from "../../src/worker/core/game/loadTeams.ts";
 import GameSim from "../../src/worker/core/GameSim.basketball/index.ts";
 import { g } from "../../src/worker/util/index.ts";
+
+// Opt in with BBGM_RUN_RESEARCH_SIMS=1; these runs overwrite their result files.
+const test = vitestTest.skipIf(process.env.BBGM_RUN_RESEARCH_SIMS !== "1");
 
 // Recalculation helpers
 const COMPOSITE_WEIGHTS = {
@@ -279,7 +281,10 @@ test("run 1000-game standard matchup simulations for all variants", async () => 
 
 	// 1. Load Save Game
 	const rawData = fs.readFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/real_saves/BBGM_League_3_2025_re_sign_players.json.gz",
+		new URL(
+			"../../real_saves/BBGM_League_3_2025_re_sign_players.json.gz",
+			import.meta.url,
+		),
 	);
 	const data = JSON.parse(zlib.gunzipSync(rawData).toString("utf-8"));
 
@@ -716,10 +721,7 @@ test("run 1000-game standard matchup simulations for all variants", async () => 
 	const csvContent = csvRows
 		.map((row) => row.map(escapeCSVField).join(","))
 		.join("\n");
-	fs.writeFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/analysis/small-guard-gamesim-experiment/results_1000.csv",
-		csvContent,
-	);
+	fs.writeFileSync(new URL("./results_1000.csv", import.meta.url), csvContent);
 	console.log("Wrote results_1000.csv");
 
 	// 6. Output results_1000.md
@@ -763,10 +765,7 @@ test("run 1000-game standard matchup simulations for all variants", async () => 
 	mdContent += `\n`;
 	mdContent += `- Yogi Ferrell（OVR 61）在 1000 场中胜率约为 38%，符合平庸矮个后卫在场时球队战斗力受阻的直觉预期。其场均实际出场时间由于实力因素受到教练算法的自然压制（约为 29 MPG）。\n`;
 
-	fs.writeFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/analysis/small-guard-gamesim-experiment/results_1000.md",
-		mdContent,
-	);
+	fs.writeFileSync(new URL("./results_1000.md", import.meta.url), mdContent);
 	console.log("Wrote results_1000.md");
 
 	// 7. Output standard_run_notes.md
@@ -783,7 +782,7 @@ test("run 1000-game standard matchup simulations for all variants", async () => 
 	notesContent += runNotes.join("\n");
 
 	fs.writeFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/analysis/small-guard-gamesim-experiment/standard_run_notes.md",
+		new URL("./standard_run_notes.md", import.meta.url),
 		notesContent,
 	);
 	console.log("Wrote standard_run_notes.md");

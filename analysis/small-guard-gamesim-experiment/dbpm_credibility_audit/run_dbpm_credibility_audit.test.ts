@@ -1,11 +1,13 @@
-import { test, expect } from "vitest";
+import { test as vitestTest, expect } from "vitest";
 import fs from "fs";
 import zlib from "zlib";
-import path from "path";
 import { resetCache, resetG } from "../../../src/test/helpers.ts";
 import loadTeams from "../../../src/worker/core/game/loadTeams.ts";
 import GameSim from "../../../src/worker/core/GameSim.basketball/index.ts";
 import { g } from "../../../src/worker/util/index.ts";
+
+// Opt in with BBGM_RUN_RESEARCH_SIMS=1; these runs overwrite their result files.
+const test = vitestTest.skipIf(process.env.BBGM_RUN_RESEARCH_SIMS !== "1");
 
 // Recalculation helpers
 const COMPOSITE_WEIGHTS = {
@@ -324,7 +326,10 @@ function calculateValueNoPot(player, ovrMean, ovrStd) {
 test("run credibility diagnostic simulations", async () => {
 	console.log("Loading save game...");
 	const rawData = fs.readFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/real_saves/BBGM_League_3_2025_re_sign_players.json.gz",
+		new URL(
+			"../../../real_saves/BBGM_League_3_2025_re_sign_players.json.gz",
+			import.meta.url,
+		),
 	);
 	const data = JSON.parse(zlib.gunzipSync(rawData).toString("utf-8"));
 
@@ -671,7 +676,10 @@ test("run credibility diagnostic simulations", async () => {
 		.map((row) => row.map(escapeCSVField).join(","))
 		.join("\n");
 	fs.writeFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/analysis/small-guard-gamesim-experiment/dbpm_credibility_audit/04_representative_gamesim_defense_discount.csv",
+		new URL(
+			"./04_representative_gamesim_defense_discount.csv",
+			import.meta.url,
+		),
 		csvContent,
 	);
 	console.log("Wrote 04_representative_gamesim_defense_discount.csv");
@@ -728,7 +736,7 @@ test("run credibility diagnostic simulations", async () => {
 	}
 
 	fs.writeFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/analysis/small-guard-gamesim-experiment/dbpm_credibility_audit/04_representative_gamesim_defense_discount.md",
+		new URL("./04_representative_gamesim_defense_discount.md", import.meta.url),
 		mdContent,
 	);
 	console.log("Wrote 04_representative_gamesim_defense_discount.md");
@@ -744,7 +752,7 @@ test("run credibility diagnostic simulations", async () => {
 	notesContent += notesLog.join("\n");
 
 	fs.writeFileSync(
-		"/Users/felixhuang/Desktop/bbgm/zengm - playground/analysis/small-guard-gamesim-experiment/dbpm_credibility_audit/hgt_sensitivity_run_notes.md",
+		new URL("./hgt_sensitivity_run_notes.md", import.meta.url),
 		notesContent,
 	);
 	console.log("Wrote hgt_sensitivity_run_notes.md");

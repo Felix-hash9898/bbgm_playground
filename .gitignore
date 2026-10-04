@@ -26,3 +26,9 @@ coverage/
 .turbo/
 # data/ (do not ignore; needed to run locally)
 outputs/
+
+# Local workflow state and archived research trees
+/.ai-bridge/
+/.serena/
+/analysis/hgt-calibration-gamesim/
+/analysis/usage-bias-audit/
