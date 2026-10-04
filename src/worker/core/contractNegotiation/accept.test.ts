@@ -273,6 +273,22 @@ test("player option effective offer can satisfy contract demand while payroll us
 	assert(payroll < demand + g.get("salaryCap"));
 });
 
+test("manual negotiation rejects a player option that removes the healthy year funding an injury discount", async () => {
+	const p = await makeFreeAgentVeteran(1);
+	p.injury = { type: "Torn ACL", gamesRemaining: 150 };
+	await idb.cache.players.put(p);
+	const createError = await contractNegotiation.create(1, false);
+	assert.strictEqual(createError, undefined);
+	const error = await contractNegotiation.accept({
+		pid: 1,
+		amount: getMinContractForPlayer(p),
+		exp: g.get("season") + 2,
+		option: "player",
+		dryRun: true,
+	});
+	assert.match(error ?? "", /healthy year used to price this injured contract/);
+});
+
 test("team option effective offer must satisfy contract demand", async () => {
 	const pid = 1;
 	g.setWithoutSavingToDB("playersRefuseToNegotiate", false);

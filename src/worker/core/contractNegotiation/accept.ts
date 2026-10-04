@@ -30,6 +30,7 @@ import {
 import {
 	canContractHaveOption,
 	getEffectiveOfferAmount,
+	isPlayerOptionInjuryHorizonSafe,
 } from "../contracts/contractOption.ts";
 import {
 	captureSigningContext,
@@ -125,6 +126,9 @@ const acceptUnsafe = async ({
 			})
 		) {
 			return "This contract is not eligible for a player or team option.";
+		}
+		if (option === "player" && !isPlayerOptionInjuryHorizonSafe(p, contract)) {
+			return "A player option cannot remove the healthy year used to price this injured contract.";
 		}
 	}
 	const contractWithCapHit = withContractCapHitForPlayer(p, contract);

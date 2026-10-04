@@ -1,7 +1,10 @@
 import { PHASE, isSport } from "../../../common/index.ts";
 import type { Player, PlayerContract, Team } from "../../../common/types.ts";
 import { g, helpers } from "../../util/index.ts";
-import { getContractCapHit, isMinimumContractForPlayer } from "./contractMinimum.ts";
+import {
+	getContractCapHit,
+	isMinimumContractForPlayer,
+} from "./contractMinimum.ts";
 
 export type ContractExceptionType =
 	| "capSpace"
@@ -137,15 +140,41 @@ export const getContractExceptionResult = ({
 		return { type: "capSpace" };
 	}
 
-	if (birdException) {
-		return { type: "bird" };
+	const isBball = isSport("basketball");
+	const contractLength = getContractLength(contract);
+	const minContractLength = g.get("minContractLength");
+	const maxContractLength = g.get("maxContractLength");
+
+	if (isBball && contractLength < minContractLength) {
+		return { type: undefined };
 	}
 
-	if (payroll + getContractCapHit(contract) - 1 <= g.get("salaryCap")) {
+	if (birdException) {
+		const maxBirdLength = isBball
+			? Math.min(5, maxContractLength)
+			: maxContractLength;
+		if (contractLength <= maxBirdLength) {
+			return { type: "bird" };
+		}
+	}
+
+	const maxCapLength = isBball
+		? Math.min(4, maxContractLength)
+		: maxContractLength;
+	if (
+		payroll + getContractCapHit(contract) - 1 <= g.get("salaryCap") &&
+		contractLength <= maxCapLength
+	) {
 		return { type: "capSpace" };
 	}
 
-	if (isMinimumContractForPlayer(p, contract)) {
+	const maxMinLength = isBball
+		? Math.min(2, maxContractLength)
+		: maxContractLength;
+	if (
+		isMinimumContractForPlayer(p, contract) &&
+		contractLength <= maxMinLength
+	) {
 		return { type: "minimum" };
 	}
 

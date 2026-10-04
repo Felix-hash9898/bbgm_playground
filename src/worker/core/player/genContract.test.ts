@@ -32,10 +32,10 @@ beforeEach(() => {
 	g.setWithoutSavingToDB("salaryCap", 150000);
 });
 
-test("basketball genContract clamps to the player's dynamic max", () => {
+test("basketball genContract stays inside the V4 curve and legal minimum", () => {
 	const p = makePlayer();
 	const contract = genContract(p, false, false);
-	assert(contract.amount <= g.get("salaryCap") * 0.25);
+	assert(contract.amount <= g.get("salaryCap") * 0.33);
 	assert(contract.amount >= getMinContractForPlayer(p));
 });
 

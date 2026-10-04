@@ -25,6 +25,7 @@ import type {
 import setGameAttributes from "../league/setGameAttributes.ts";
 import { doExpand, doRelocate } from "./relocateExpand.ts";
 import addAward from "../player/addAward.ts";
+import { healInjuryForOffseason } from "../player/injury.ts";
 import { analyticsEventLocal } from "../../../common/analyticsEventLocal.ts";
 import { updateLotteryChancesAfterPlayoffs } from "../draft/cola.ts";
 
@@ -451,14 +452,7 @@ const newPhaseBeforeDraft = async (
 			if (p.injury.gamesRemaining > 0 || p.injury.type !== "Healthy") {
 				const numGames = defaultGameAttributes.numGames[0].value;
 				// This doesn't use g.get("numGames") because that would unfairly make injuries last longer if it was lower - if anything injury duration should be modulated based on that, but oh well
-				if (p.injury.gamesRemaining <= numGames) {
-					p.injury = {
-						type: "Healthy",
-						gamesRemaining: 0,
-					};
-				} else {
-					p.injury.gamesRemaining -= numGames;
-				}
+				p.injury = healInjuryForOffseason(p.injury, numGames);
 
 				update = true;
 			}

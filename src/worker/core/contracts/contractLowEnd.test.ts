@@ -1,7 +1,7 @@
 import { assert, beforeEach, test } from "vitest";
 import { PLAYER } from "../../../common/index.ts";
 import { resetG } from "../../../test/helpers.ts";
-import { g } from "../../util/index.ts";
+import { g, helpers } from "../../util/index.ts";
 import { player } from "../index.ts";
 import genContract from "../player/genContract.ts";
 import {
@@ -50,7 +50,7 @@ beforeEach(() => {
 	resetG();
 });
 
-test("undrafted rookie-like players are pushed to minimum contract demand", () => {
+test("undrafted rookie-like players keep legal minimum protection", () => {
 	const p = makePlayer({
 		ovr: 55,
 		pot: 65,
@@ -60,7 +60,7 @@ test("undrafted rookie-like players are pushed to minimum contract demand", () =
 
 	assert.strictEqual(isUndraftedRookieLike(p), true);
 	assert.strictEqual(getLowEndContractTarget(p), g.get("minContract"));
-	assert.strictEqual(genContract(p, false).amount, g.get("minContract"));
+	assert(genContract(p, false).amount >= getMinContractForPlayer(p));
 });
 
 test("drafted rookie-like players are not treated as undrafted", () => {
@@ -71,7 +71,7 @@ test("drafted rookie-like players are not treated as undrafted", () => {
 	assert.strictEqual(isUndraftedRookieLike(secondRoundPick), false);
 });
 
-test("low-end young free agents are pushed to the low-end contract range", () => {
+test("low-end young free agents use the continuous V4 demand with legal bounds", () => {
 	const p = makePlayer({
 		draftRound: 2,
 		draftYearsAgo: 2,
@@ -85,11 +85,11 @@ test("low-end young free agents are pushed to the low-end contract range", () =>
 		getMinContractForPlayer(p) * 1.25,
 	);
 	const demand = getBasketballContractMarketDemand(p);
-	assert.strictEqual(demand.tier, "MINIMUM_LEVEL");
-	assert.strictEqual(demand.pointAmount, 2230);
-	// genContract preserves the existing minimum-floor rule when the point is
-	// within 10% of the player minimum.
-	assert.strictEqual(genContract(p, false).amount, getMinContractForPlayer(p));
+	assert(demand.pointAmount > getLowEndContractTarget(p)!);
+	assert.strictEqual(
+		genContract(p, false).amount,
+		helpers.roundContract(demand.pointAmount),
+	);
 });
 
 test("normal rotation young players are not pushed to the low-end contract range", () => {

@@ -2,6 +2,9 @@ import { afterEach, assert, beforeEach, expect, test, vi } from "vitest";
 import { PHASE } from "../../../common/index.ts";
 import type { Game, Player, ScheduleGame } from "../../../common/types.ts";
 import { resetCache, resetG } from "../../../test/helpers.ts";
+import { freeAgents, trade } from "../index.ts";
+import { healInjuryForOffseason } from "../player/injury.ts";
+import { getContractAvailabilityAdjustment } from "../contracts/contractMarket/injuryAdjustment.ts";
 import { idb } from "../../db/index.ts";
 import { g, lock } from "../../util/index.ts";
 import { getDaysOffSimulationPlan } from "../season/getBasketballPlayoffDaysOff.ts";
@@ -66,7 +69,93 @@ beforeEach(async () => {
 
 afterEach(() => {
 	vi.clearAllMocks();
+	vi.restoreAllMocks();
 	lock.reset();
+});
+
+test("signed-player injury countdown covers a playoff return and offseason healing", async () => {
+	const playoffGames = 30;
+	g.setWithoutSavingToDB("numGames", 82);
+	g.setWithoutSavingToDB("numGamesPlayoffSeries", [7, 7, 7, 7]);
+	g.setWithoutSavingToDB("playIn", true);
+	g.setWithoutSavingToDB("tragicDeathRate", 0);
+
+	const oneYearInjury = makePlayer(80);
+	oneYearInjury.pid = 0;
+	oneYearInjury.injury.type = "Torn ACL";
+	oneYearInjury.contract = { amount: 45000, exp: season + 1 } as any;
+	const twoYearInjury = makePlayer(200);
+	twoYearInjury.pid = 1;
+	twoYearInjury.injury.type = "Torn Achilles Tendon";
+	twoYearInjury.contract = { amount: 45000, exp: season + 2 } as any;
+	await idb.cache.players.add(oneYearInjury);
+	await idb.cache.players.add(twoYearInjury);
+
+	vi.spyOn(freeAgents, "decreaseDemands").mockResolvedValue(undefined);
+	vi.spyOn(freeAgents, "autoSign").mockResolvedValue(undefined);
+	vi.spyOn(trade, "betweenAiTeams").mockResolvedValue(undefined);
+
+	const oneYearProjection = getContractAvailabilityAdjustment({
+		gamesRemaining: 80,
+		contractYears: 1,
+		gamesPerSeason: 82,
+		playoffGamesPerSeason: playoffGames,
+		offseasonHealingGames: 82,
+	});
+	const twoYearProjection = getContractAvailabilityAdjustment({
+		gamesRemaining: 200,
+		contractYears: 2,
+		gamesPerSeason: 82,
+		playoffGamesPerSeason: playoffGames,
+		offseasonHealingGames: 82,
+	});
+	assert.strictEqual(oneYearProjection.unavailableGames, 80);
+	assert.strictEqual(twoYearProjection.unavailableGames, 118);
+
+	// Production day-over processing decrements injuries once per played game.
+	g.setWithoutSavingToDB("phase", PHASE.REGULAR_SEASON);
+	for (let game = 0; game < 82; game += 1) {
+		await processDayOver({}, new Set(), ["gameSim"]);
+	}
+	assert.deepStrictEqual((await idb.cache.players.get(0))?.injury, {
+		type: "Healthy",
+		gamesRemaining: 0,
+	});
+	assert.strictEqual(
+		(await idb.cache.players.get(1))?.injury.gamesRemaining,
+		118,
+	);
+
+	g.setWithoutSavingToDB("phase", PHASE.PLAYOFFS);
+	for (let game = 0; game < playoffGames; game += 1) {
+		await processDayOver({}, new Set(), ["gameSim"]);
+	}
+	assert.deepStrictEqual((await idb.cache.players.get(0))?.injury, {
+		type: "Healthy",
+		gamesRemaining: 0,
+	});
+	assert.strictEqual(
+		(await idb.cache.players.get(1))?.injury.gamesRemaining,
+		88,
+	);
+
+	// This is the exact production helper called during newPhaseBeforeDraft.
+	const afterOffseason = await idb.cache.players.get(1);
+	afterOffseason!.injury = healInjuryForOffseason(afterOffseason!.injury, 82);
+	await idb.cache.players.put(afterOffseason!);
+	assert.strictEqual(
+		(await idb.cache.players.get(1))?.injury.gamesRemaining,
+		6,
+	);
+
+	g.setWithoutSavingToDB("phase", PHASE.REGULAR_SEASON);
+	for (let game = 0; game < 6; game += 1) {
+		await processDayOver({}, new Set(), ["gameSim"]);
+	}
+	assert.deepStrictEqual((await idb.cache.players.get(1))?.injury, {
+		type: "Healthy",
+		gamesRemaining: 0,
+	});
 });
 
 test("Play 1 Day during a playoff gap advances once without simulating the game", async () => {

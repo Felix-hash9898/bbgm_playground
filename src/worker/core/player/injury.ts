@@ -2,6 +2,25 @@ import { defaultInjuries, g, helpers, random } from "../../util/index.ts";
 import type { InjuriesSetting, PlayerInjury } from "../../../common/types.ts";
 import { healthEffect } from "../../../common/budgetLevels.ts";
 
+export const healInjuryForOffseason = (
+	injury: PlayerInjury,
+	gamesToHeal: number,
+): PlayerInjury => {
+	if (injury.type === "Healthy" && injury.gamesRemaining <= 0) {
+		return injury;
+	}
+	if (injury.gamesRemaining <= gamesToHeal) {
+		return {
+			type: "Healthy",
+			gamesRemaining: 0,
+		};
+	}
+	return {
+		...injury,
+		gamesRemaining: injury.gamesRemaining - gamesToHeal,
+	};
+};
+
 type InjuryOccurrence = "any" | "inGame" | "postGame";
 
 const getInGameWeight = (name: string, games: number) => {

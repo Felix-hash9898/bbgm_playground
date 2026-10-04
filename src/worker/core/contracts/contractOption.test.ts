@@ -202,6 +202,24 @@ test("AI option helper chooses a player option for a high-value veteran", () => 
 	);
 });
 
+test("a player option cannot remove the healthy year funding an injury discount", () => {
+	const p = makePlayer({
+		age: 35,
+		draftRound: 1,
+		draftYearsAgo: 12,
+		ovr: 79,
+		pot: 79,
+		value: 75,
+		valueNoPot: 73.4,
+	});
+	const contract = { amount: 26430, exp: g.get("season") + 2 };
+	p.injury = { type: "Torn ACL", gamesRemaining: 150 };
+	assert.strictEqual(getAIContractWithOption(p, contract).option, undefined);
+	// A short injury is covered by the standard 10% option valuation.
+	p.injury.gamesRemaining = 10;
+	assert.strictEqual(getAIContractWithOption(p, contract).option, "player");
+});
+
 test("AI option helper chooses a team option for a low-end young free agent", () => {
 	const p = makePlayer({
 		age: 22,

@@ -1,7 +1,8 @@
-import { PHASE, PLAYER } from "../../../common/index.ts";
+import { PHASE, PLAYER, isSport } from "../../../common/index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
 import { clampContractDemandForPlayer } from "../contracts/contractLowEnd.ts";
+import { clampContractAmountForPlayer } from "../contracts/contractLimits.ts";
 import {
 	getMinContractForPlayer,
 	withContractCapHitForPlayer,
@@ -43,7 +44,9 @@ const decreaseDemands = async () => {
 		if (p.contract.amount < playerMinimum) {
 			p.contract.amount = playerMinimum;
 		}
-		p.contract.amount = clampContractDemandForPlayer(p, p.contract.amount);
+		p.contract.amount = isSport("basketball")
+			? clampContractAmountForPlayer(p, p.contract.amount)
+			: clampContractDemandForPlayer(p, p.contract.amount);
 
 		if (g.get("phase") !== PHASE.FREE_AGENCY) {
 			// Since this is after the season has already started, ask for a short contract

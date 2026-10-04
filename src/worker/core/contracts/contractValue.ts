@@ -80,13 +80,14 @@ export const getBasketballSalaryAgeFactor = (
 
 export const getContractValue = (
 	p: Player<MinimalPlayerRatings> | PlayerWithoutKey<MinimalPlayerRatings>,
+	regularSeasonMinutes = getMostRecentRegularSeasonMinutes(p),
 ) => {
 	if (!isSport("basketball")) {
 		return p.value;
 	}
 
 	const age = g.get("season") - p.born.year;
-	const recentMin = getMostRecentRegularSeasonMinutes(p);
+	const recentMin = regularSeasonMinutes;
 	const currentValue = p.valueNoPot ?? p.value;
 	const futureValue = p.value;
 

@@ -6,6 +6,7 @@ import type {
 	PlayerWithoutKey,
 } from "../../../common/types.ts";
 import { isSport } from "../../../common/index.ts";
+import { clampContractAmountForPlayer } from "../contracts/contractLimits.ts";
 import { clampContractDemandForPlayer } from "../contracts/contractLowEnd.ts";
 import {
 	getMinContractForPlayer,
@@ -58,11 +59,14 @@ const genContract = (
 	p: Player<MinimalPlayerRatings> | PlayerWithoutKey<MinimalPlayerRatings>,
 	randomizeAmount: boolean = true,
 	noLimit: boolean = false,
+	contractYears?: number,
 ): PlayerContract => {
-	const contractValue = getContractValue(p);
-	let amount = isSport("basketball")
-		? getBasketballContractMarketDemand(p).pointAmount
-		: getLegacyContractAmount(p, contractValue);
+	let amount: number;
+	if (isSport("basketball")) {
+		amount = getBasketballContractMarketDemand(p, contractYears).pointAmount;
+	} else {
+		amount = getLegacyContractAmount(p, getContractValue(p));
+	}
 
 	if (randomizeAmount) {
 		amount *= helpers.bound(random.realGauss(1, 0.1), 0, 2); // Randomize
@@ -70,7 +74,9 @@ const genContract = (
 
 	const playerMinimum = getMinContractForPlayer(p);
 	if (!noLimit) {
-		if (amount < playerMinimum * 1.1) {
+		if (isSport("basketball")) {
+			amount = clampContractAmountForPlayer(p, amount);
+		} else if (amount < playerMinimum * 1.1) {
 			amount = playerMinimum;
 		} else {
 			amount = clampContractDemandForPlayer(p, amount);
