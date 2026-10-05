@@ -1973,3 +1973,130 @@ test("forceHistoricalRosters does not invent a no-cap term when hard-cap capSpac
 	assert.strictEqual(historical?.contract.exp, 2026);
 	assert.strictEqual(historical?.contract.amount, 12345);
 });
+
+test("traded rookie production quotes, negotiation and acceptance use actual prior team", async () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	g.setWithoutSavingToDB("salaryCapType", "none");
+	const p = makePlayer({
+		tid: 0,
+		age: 23,
+		ovr: 90,
+		pot: 90,
+		value: 90,
+		draftYearsAgo: 4,
+	});
+	p.draft.originalTid = 1;
+	p.transactions = [
+		{
+			type: "trade",
+			season: p.draft.year + 4,
+			phase: PHASE.REGULAR_SEASON,
+			tid: 0,
+			fromTid: 1,
+		},
+	];
+	p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];
+	p.salaries = [];
+	await player.addToFreeAgents(p, {});
+	await resetLeague([p]);
+	const current = (await idb.cache.players.get(0))!;
+	const quote = getBasketballContractForMechanism(current, "capSpace", {
+		realAmount: 30000,
+		teamTid: 0,
+	});
+	assert.isDefined(quote);
+	assert.strictEqual(
+		player.genContract(current, false, false, 4, 0).amount,
+		30000,
+	);
+	assert.strictEqual(
+		player.genContract(current, false, false, 4, 1).amount,
+		25000,
+	);
+	assert.strictEqual(quote!.amount, 30000);
+	assert.isUndefined(quote!.option);
+	assert.isAtMost(
+		getBasketballContractForMechanism(current, "capSpace", {
+			realAmount: 30000,
+			teamTid: 1,
+		})!.amount,
+		25000,
+	);
+	current.contract = { amount: 28000, exp: 2030 };
+	await idb.cache.players.put(current);
+	assert.isUndefined(await contractNegotiation.create(current.pid, true, 0));
+	vi.spyOn(player, "moodInfo").mockResolvedValue({
+		willing: true,
+		contractAmount: 1000,
+	} as any);
+	const view = await updateNegotiation({ pid: current.pid }, ["firstRun"], {});
+	assert.isTrue(!!view && "contractOptions" in view);
+	const result = view as any;
+	assert.strictEqual(result.playerMaxContract, 30);
+	assert.strictEqual(result.maxSalaryTier, 30);
+	for (const row of result.contractOptions) {
+		if (row.amount > 25 && !row.disabledReason) {
+			assert.isAtLeast(row.years - (row.option ? 1 : 0), 4);
+		}
+	}
+	for (const years of [1, 2, 3]) {
+		assert.match(
+			(await contractNegotiation.accept({
+				pid: current.pid,
+				amount: 28000,
+				exp: 2026 + years,
+				dryRun: true,
+			}))!,
+			/maximum salary/,
+		);
+	}
+	for (const option of ["player", "team"] as const) {
+		assert.match(
+			(await contractNegotiation.accept({
+				pid: current.pid,
+				amount: 28000,
+				exp: 2030,
+				option,
+				dryRun: true,
+			}))!,
+			/maximum salary/,
+		);
+	}
+	assert.isUndefined(
+		await contractNegotiation.accept({
+			pid: current.pid,
+			amount: 28000,
+			exp: 2030,
+		}),
+	);
+	assert.strictEqual(
+		(await idb.cache.players.get(current.pid))?.contract.amount,
+		28000,
+	);
+});
+
+test.each([
+	{ yos: 8, prior: 0, expected: 35 },
+	{ yos: 6, prior: 32000, expected: 33.6 },
+])(
+	"negotiation max amount and percentage agree for $yos YOS and $prior prior salary",
+	async ({ yos, prior, expected }) => {
+		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+		const p = (await idb.cache.players.get(2))!;
+		p.draft.year = 2026 - yos;
+		p.draft.originalTid = 0;
+		p.transactions = [];
+		p.salaries = prior ? [{ season: 2026, amount: prior }] : [];
+		p.awards = [{ season: 2026, type: "Most Valuable Player" }];
+		p.contract = { amount: 1000, exp: 2031 };
+		await idb.cache.players.put(p);
+		await contractNegotiation.create(p.pid, true, 0);
+		const view = (await updateNegotiation(
+			{ pid: p.pid },
+			["firstRun"],
+			{},
+		)) as any;
+		assert.strictEqual(view.playerMaxContract, expected);
+		assert.strictEqual(view.maxSalaryTier, expected);
+	},
+);

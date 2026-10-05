@@ -144,8 +144,8 @@ test("Rose max requires exact recent seasons and a 4-YOS prior-team re-sign", ()
 	stale.transactions = [];
 	assert.strictEqual(getMaxContractForPlayer(stale), 25000);
 
-	const external = { ...eligible, tid: eligible.draft.originalTid + 1 };
-	assert.strictEqual(getMaxContractForPlayer(external), 25000);
+	const external = { ...eligible, tid: PLAYER.FREE_AGENT, priorContractTid: 0 };
+	assert.strictEqual(getMaxContractForPlayer(external, 1), 25000);
 	assert.strictEqual(
 		getMaxContractForPlayer(
 			makePlayer({
@@ -321,8 +321,10 @@ test("missing history does not authorize arbitrary teams, and later moves break 
 	for (const tid of [1, 2]) {
 		assert.strictEqual(getMaxContractForPlayerAndTerm(p, tid, 5), 30000);
 	}
-	// A move in cap year five is too late, even when it is the first move.
+	// The fourth under-contract cap year is draft.year + 4.
 	p.transactions = [{ ...earlyTrade, season: p.draft.year + 4 }];
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 35000);
+	p.transactions = [{ ...earlyTrade, season: p.draft.year + 5 }];
 	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 30000);
 });
 
@@ -343,4 +345,39 @@ test("105% reads the final signed salary through normalization and preseason", (
 	g.setWithoutSavingToDB("season", g.get("season") + 1);
 	g.setWithoutSavingToDB("phase", PHASE.PRESEASON);
 	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4), 33600);
+});
+
+test("traded rookie Higher Max uses prior contract team and four non-option seasons", async () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({
+		yearsOfService: 4,
+		awards: [{ season: g.get("season"), type: "Most Valuable Player" }],
+	});
+	p.tid = 1;
+	p.transactions = [
+		{
+			type: "trade",
+			season: p.draft.year + 4,
+			phase: PHASE.REGULAR_SEASON,
+			tid: 1,
+			fromTid: 0,
+		},
+	];
+	p.salaries = [];
+	await player.addToFreeAgents(p, {});
+	assert.strictEqual(p.priorContractTid, 1);
+	for (const years of [1, 2, 3]) {
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, years), 25000);
+	}
+	for (const option of ["player", "team"] as const) {
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4, option), 25000);
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5, option), 30000);
+	}
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4), 30000);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 4), 25000);
+	delete p.priorContractTid;
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4), 30000);
+	p.salaries = [{ season: g.get("season"), amount: 28000 }];
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 1), 29400);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4, "player"), 29400);
 });

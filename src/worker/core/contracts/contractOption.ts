@@ -7,7 +7,11 @@ import type {
 import { g, helpers } from "../../util/index.ts";
 import { isLowEndYoungFreeAgent } from "./contractLowEnd.ts";
 import { getBasketballContractAvailabilityAdjustment } from "./contractMarket/injuryAdjustment.ts";
-import { getMaxContractForPlayer } from "./contractLimits.ts";
+import {
+	getMaxContractForPlayer,
+	getMaxContractForPlayerAndTerm,
+	getYearsOfService,
+} from "./contractLimits.ts";
 import {
 	getMinContractForPlayer,
 	isMinimumContractForPlayer,
@@ -97,7 +101,13 @@ export const getRealAmountForEffectiveOffer = (
 type PlayerForAIOption = Pick<
 	Player<MinimalPlayerRatings>,
 	"awards" | "born" | "draft" | "injury" | "ratings" | "value" | "valueNoPot"
->;
+> &
+	Partial<
+		Pick<
+			Player,
+			"tid" | "priorContractTid" | "transactions" | "stats" | "salaries"
+		>
+	>;
 
 // A player option can remove the final healthy year that made an injured
 // multiyear salary affordable. Compare the salary after the existing 10%
@@ -141,8 +151,21 @@ const isEligibleOptionAmount = (
 		"amount" | "exp" | "option" | "rookie" | "type"
 	>,
 	option: ContractOption,
+	context?: ContractOptionContext,
 ) => {
 	const realAmount = getRealAmountForEffectiveOffer(contract.amount, option);
+	if (
+		getYearsOfService(p) === 4 &&
+		realAmount >
+			getMaxContractForPlayerAndTerm(
+				p,
+				p.tid !== undefined && p.tid >= 0 ? p.tid : (p.priorContractTid ?? -1),
+				getContractLength(contract, context),
+				option,
+			)
+	) {
+		return false;
+	}
 	if (realAmount < getMinContractForPlayer(p)) {
 		return false;
 	}
@@ -175,7 +198,7 @@ export const getAIContractOption = (
 
 	if (
 		isLowEndYoungFreeAgent(p) &&
-		isEligibleOptionAmount(p, contract, "team")
+		isEligibleOptionAmount(p, contract, "team", context)
 	) {
 		return "team";
 	}
@@ -183,7 +206,7 @@ export const getAIContractOption = (
 	if (
 		(isHighValuePlayer(p) || isVeteranPlayer(p)) &&
 		isPlayerOptionInjuryHorizonSafe(p, contract) &&
-		isEligibleOptionAmount(p, contract, "player")
+		isEligibleOptionAmount(p, contract, "player", context)
 	) {
 		return "player";
 	}

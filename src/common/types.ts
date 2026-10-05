@@ -1292,6 +1292,8 @@ export type PlayerWithoutKey<PlayerRatings = any> = {
 	usageBias?: number;
 	/** Trade reputation snapshot captured when the player entered free agency. */
 	tradeReputationByTid?: Record<number, number>;
+	/** Last team under contract before entering veteran free agency. */
+	priorContractTid?: number;
 	ratings: NonEmptyArray<PlayerRatings>;
 	real?: boolean;
 	relatives: Relative[];

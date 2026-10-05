@@ -21,6 +21,9 @@ const addToFreeAgents = async (
 	tradeReputationByTid?: Record<number, number>,
 	context?: CapturedSigningContext,
 ) => {
+	if (p.tid >= 0) {
+		p.priorContractTid = p.tid;
+	}
 	p.tid = PLAYER.FREE_AGENT;
 	p.numDaysFreeAgent = 0;
 	p.ptModifier = 1;

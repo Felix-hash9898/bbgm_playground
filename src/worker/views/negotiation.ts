@@ -3,7 +3,6 @@ import { contractNegotiation, player, team } from "../core/index.ts";
 import {
 	getContractException,
 	getMaxContractForPlayerAndTerm,
-	getMaxSalaryTier,
 	clampContractAmountForPlayer,
 } from "../core/contracts/contractLimits.ts";
 import {
@@ -269,6 +268,18 @@ const generateContractOptions = async (
 					);
 				}
 
+				if (
+					isSport("basketball") &&
+					finalAmountOption >
+						getMaxContractForPlayerAndTerm(
+							p,
+							userTeam?.tid ?? g.get("userTid"),
+							contractOption.years,
+							option,
+						)
+				) {
+					continue;
+				}
 				possibleWithOptions.push({
 					...contractOption,
 					amount: finalAmountOption / 1000,
@@ -449,20 +460,20 @@ const updateNegotiation = async (
 						),
 					}
 				: undefined;
+		const playerMaxAmount = getMaxContractForPlayerAndTerm(
+			p2,
+			userTid,
+			getContractYearsFromExpiration({ expiration: p.contract.exp }),
+			p.contract.option,
+		);
 		const maxSalaryInfo = isSport("basketball")
 			? {
 					minimumCapHit,
-					maxSalaryTier: getMaxSalaryTier(p2, userTid),
+					maxSalaryTier:
+						Math.round((playerMaxAmount / g.get("salaryCap")) * 10000) / 100,
 					...midLevelExceptionInfo,
 					playerMinimum,
-					playerMaxContract:
-						getMaxContractForPlayerAndTerm(
-							p2,
-							userTid,
-							getContractYearsFromExpiration({
-								expiration: p.contract.exp,
-							}),
-						) / 1000,
+					playerMaxContract: playerMaxAmount / 1000,
 				}
 			: undefined;
 

@@ -13,7 +13,12 @@ type AwardLike = {
 };
 
 type PlayerWithAwards = Pick<Player, "awards" | "born" | "draft"> &
-	Partial<Pick<Player, "transactions" | "salaries" | "tid">>;
+	Partial<
+		Pick<
+			Player,
+			"transactions" | "salaries" | "tid" | "priorContractTid" | "stats"
+		>
+	>;
 
 export const getMinContract = () => g.get("minContract");
 
@@ -117,7 +122,7 @@ const hasDesignatedVeteranTeamHistory = (
 			// Every move must preserve continuity, including moves after an early trade.
 			if (
 				transaction.fromTid !== eligibleTid ||
-				transaction.season - p.draft.year >= 4
+				transaction.season - p.draft.year > 4
 			) {
 				return false;
 			}
@@ -159,6 +164,19 @@ const getOrdinaryMaxAmount = (p: PlayerWithAwards, yearsOfService: number) => {
 	);
 };
 
+const getPriorContractTid = (p: PlayerWithAwards) => {
+	if (p.tid !== undefined && p.tid >= 0) {
+		return p.tid;
+	}
+	if (p.priorContractTid !== undefined) {
+		return p.priorContractTid;
+	}
+	// Legacy saves lack the free-agency snapshot. Prefer actual transaction
+	// history, including rookie trades, over the drafting team.
+	const lastTransaction = p.transactions?.at(-1);
+	return lastTransaction?.tid ?? p.stats?.at(-1)?.tid ?? -1;
+};
+
 export const getMaxSalaryTier = (
 	p: PlayerWithAwards,
 	teamTid: number = p.tid ?? -1,
@@ -172,8 +190,7 @@ export const getMaxSalaryTier = (
 	if (
 		yearsOfService === 4 &&
 		teamTid >= 0 &&
-		teamTid === p.draft.originalTid &&
-		hasDesignatedVeteranTeamHistory(p, teamTid) &&
+		teamTid === getPriorContractTid(p) &&
 		hasRoseOrHigherMaxQualification(p)
 	) {
 		return 30;
@@ -207,11 +224,15 @@ export const getMaxContractForPlayerAndTerm = (
 	p: PlayerWithAwards,
 	teamTid: number,
 	contractYears: number,
+	option?: PlayerContract["option"],
 ) => {
 	if (!isSport("basketball")) {
 		return getMaxContract();
 	}
 	const yearsOfService = getYearsOfService(p);
+	if (yearsOfService === 4 && contractYears - (option ? 1 : 0) < 4) {
+		return getOrdinaryMaxAmount(p, yearsOfService);
+	}
 	const supermaxEligible =
 		(yearsOfService === 8 || yearsOfService === 9) &&
 		teamTid >= 0 &&

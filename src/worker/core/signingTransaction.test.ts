@@ -1194,3 +1194,62 @@ test("eligible supermax team-option salary uses the captured term at commit", as
 		"team",
 	);
 });
+
+test.each([
+	{ years: 1 },
+	{ years: 2 },
+	{ years: 3 },
+	{ years: 4, option: "player" as const },
+	{ years: 4, option: "team" as const },
+])(
+	"final validation rejects forged Rose salary for $years seasons and $option",
+	async ({ years, option }) => {
+		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+		g.setWithoutSavingToDB("salaryCap", 100000);
+		const p = (await harness.cache.players.get(harness.player.pid))!;
+		p.draft.year = g.get("season") - 4;
+		p.priorContractTid = harness.team.tid;
+		p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];
+		p.salaries = [];
+		delete p.contract.rookie;
+		await harness.cache.players.put(p);
+		await expectRejected(
+			runSigning({
+				player: p,
+				contract: { amount: 28000, exp: g.get("season") + years, option },
+			}),
+		);
+		assert.strictEqual(
+			(await harness.cache.players.get(p.pid))?.tid,
+			PLAYER.FREE_AGENT,
+		);
+		assert.strictEqual((await harness.cache.events.getAll()).length, 0);
+	},
+);
+
+test("final validation rejects a stale Higher-Max proposal after awards change", async () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	g.setWithoutSavingToDB("salaryCap", 100000);
+	const proposalPlayer = structuredClone(harness.player);
+	proposalPlayer.draft.year = g.get("season") - 4;
+	proposalPlayer.priorContractTid = harness.team.tid;
+	proposalPlayer.salaries = [];
+	proposalPlayer.awards = [
+		{ season: g.get("season"), type: "Most Valuable Player" },
+	];
+	delete proposalPlayer.contract.rookie;
+	const current = structuredClone(proposalPlayer);
+	current.awards = [];
+	await harness.cache.players.put(current);
+	await expectRejected(
+		runSigning({
+			player: proposalPlayer,
+			contract: { amount: 28000, exp: g.get("season") + 4 },
+		}),
+	);
+	assert.strictEqual(
+		(await harness.cache.players.get(current.pid))?.tid,
+		PLAYER.FREE_AGENT,
+	);
+	assert.strictEqual((await harness.cache.events.getAll()).length, 0);
+});

@@ -9,6 +9,7 @@ import type { CapturedSigningContext } from "../capturedContext.ts";
 import {
 	clampContractAmountForPlayer,
 	getMaxContractForPlayerAndTerm,
+	getYearsOfService,
 } from "./contractLimits.ts";
 import {
 	getMinContractForPlayer,
@@ -278,6 +279,15 @@ export const getBasketballContractForMechanism = (
 	// If no option (either none originally or it was dropped), maybe add one
 	if (option === undefined && mechanism !== "minimum") {
 		option = getAIContractOption(p, contractForOption, context);
+	}
+
+	if (
+		option &&
+		getYearsOfService(p) === 4 &&
+		getRealAmountForEffectiveOffer(effectiveAmount, option) >
+			getMaxContractForPlayerAndTerm(p, teamTid, term.years, option)
+	) {
+		option = undefined;
 	}
 
 	// Apply the final option

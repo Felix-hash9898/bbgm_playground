@@ -88,6 +88,7 @@ const acceptUnsafe = async ({
 		p,
 		context.userTid,
 		contractYears,
+		option,
 	);
 	// This error is for sanity checking in multi team mode. Need to check for existence of negotiation.tid because it
 	// wasn't there originally and I didn't write upgrade code. Can safely get rid of it later.

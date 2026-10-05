@@ -119,7 +119,12 @@ const contractExceptionLabels: Record<string, string> = {
 };
 
 type ContractOption = View<"negotiation">["contractOptions"][number];
-type ContractStructureFilter = "all" | "standard" | "player" | "team" | "twoWay";
+type ContractStructureFilter =
+	| "all"
+	| "standard"
+	| "player"
+	| "team"
+	| "twoWay";
 
 const contractStructureFilters: {
 	key: ContractStructureFilter;
@@ -229,9 +234,7 @@ const groupContractOptionsByYears = ({
 			);
 			const unavailable = showUnavailable
 				? sortContractOptions(
-						unavailableContracts.filter(
-							(contract) => contract.years === years,
-						),
+						unavailableContracts.filter((contract) => contract.years === years),
 					)
 				: [];
 			const firstContract = available[0] ?? unavailable[0]!;
@@ -407,7 +410,7 @@ const Negotiation = ({
 							maxSalaryTier !== undefined ? (
 								<div>
 									Player Max: {helpers.formatCurrency(playerMaxContract, "M")} (
-									{maxSalaryTier}%)
+									{maxSalaryTier}% of cap)
 								</div>
 							) : null}
 							{playerMinimum !== undefined ? (

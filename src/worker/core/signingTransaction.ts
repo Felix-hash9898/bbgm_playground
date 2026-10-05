@@ -212,7 +212,12 @@ const applySigningTransactionInQueue = async (
 			}
 			if (
 				contractToCommit.amount >
-				getMaxContractForPlayerAndTerm(currentPlayer, input.tid, contractLength)
+				getMaxContractForPlayerAndTerm(
+					currentPlayer,
+					input.tid,
+					contractLength,
+					contractToCommit.option,
+				)
 			) {
 				throw new Error(
 					"Contract salary exceeds the legal maximum for this team and term",
@@ -237,6 +242,7 @@ const applySigningTransactionInQueue = async (
 						currentPlayer,
 						input.tid,
 						contractLength,
+						contractToCommit.option,
 					)
 			) {
 				throw new Error("Team-option salary is above the player maximum");
