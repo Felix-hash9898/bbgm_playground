@@ -342,6 +342,8 @@ const newPhaseResignPlayers = async (
 									helpers.roundContract(
 										getBasketballContractMarketDemand(p, years).pointAmount,
 									),
+									p.tid,
+									years,
 								);
 								if (contract.option) {
 									healthy = getRealAmountForEffectiveOffer(

@@ -98,6 +98,7 @@ export const getBpmCorrection = (
 export const getBasketballContractMarketDemand = (
 	p: ContractMarketPlayer,
 	contractYears: number = getBasketballContractYears(p) ?? 1,
+	teamTid: number = p.tid,
 ): ContractMarketResult => {
 	const statsBySeason = getRegularSeasonStatsBySeason(p);
 	const currentSeason = g.get("season");
@@ -116,7 +117,12 @@ export const getBasketballContractMarketDemand = (
 		contractYears,
 	);
 	const rawAmount = g.get("salaryCap") * salaryCapPct;
-	const pointAmount = clampContractAmountForPlayer(p, rawAmount);
+	const pointAmount = clampContractAmountForPlayer(
+		p,
+		rawAmount,
+		teamTid,
+		contractYears,
+	);
 
 	return {
 		baseContractValue: currentValue,

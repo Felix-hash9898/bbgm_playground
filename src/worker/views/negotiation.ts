@@ -142,7 +142,8 @@ const generateContractOptions = async (
 	// From the desired contract, ask for more money for less or more years
 	const referenceTermYears = contractOptions[found]!.years;
 	const referenceRawAmount = isSport("basketball")
-		? getBasketballContractMarketDemand(p, referenceTermYears).rawAmount
+		? getBasketballContractMarketDemand(p, referenceTermYears, userTeam?.tid)
+				.rawAmount
 		: 0;
 	const rawAmountByYears = new Map<number, number>([
 		[referenceTermYears, referenceRawAmount],
@@ -155,6 +156,7 @@ const generateContractOptions = async (
 				offeredRawAmount = getBasketballContractMarketDemand(
 					p,
 					contractOption.years,
+					userTeam?.tid,
 				).rawAmount;
 				rawAmountByYears.set(contractOption.years, offeredRawAmount);
 			}
@@ -164,12 +166,15 @@ const generateContractOptions = async (
 				const rowV4PointAmount = getBasketballContractMarketDemand(
 					p,
 					contractOption.years,
+					userTeam?.tid,
 				).pointAmount;
 				const rowHealthyV4 = clampContractAmountForPlayer(
 					p,
 					helpers.roundContract(
 						Math.max(playerMinimum, rowV4PointAmount * factor),
 					),
+					userTeam?.tid,
+					contractOption.years,
 				);
 				const rowMood = await player.moodInfo(p, g.get("userTid"), {
 					contractAmount: rowHealthyV4,
@@ -212,7 +217,16 @@ const generateContractOptions = async (
 			return false;
 		}
 
-		return contractOption.amount * 1000 <= g.get("maxContract");
+		return (
+			contractOption.amount * 1000 <=
+			(isSport("basketball")
+				? getMaxContractForPlayerAndTerm(
+						p,
+						userTeam?.tid ?? g.get("userTid"),
+						contractOption.years,
+					)
+				: g.get("maxContract"))
+		);
 	});
 
 	const possibleWithOptions = [];
@@ -438,7 +452,7 @@ const updateNegotiation = async (
 		const maxSalaryInfo = isSport("basketball")
 			? {
 					minimumCapHit,
-					maxSalaryTier: getMaxSalaryTier(p2),
+					maxSalaryTier: getMaxSalaryTier(p2, userTid),
 					...midLevelExceptionInfo,
 					playerMinimum,
 					playerMaxContract:

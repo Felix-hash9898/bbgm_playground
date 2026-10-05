@@ -536,7 +536,12 @@ export const getContractDemandResults = ({
 		}
 
 		amount = isSport("basketball")
-			? clampContractAmountForPlayer(p, helpers.roundContract(amount))
+			? clampContractAmountForPlayer(
+					p,
+					helpers.roundContract(amount),
+					p.tid,
+					basketballTerms.get(p.pid)?.years,
+				)
 			: clampContractDemandForPlayer(p, helpers.roundContract(amount));
 
 		let contract: PlayerContract = {

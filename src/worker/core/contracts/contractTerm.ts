@@ -8,7 +8,7 @@ import { g, helpers } from "../../util/index.ts";
 import type { CapturedSigningContext } from "../capturedContext.ts";
 import {
 	clampContractAmountForPlayer,
-	getMaxContractForPlayer,
+	getMaxContractForPlayerAndTerm,
 } from "./contractLimits.ts";
 import {
 	getMinContractForPlayer,
@@ -214,10 +214,12 @@ export const getBasketballContractForMechanism = (
 		context,
 		realAmount,
 		nextSeason = false,
+		teamTid = p.tid,
 	}: {
 		context?: CapturedSigningContext;
 		/** Existing annual salary after any PO/TO conversion. */
 		realAmount?: number;
+		teamTid?: number;
 		nextSeason?: boolean;
 	} = {},
 ): PlayerContract | null => {
@@ -231,6 +233,7 @@ export const getBasketballContractForMechanism = (
 	}
 
 	const playerMinimum = getMinContractForPlayer(p);
+	const playerMaximum = getMaxContractForPlayerAndTerm(p, teamTid, term.years);
 	const mleCap = getMidLevelExceptionAmount();
 	const requestedRealAmount = realAmount ?? p.contract?.amount ?? playerMinimum;
 
@@ -244,7 +247,7 @@ export const getBasketballContractForMechanism = (
 	effectiveAmount =
 		mechanism === "midLevel"
 			? Math.max(playerMinimum, effectiveAmount)
-			: clampContractAmountForPlayer(p, effectiveAmount);
+			: clampContractAmountForPlayer(p, effectiveAmount, teamTid, term.years);
 
 	const contractForOption: PlayerContract = {
 		amount: effectiveAmount,
@@ -263,9 +266,8 @@ export const getBasketballContractForMechanism = (
 			!canContractHaveOption(contractForOption, context) ||
 			quotedRealAmount < playerMinimum ||
 			(mechanism === "midLevel" &&
-				(quotedRealAmount > getMaxContractForPlayer(p) ||
-					quotedRealAmount > mleCap)) ||
-			(option === "team" && quotedRealAmount > getMaxContractForPlayer(p)) ||
+				(quotedRealAmount > playerMaximum || quotedRealAmount > mleCap)) ||
+			(option === "team" && quotedRealAmount > playerMaximum) ||
 			(option === "player" &&
 				!isPlayerOptionInjuryHorizonSafe(p, contractForOption))
 		) {
@@ -298,7 +300,7 @@ export const getBasketballContractForMechanism = (
 	if (
 		mechanism === "midLevel" &&
 		(contract.amount < playerMinimum ||
-			contract.amount > getMaxContractForPlayer(p) ||
+			contract.amount > playerMaximum ||
 			contract.amount > mleCap)
 	) {
 		return null;

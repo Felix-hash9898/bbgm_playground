@@ -995,7 +995,11 @@ describe("captured signing transaction", () => {
 
 	test("concurrent hard-cap re-signings re-read payroll inside the team queue", async () => {
 		g.setWithoutSavingToDB("salaryCapType", "hard");
-		g.setWithoutSavingToDB("salaryCap", 1500);
+		g.setWithoutSavingToDB("salaryCap", 150000);
+		// Legal quotes, but existing payroll leaves room for only one signing.
+		harness.player.tid = harness.team.tid;
+		harness.player.contract = { amount: 135000, exp: g.get("season") + 2 };
+		await harness.cache.players.put(harness.player);
 		const context = captureSigningContext();
 		const makeExpiringPlayer = () => {
 			const p = player.generate(
@@ -1005,7 +1009,7 @@ describe("captured signing transaction", () => {
 				true,
 				DEFAULT_LEVEL,
 			) as Player;
-			p.contract.amount = 1000;
+			p.contract.amount = 10000;
 			p.contract.exp = context.season;
 			return p;
 		};
@@ -1019,7 +1023,7 @@ describe("captured signing transaction", () => {
 			records: { players: [firstPlayer.pid, secondPlayer.pid] },
 		});
 		const newContract = {
-			amount: 1000,
+			amount: 10000,
 			exp: context.season + 1,
 		};
 		const signWithHardCapValidation = (p: Player) =>
@@ -1145,4 +1149,48 @@ describe("captured signing transaction", () => {
 		);
 		await assertOriginalDurableState();
 	});
+});
+
+// Expired proposals must not bypass configured term validation.
+test.each([PHASE.REGULAR_SEASON, PHASE.RESIGN_PLAYERS, PHASE.FREE_AGENCY])(
+	"expired signing proposal rejects without mutation in phase %s",
+	async (phase) => {
+		g.setWithoutSavingToDB("phase", phase);
+		await expectRejected(
+			runSigning({
+				contract: { amount: g.get("minContract"), exp: g.get("season") - 1 },
+			}),
+		);
+		assert.deepStrictEqual(
+			await harness.cache.players.get(harness.player.pid),
+			harness.originalPlayer,
+		);
+		assert.strictEqual((await harness.cache.events.getAll()).length, 0);
+		await assertOriginalDurableState();
+	},
+);
+
+test("eligible supermax team-option salary uses the captured term at commit", async () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	g.setWithoutSavingToDB("salaryCap", 100000);
+	const p = (await harness.cache.players.get(harness.player.pid))!;
+	p.draft.year = g.get("season") - 8;
+	p.draft.originalTid = harness.team.tid;
+	p.transactions = [];
+	p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];
+	p.salaries = [];
+	delete p.contract.rookie;
+	await harness.cache.players.put(p);
+	await runSigning({
+		player: p,
+		contract: { amount: 32000, exp: g.get("season") + 5, option: "team" },
+	});
+	assert.strictEqual(
+		(await harness.cache.players.get(p.pid))?.contract.amount,
+		32000,
+	);
+	assert.strictEqual(
+		(await readRecord(harness.db, "players", p.pid))?.contract.option,
+		"team",
+	);
 });

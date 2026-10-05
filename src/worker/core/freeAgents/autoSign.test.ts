@@ -1,5 +1,5 @@
 import { afterEach, assert, beforeEach, test, vi } from "vitest";
-import { PLAYER } from "../../../common/index.ts";
+import { PHASE, PLAYER } from "../../../common/index.ts";
 import { DEFAULT_LEVEL } from "../../../common/budgetLevels.ts";
 import { resetCache, resetG } from "../../../test/helpers.ts";
 import { idb } from "../../db/index.ts";
@@ -609,4 +609,35 @@ test("AI does not use MLE twice in the same season", async () => {
 	);
 	assert.strictEqual(teamAfter?.midLevelExceptionUsedSeason, g.get("season"));
 	assert.strictEqual(freeAgentPlayers.length, 1);
+});
+
+test("AI free agency requotes a cached supermax ask using the signing team's four-year ceiling", async () => {
+	g.setWithoutSavingToDB("phase", PHASE.FREE_AGENCY);
+	g.setWithoutSavingToDB("salaryCap", 100000);
+	g.setWithoutSavingToDB("salaryCapType", "soft");
+	const p = makePlayer({
+		tid: PLAYER.FREE_AGENT,
+		age: 27,
+		draftYearsAgo: 8,
+		ovr: 70,
+		pot: 70,
+		value: 70,
+		valueNoPot: 70,
+		contractAmount: 33000,
+	});
+	p.draft.originalTid = 1;
+	p.transactions = [];
+	p.salaries = [];
+	p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];
+	p.contract.exp = g.get("season") + 5;
+	await resetCacheForAutoSign({ aiStandardPlayers: 0, freeAgentPlayers: [p] });
+	const candidate = (
+		await idb.cache.players.indexGetAll("playersByTid", PLAYER.FREE_AGENT)
+	)[0]!;
+	await autoSignWithoutRandomSkip();
+	const signed = (await idb.cache.players.get(candidate.pid))!;
+	assert.strictEqual(signed.tid, 1);
+	assert.strictEqual(signed.contract.exp, g.get("season") + 4);
+	assert.isAtMost(signed.contract.amount, 30000);
+	assert.isAtLeast(signed.contract.amount, 27000);
 });

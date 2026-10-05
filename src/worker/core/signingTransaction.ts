@@ -194,20 +194,17 @@ const applySigningTransactionInQueue = async (
 		delete (contractToCommit as PlayerContract & { healthyAmount?: number })
 			.healthyAmount;
 
+		// Use captured season/phase for both term and option salary validation.
+		const contractLength = getContractYearsFromExpiration({
+			expiration: contractToCommit.exp,
+			context,
+		});
 		if (isSport("basketball") && contractToCommit.type !== "twoWay") {
-			// Use captured context for term validation, not live g.get() (Defect H fix).
-			// Computing contractLength from captured context season+phase avoids reading
-			// the live g.season/g.phase which can drift between queue entry and commit.
-			const contractLength = getContractYearsFromExpiration({
-				expiration: contractToCommit.exp,
-				context,
-			});
 			const minContractLength = context.minContractLength;
 			const maxContractLength = context.maxContractLength;
 			if (
-				contractToCommit.exp >= context.season &&
-				(contractLength < minContractLength ||
-					contractLength > maxContractLength)
+				contractLength < minContractLength ||
+				contractLength > maxContractLength
 			) {
 				throw new Error(
 					`Contract length ${contractLength} is outside configured limits [${minContractLength}, ${maxContractLength}]`,

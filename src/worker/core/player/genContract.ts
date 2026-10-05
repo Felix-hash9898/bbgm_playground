@@ -12,6 +12,7 @@ import {
 	getMinContractForPlayer,
 	withContractCapHitForPlayer,
 } from "../contracts/contractMinimum.ts";
+import { getBasketballContractYears } from "../contracts/contractTerm.ts";
 import { getContractValue } from "../contracts/contractValue.ts";
 import { getBasketballContractMarketDemand } from "../contracts/contractMarket/index.ts";
 
@@ -60,10 +61,16 @@ const genContract = (
 	randomizeAmount: boolean = true,
 	noLimit: boolean = false,
 	contractYears?: number,
+	teamTid: number = p.tid,
 ): PlayerContract => {
 	let amount: number;
 	if (isSport("basketball")) {
-		amount = getBasketballContractMarketDemand(p, contractYears).pointAmount;
+		contractYears ??= getBasketballContractYears(p) ?? 1;
+		amount = getBasketballContractMarketDemand(
+			p,
+			contractYears,
+			teamTid,
+		).pointAmount;
 	} else {
 		amount = getLegacyContractAmount(p, getContractValue(p));
 	}
@@ -75,7 +82,7 @@ const genContract = (
 	const playerMinimum = getMinContractForPlayer(p);
 	if (!noLimit) {
 		if (isSport("basketball")) {
-			amount = clampContractAmountForPlayer(p, amount);
+			amount = clampContractAmountForPlayer(p, amount, teamTid, contractYears);
 		} else if (amount < playerMinimum * 1.1) {
 			amount = playerMinimum;
 		} else {

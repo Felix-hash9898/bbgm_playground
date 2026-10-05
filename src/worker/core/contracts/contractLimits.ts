@@ -1,4 +1,4 @@
-import { AWARD_NAMES, isSport } from "../../../common/index.ts";
+import { AWARD_NAMES, PHASE, isSport } from "../../../common/index.ts";
 import type { Player, PlayerContract, Team } from "../../../common/types.ts";
 import { g, helpers } from "../../util/index.ts";
 import { getMinContractForPlayer } from "./contractMinimum.ts";
@@ -12,10 +12,8 @@ type AwardLike = {
 	type: string;
 };
 
-type PlayerWithAwards = Pick<
-	Player,
-	"awards" | "born" | "draft" | "transactions" | "salaries" | "tid" | "contract"
->;
+type PlayerWithAwards = Pick<Player, "awards" | "born" | "draft"> &
+	Partial<Pick<Player, "transactions" | "salaries" | "tid">>;
 
 export const getMinContract = () => g.get("minContract");
 
@@ -79,33 +77,24 @@ export const getYearsOfService = (p: PlayerWithAwards) => {
 	return Math.max(0, g.get("season") - p.draft.year);
 };
 
+// BBGM advances the season at preseason, after offseason awards and re-signing.
+const getLastCompletedSeason = () =>
+	g.get("season") - (g.get("phase") > PHASE.PLAYOFFS ? 0 : 1);
+
 export const hasRoseOrHigherMaxQualification = (p: PlayerWithAwards) => {
-	const season = g.get("season");
-	const qualifyingAwards = p.awards.filter(
-		(award) =>
-			award.season < season &&
-			season - award.season <= 3 &&
-			(award.type === AWARD_NAMES.mvp ||
-				award.type === AWARD_NAMES.dpoy ||
-				award.type.includes("All-League")),
+	const lastSeason = getLastCompletedSeason();
+	const awards = p.awards.filter(
+		(award) => award.season <= lastSeason && award.season >= lastSeason - 2,
 	);
-	const hasPreviousSeasonQualifyingAward = qualifyingAwards.some(
-		(award) =>
-			season - award.season === 1 &&
-			(award.type === AWARD_NAMES.mvp ||
-				award.type === AWARD_NAMES.dpoy ||
-				award.type.includes("All-League")),
-	);
+	const isAllNBAOrDPOY = (award: AwardLike) =>
+		award.type === AWARD_NAMES.dpoy || award.type.includes("All-League");
 	return (
-		hasPreviousSeasonQualifyingAward ||
-		new Set(
-			qualifyingAwards
-				.filter((award) => award.type.includes("All-League"))
-				.map((award) => award.season),
-		).size >= 2 ||
-		qualifyingAwards.some(
-			(award) => award.type === AWARD_NAMES.mvp && season - award.season <= 3,
-		)
+		awards.some((award) => award.type === AWARD_NAMES.mvp) ||
+		awards.some(
+			(award) => award.season === lastSeason && isAllNBAOrDPOY(award),
+		) ||
+		new Set(awards.filter(isAllNBAOrDPOY).map((award) => award.season)).size >=
+			2
 	);
 };
 
@@ -113,39 +102,31 @@ const hasDesignatedVeteranTeamHistory = (
 	p: PlayerWithAwards,
 	teamTid: number,
 ) => {
-	const draftTid = p.draft.originalTid;
-	if (draftTid < 0) {
+	let eligibleTid = p.draft.originalTid;
+	if (eligibleTid < 0) {
 		return false;
 	}
-
-	// An early trade in the first four cap years preserves designation eligibility.
-	// A later trade or voluntary signing with another team breaks continuity.
-	const firstTeamChange = (p.transactions ?? [])
-		.filter(
-			(transaction) =>
-				(transaction.type === "trade" || transaction.type === "freeAgent") &&
-				transaction.season >= p.draft.year,
-		)
-		.sort((a, b) => a.season - b.season || a.phase - b.phase)[0];
-
-	if (firstTeamChange) {
-		if (
-			firstTeamChange.season - p.draft.year <= 4 &&
-			firstTeamChange.type === "trade"
-		) {
-			return firstTeamChange.tid === teamTid;
+	const transactions = [...(p.transactions ?? [])]
+		.filter((transaction) => transaction.season >= p.draft.year)
+		.sort((a, b) => a.season - b.season || a.phase - b.phase);
+	for (const transaction of transactions) {
+		if (transaction.type === "draft") {
+			continue;
 		}
-		return false;
+		if (transaction.type === "trade") {
+			// Every move must preserve continuity, including moves after an early trade.
+			if (
+				transaction.fromTid !== eligibleTid ||
+				transaction.season - p.draft.year >= 4
+			) {
+				return false;
+			}
+			eligibleTid = transaction.tid;
+		} else if (transaction.tid !== eligibleTid) {
+			return false;
+		}
 	}
-
-	return (
-		teamTid === draftTid ||
-		p.transactions?.some(
-			(transaction) =>
-				transaction.type === "draft" && transaction.tid === teamTid,
-		) === true ||
-		(p.transactions ?? []).length === 0
-	);
+	return teamTid === eligibleTid;
 };
 
 const getOrdinaryMaxTier = (yearsOfService: number) => {
@@ -159,11 +140,13 @@ const getOrdinaryMaxTier = (yearsOfService: number) => {
 };
 
 const getPriorSalary = (p: PlayerWithAwards) => {
-	const finalSalarySeason = g.get("season") - 1;
-	const prior = (p.salaries ?? [])
-		.filter((salary) => salary.season === finalSalarySeason)
-		.sort((a, b) => b.amount - a.amount)[0];
-	return prior?.amount;
+	// Unsigned demands overwrite p.contract. The signed salary log retains the
+	// expiring contract's final salary even after normalization/addToFreeAgents.
+	const lastSeason = getLastCompletedSeason();
+	return [...(p.salaries ?? [])]
+		.reverse()
+		.filter((salary) => salary.season <= lastSeason)
+		.sort((a, b) => b.season - a.season)[0]?.amount;
 };
 
 const getOrdinaryMaxAmount = (p: PlayerWithAwards, yearsOfService: number) => {
@@ -176,7 +159,10 @@ const getOrdinaryMaxAmount = (p: PlayerWithAwards, yearsOfService: number) => {
 	);
 };
 
-export const getMaxSalaryTier = (p: PlayerWithAwards) => {
+export const getMaxSalaryTier = (
+	p: PlayerWithAwards,
+	teamTid: number = p.tid ?? -1,
+) => {
 	if (!isSport("basketball")) {
 		return Math.round((getMaxContract() / g.get("salaryCap")) * 100);
 	}
@@ -185,8 +171,9 @@ export const getMaxSalaryTier = (p: PlayerWithAwards) => {
 	const ordinaryTier = getOrdinaryMaxTier(yearsOfService);
 	if (
 		yearsOfService === 4 &&
-		p.tid >= 0 &&
-		p.tid === p.draft.originalTid &&
+		teamTid >= 0 &&
+		teamTid === p.draft.originalTid &&
+		hasDesignatedVeteranTeamHistory(p, teamTid) &&
 		hasRoseOrHigherMaxQualification(p)
 	) {
 		return 30;
@@ -202,13 +189,16 @@ export const getDynamicMaxContractAmount = (p: PlayerWithAwards) => {
 	return Math.round((g.get("salaryCap") * getMaxSalaryTier(p)) / 100);
 };
 
-export const getMaxContractForPlayer = (p: PlayerWithAwards) => {
+export const getMaxContractForPlayer = (
+	p: PlayerWithAwards,
+	teamTid: number = p.tid ?? -1,
+) => {
 	if (!isSport("basketball")) {
 		return getMaxContract();
 	}
 	const yearsOfService = getYearsOfService(p);
 	const ordinaryAmount = getOrdinaryMaxAmount(p, yearsOfService);
-	const tier = getMaxSalaryTier(p);
+	const tier = getMaxSalaryTier(p, teamTid);
 	const percentageAmount = Math.round((g.get("salaryCap") * tier) / 100);
 	return Math.max(percentageAmount, ordinaryAmount);
 };
@@ -229,7 +219,10 @@ export const getMaxContractForPlayerAndTerm = (
 		hasRoseOrHigherMaxQualification(p) &&
 		contractYears === 5;
 	if (supermaxEligible) {
-		return Math.round((g.get("salaryCap") * 35) / 100);
+		return Math.max(
+			Math.round((g.get("salaryCap") * 35) / 100),
+			getOrdinaryMaxAmount(p, yearsOfService),
+		);
 	}
 	if (yearsOfService === 8 || yearsOfService === 9) {
 		return Math.max(
@@ -237,16 +230,20 @@ export const getMaxContractForPlayerAndTerm = (
 			getOrdinaryMaxAmount(p, yearsOfService),
 		);
 	}
-	return getMaxContractForPlayer(p);
+	return getMaxContractForPlayer(p, teamTid);
 };
 
 export const clampContractAmountForPlayer = (
 	p: PlayerWithAwards,
 	amount: number,
+	teamTid: number = p.tid ?? -1,
+	contractYears?: number,
 ) => {
 	return helpers.bound(
 		amount,
 		getMinContractForPlayer(p),
-		getMaxContractForPlayer(p),
+		contractYears === undefined
+			? getMaxContractForPlayer(p, teamTid)
+			: getMaxContractForPlayerAndTerm(p, teamTid, contractYears),
 	);
 };

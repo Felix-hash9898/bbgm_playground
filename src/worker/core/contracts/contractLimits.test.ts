@@ -1,5 +1,5 @@
 import { beforeEach, assert, test } from "vitest";
-import { PLAYER } from "../../../common/index.ts";
+import { PHASE, PLAYER } from "../../../common/index.ts";
 import { player } from "../index.ts";
 import { g } from "../../util/index.ts";
 import { resetG } from "../../../test/helpers.ts";
@@ -8,6 +8,7 @@ import {
 	getMaxContractForPlayerAndTerm,
 	getMaxContractForPlayer,
 	getMaxSalaryTier,
+	hasRoseOrHigherMaxQualification,
 } from "./contractLimits.ts";
 
 const makePlayer = ({
@@ -239,4 +240,107 @@ test("ordinary max also includes 105% of prior season salary", () => {
 	const p = makePlayer({ yearsOfService: 6 });
 	p.salaries.push({ season: g.get("season") - 1, amount: 30000 });
 	assert.strictEqual(getMaxContractForPlayer(p), 31500);
+});
+
+// These windows use BBGM's season label, which stays unchanged throughout offseason.
+test.each([PHASE.RESIGN_PLAYERS, PHASE.FREE_AGENCY])(
+	"award windows in offseason phase %s include the just-completed season",
+	(phase) => {
+		g.setWithoutSavingToDB("phase", phase);
+		const season = g.get("season");
+		for (const type of [
+			"Most Valuable Player",
+			"Defensive Player of the Year",
+			"First Team All-League",
+		]) {
+			const p = makePlayer({ yearsOfService: 8, awards: [{ season, type }] });
+			assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 35000);
+			p.awards = [{ season: season - 3, type }];
+			assert.isFalse(hasRoseOrHigherMaxQualification(p));
+		}
+	},
+);
+
+test.each([
+	["Defensive Player of the Year", "Defensive Player of the Year"],
+	["First Team All-League", "Defensive Player of the Year"],
+])("two-of-three counts qualifying seasons for %s + %s", (first, second) => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const season = g.get("season");
+	const p = makePlayer({
+		yearsOfService: 8,
+		awards: [
+			{ season: season - 1, type: first },
+			{ season: season - 2, type: second },
+		],
+	});
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 35000);
+	p.awards[1]!.season = season - 1;
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 30000);
+});
+
+test("missing history does not authorize arbitrary teams, and later moves break continuity", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({
+		yearsOfService: 8,
+		awards: [{ season: g.get("season"), type: "Most Valuable Player" }],
+	});
+	p.tid = PLAYER.FREE_AGENT;
+	p.transactions = undefined;
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 35000);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 30000);
+	const earlyTrade = {
+		type: "trade" as const,
+		season: p.draft.year + 2,
+		phase: PHASE.REGULAR_SEASON,
+		tid: 1,
+		fromTid: 0,
+	};
+	p.transactions = [
+		earlyTrade,
+		{
+			type: "freeAgent",
+			season: p.draft.year + 6,
+			phase: PHASE.FREE_AGENCY,
+			tid: 2,
+		},
+	];
+	for (const tid of [0, 1, 2]) {
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, tid, 5), 30000);
+	}
+	p.transactions = [
+		earlyTrade,
+		{
+			type: "trade",
+			season: p.draft.year + 6,
+			phase: PHASE.REGULAR_SEASON,
+			tid: 2,
+			fromTid: 1,
+		},
+	];
+	for (const tid of [1, 2]) {
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, tid, 5), 30000);
+	}
+	// A move in cap year five is too late, even when it is the first move.
+	p.transactions = [{ ...earlyTrade, season: p.draft.year + 4 }];
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 30000);
+});
+
+test("105% reads the final signed salary through normalization and preseason", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({ yearsOfService: 8 });
+	p.salaries = [];
+	player.setContract(p, { amount: 32000, exp: g.get("season") }, true, {
+		phase: PHASE.REGULAR_SEASON,
+	});
+	p.salaries.unshift({ season: g.get("season") - 1, amount: 30000 });
+	player.setContract(p, { amount: 1000, exp: g.get("season") + 5 }, false);
+	p.tid = PLAYER.FREE_AGENT;
+	for (const phase of [PHASE.RESIGN_PLAYERS, PHASE.FREE_AGENCY]) {
+		g.setWithoutSavingToDB("phase", phase);
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4), 33600);
+	}
+	g.setWithoutSavingToDB("season", g.get("season") + 1);
+	g.setWithoutSavingToDB("phase", PHASE.PRESEASON);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4), 33600);
 });

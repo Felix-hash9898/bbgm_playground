@@ -248,7 +248,7 @@ const autoSign = async () => {
 					const capSpaceContract = getBasketballContractForMechanism(
 						p,
 						"capSpace",
-						{ context, realAmount: p.contract.amount },
+						{ context, realAmount: p.contract.amount, teamTid: t.tid },
 					);
 					let canUseCapSpace = false;
 					if (capSpaceContract) {
@@ -268,7 +268,7 @@ const autoSign = async () => {
 						const minContract = getBasketballContractForMechanism(
 							p,
 							"minimum",
-							{ context },
+							{ context, teamTid: t.tid },
 						);
 						contractToSign = minContract ?? undefined;
 					}
@@ -301,7 +301,7 @@ const autoSign = async () => {
 					const mleContract = getBasketballContractForMechanism(
 						p2,
 						"midLevel",
-						{ context },
+						{ context, teamTid: t.tid },
 					);
 					if (!mleContract) {
 						return false;

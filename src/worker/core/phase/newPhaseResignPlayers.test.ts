@@ -17,6 +17,10 @@ import {
 	trade,
 } from "../index.ts";
 import newPhase from "./newPhase.ts";
+import updateNegotiation from "../../views/negotiation.ts";
+import { getBasketballContractMarketDemand } from "../contracts/contractMarket/index.ts";
+import { getMaxContractForPlayerAndTerm } from "../contracts/contractLimits.ts";
+import { getEffectiveOfferAmount } from "../contracts/contractOption.ts";
 
 let lid: number;
 let pid: number;
@@ -398,4 +402,199 @@ test("phase scheduled event failure rolls back to the post-flush same-record bou
 	assert.equal(idb.cache._dirtyTokens.gameAttributes.size, 0);
 	assert.equal(idb.cache._dirtyTokens.scheduledEvents.size, 0);
 	assert.equal(idb.cache._mutationCheckpoint, undefined);
+});
+
+const prepareAwardWinner = async (yos: number, value = 70) => {
+	g.setWithoutSavingToDB("salaryCap", 100000);
+	g.setWithoutSavingToDB("salaryCapType", "soft");
+	const p = (await idb.cache.players.get(pid))!;
+	p.draft.year = g.get("season") - yos;
+	p.draft.originalTid = 1;
+	p.transactions = [];
+	p.salaries = [
+		{ season: g.get("season") - 1, amount: 5000 },
+		{ season: g.get("season"), amount: 6000 },
+	];
+	p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];
+	p.ratings.at(-1)!.ovr = 70;
+	p.ratings.at(-1)!.pot = 70;
+	p.value = value;
+	p.valueNoPot = value;
+	p.injury = { type: "Healthy", gamesRemaining: 0 };
+	await idb.cache.players.put(p);
+	return p;
+};
+
+test.each([4, 8, 9])(
+	"real user re-sign lifecycle preserves %s-YOS current-season award eligibility",
+	async (yos) => {
+		g.setWithoutSavingToDB("userTid", 1);
+		g.setWithoutSavingToDB("userTids", [1]);
+		await prepareAwardWinner(yos);
+		await newPhase(PHASE.RESIGN_PLAYERS, {} as any);
+		const p = (await idb.cache.players.get(pid))!;
+		assert.strictEqual(p.tid, -1);
+		assert.strictEqual((await idb.cache.negotiations.get(pid))?.tid, 1);
+		const max = yos === 4 ? 30000 : 35000;
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), max);
+		assert.strictEqual(
+			getMaxContractForPlayerAndTerm(p, 0, 5),
+			yos === 4 ? 25000 : 30000,
+		);
+		// Real market pricing remains below the legal supermax ceiling.
+		const market = getBasketballContractMarketDemand(p, 5, 1);
+		assert.strictEqual(market.rawAmount, 33000);
+		assert.strictEqual(market.pointAmount, yos === 4 ? 30000 : 33000);
+		assert.strictEqual(
+			await contractNegotiation.accept({
+				pid,
+				amount: max + 1,
+				exp: g.get("season") + 5,
+				dryRun: true,
+			}),
+			"You cannot offer this player a contract higher than their maximum salary.",
+		);
+		// Advance to FA without advancing the BBGM season: the same award must count.
+		g.setWithoutSavingToDB("phase", PHASE.FREE_AGENCY);
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), max);
+		assert.isUndefined(
+			await contractNegotiation.accept({
+				pid,
+				amount: max,
+				exp: g.get("season") + 5,
+			}),
+		);
+		assert.strictEqual((await readPlayer())?.contract.amount, max);
+		assert.strictEqual((await readPlayer())?.tid, 1);
+	},
+);
+
+test.each([8, 9])(
+	"user %s-YOS negotiation rows use team/term ceilings after addToFreeAgents",
+	async (yos) => {
+		g.setWithoutSavingToDB("userTid", 1);
+		g.setWithoutSavingToDB("userTids", [1]);
+		await prepareAwardWinner(yos);
+		await newPhase(PHASE.RESIGN_PLAYERS, {} as any);
+		// Isolate mood from the legal ceilings; pricing, injury, term, and commit paths are real.
+		vi.spyOn(player, "moodInfo").mockImplementation(
+			async (p, _tid, options) =>
+				({
+					willing: true,
+					contractAmount: options?.contractAmount ?? p.contract.amount,
+				}) as any,
+		);
+		vi.spyOn(player, "moodInfos").mockImplementation(
+			async (p) =>
+				({
+					user: { willing: true, contractAmount: p.contract.amount },
+					current: undefined,
+				}) as any,
+		);
+		const view = await updateNegotiation({ pid }, ["firstRun"], {});
+		assert.isDefined(view);
+		assert.isTrue("contractOptions" in view!);
+		const rows = (
+			view as {
+				contractOptions: {
+					years: number;
+					amount: number;
+					option?: string;
+					disabledReason?: string;
+				}[];
+			}
+		).contractOptions;
+		const five = rows.find(
+			(row) => row.years === 5 && row.option === undefined,
+		)!;
+		assert.isDefined(five);
+		assert.strictEqual(five.amount, 33);
+		assert.isUndefined(five.disabledReason);
+		const four = rows.find(
+			(row) => row.years === 4 && row.option === undefined,
+		)!;
+		assert.isDefined(four);
+		assert.isAtMost(four.amount, 30);
+		assert.isUndefined(
+			await contractNegotiation.accept({
+				pid,
+				amount: five.amount * 1000,
+				exp: g.get("season") + 5,
+			}),
+		);
+		assert.strictEqual((await readPlayer())?.contract.amount, 33000);
+	},
+);
+
+test.each([8, 9])(
+	"AI %s-YOS re-sign demand keeps market pricing and commits a legal five-year contract",
+	async (yos) => {
+		g.setWithoutSavingToDB("userTid", 0);
+		g.setWithoutSavingToDB("userTids", [0]);
+		const p = await prepareAwardWinner(yos);
+		// Production generation must reach the 33% market price without forcing 35%.
+		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+		assert.strictEqual(player.genContract(p, false, false, 5).amount, 33000);
+		assert.strictEqual(player.genContract(p, false).amount, 33000);
+		assert.strictEqual(player.genContract(p, false, false, 4).amount, 30000);
+		g.setWithoutSavingToDB("phase", PHASE.AFTER_DRAFT);
+		await newPhase(PHASE.RESIGN_PLAYERS, {} as any);
+		const signed = (await readPlayer())!;
+		assert.strictEqual(signed.tid, 1);
+		assert.strictEqual(signed.contract.exp, g.get("season") + 5);
+		assert.strictEqual(
+			getEffectiveOfferAmount(signed.contract.amount, signed.contract.option),
+			33000,
+		);
+		assert.isAtMost(signed.contract.amount, 35000);
+	},
+);
+
+test("eligible AI re-signing preserves a lower market ask without a supermax floor", async () => {
+	g.setWithoutSavingToDB("userTid", 0);
+	g.setWithoutSavingToDB("userTids", [0]);
+	const p = await prepareAwardWinner(8, 65);
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	assert.strictEqual(player.genContract(p, false, false, 5).amount, 26000);
+	g.setWithoutSavingToDB("phase", PHASE.AFTER_DRAFT);
+	await newPhase(PHASE.RESIGN_PLAYERS, {} as any);
+	const signed = (await readPlayer())!;
+	assert.strictEqual(signed.tid, 1);
+	assert.strictEqual(
+		getEffectiveOfferAmount(signed.contract.amount, signed.contract.option),
+		26000,
+	);
+});
+
+test("real user re-sign uses 105% of the expiring contract's final current-season salary", async () => {
+	g.setWithoutSavingToDB("userTid", 1);
+	g.setWithoutSavingToDB("userTids", [1]);
+	const p = await prepareAwardWinner(6);
+	p.awards = [];
+	p.salaries = [{ season: g.get("season") - 1, amount: 30000 }];
+	player.setContract(p, { amount: 32000, exp: g.get("season") }, true, {
+		phase: PHASE.REGULAR_SEASON,
+	});
+	await idb.cache.players.put(p);
+	await newPhase(PHASE.RESIGN_PLAYERS, {} as any);
+	const freeAgent = (await idb.cache.players.get(pid))!;
+	assert.strictEqual(freeAgent.tid, -1);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(freeAgent, 1, 4), 33600);
+	assert.strictEqual(
+		await contractNegotiation.accept({
+			pid,
+			amount: 33601,
+			exp: g.get("season") + 4,
+			dryRun: true,
+		}),
+		"You cannot offer this player a contract higher than their maximum salary.",
+	);
+	assert.isUndefined(
+		await contractNegotiation.accept({
+			pid,
+			amount: 33600,
+			exp: g.get("season") + 4,
+		}),
+	);
+	assert.strictEqual((await readPlayer())?.contract.amount, 33600);
 });
