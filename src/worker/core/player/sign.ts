@@ -21,6 +21,15 @@ const sign = async (
 		p.draft.year === context.season &&
 		p.draft.tid === tid;
 
+	if (
+		isSport("basketball") &&
+		!p.firstNBAContract &&
+		p.salaries.length === 0 &&
+		p.stats.length === 0 &&
+		!(p.transactions ?? []).some((transaction) => transaction.type !== "draft")
+	) {
+		p.firstNBAContract = { tid, season: context.season, phase };
+	}
 	p.tid = tid;
 	delete p.tradeReputationByTid;
 	p.numDaysFreeAgent = 0;

@@ -410,6 +410,7 @@ const prepareAwardWinner = async (yos: number, value = 70) => {
 	const p = (await idb.cache.players.get(pid))!;
 	p.draft.year = g.get("season") - yos;
 	p.draft.originalTid = 1;
+	p.draft.tid = 1;
 	p.transactions = [];
 	p.salaries = [
 		{ season: g.get("season") - 1, amount: 5000 },

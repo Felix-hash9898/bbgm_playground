@@ -34,6 +34,7 @@ import {
 import {
 	clampContractAmountForPlayer,
 	getMaxContractForPlayer,
+	getMaxContractForPlayerAndTerm,
 } from "./contractLimits.ts";
 import { getContractException } from "./contractLimits.ts";
 import { getMidLevelExceptionAmount } from "./contractMidLevel.ts";
@@ -2085,6 +2086,7 @@ test.each([
 		const p = (await idb.cache.players.get(2))!;
 		p.draft.year = 2026 - yos;
 		p.draft.originalTid = 0;
+		p.draft.tid = 0;
 		p.transactions = [];
 		p.salaries = prior ? [{ season: 2026, amount: prior }] : [];
 		p.awards = [{ season: 2026, type: "Most Valuable Player" }];
@@ -2100,3 +2102,160 @@ test.each([
 		assert.strictEqual(view.maxSalaryTier, expected);
 	},
 );
+
+test("105% 4-YOS generated offers, rows and accept require four non-option seasons", async () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({
+		tid: PLAYER.FREE_AGENT,
+		age: 23,
+		ovr: 90,
+		pot: 90,
+		value: 90,
+		draftYearsAgo: 4,
+	});
+	p.priorContractTid = 0;
+	p.salaries = [{ season: 2026, amount: 30000 }];
+	p.awards = [];
+	p.contract = { amount: 1000, exp: 2030 };
+	await resetLeague([p]);
+	const current = (await idb.cache.players.get(0))!;
+	for (const years of [1, 2, 3]) {
+		assert.isAtMost(
+			player.genContract(current, false, false, years, 0).amount,
+			25000,
+		);
+	}
+	assert.strictEqual(
+		player.genContract(current, false, false, 4, 0).amount,
+		31500,
+	);
+	assert.isUndefined(await contractNegotiation.create(current.pid, true, 0));
+	const view = (await updateNegotiation(
+		{ pid: current.pid },
+		["firstRun"],
+		{},
+	)) as any;
+	for (const row of view.contractOptions) {
+		if (row.amount > 25 && !row.disabledReason) {
+			assert.isAtLeast(row.years - (row.option ? 1 : 0), 4);
+		}
+	}
+	for (const [years, option] of [
+		[1],
+		[2],
+		[3],
+		[4, "player"],
+		[4, "team"],
+	] as const) {
+		assert.match(
+			(await contractNegotiation.accept({
+				pid: current.pid,
+				amount: 31500,
+				exp: 2026 + years,
+				option,
+				dryRun: true,
+			}))!,
+			/maximum salary/,
+		);
+	}
+	vi.spyOn(player, "moodInfo").mockResolvedValue({
+		willing: true,
+		contractAmount: 1000,
+	} as any);
+	assert.isUndefined(
+		await contractNegotiation.accept({
+			pid: current.pid,
+			amount: 31500,
+			exp: 2030,
+		}),
+	);
+	assert.strictEqual(
+		(await idb.cache.players.get(current.pid))?.contract.amount,
+		31500,
+	);
+});
+
+test.each([8, 9])(
+	"%s-YOS negotiation header includes legal five-year 35% row despite shorter cached ask",
+	async (yos) => {
+		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+		const p = (await idb.cache.players.get(2))!;
+		p.draft.year = 2026 - yos;
+		p.draft.originalTid = 0;
+		p.draft.tid = 0;
+		p.transactions = [];
+		p.salaries = [];
+		p.awards = [{ season: 2026, type: "Most Valuable Player" }];
+		p.contract = { amount: 1000, exp: 2028 };
+		await idb.cache.players.put(p);
+		assert.isUndefined(await contractNegotiation.create(p.pid, true, 0));
+		vi.spyOn(player, "moodInfo").mockResolvedValue({
+			willing: true,
+			contractAmount: 1000,
+		} as any);
+		const view = (await updateNegotiation(
+			{ pid: p.pid },
+			["firstRun"],
+			{},
+		)) as any;
+		assert.isTrue(
+			view.contractOptions.some(
+				(row: any) => row.years === 5 && !row.disabledReason,
+			),
+		);
+		assert.strictEqual(view.playerMaxContract, 35);
+		assert.strictEqual(view.maxSalaryTier, 35);
+	},
+);
+
+test.each([true, false])(
+	"draft selection snapshots only an executed rookie contract (auto %s)",
+	async (auto) => {
+		g.setWithoutSavingToDB("phase", PHASE.DRAFT);
+		g.setWithoutSavingToDB("draftPickAutoContract", auto);
+		const p = makePlayer({ tid: PLAYER.UNDRAFTED, age: 19, draftYearsAgo: 0 });
+		p.salaries = [];
+		p.stats = [];
+		await resetLeague([p]);
+		const current = (await idb.cache.players.get(0))!;
+		const pick = {
+			dpid: 0,
+			tid: 1,
+			originalTid: 0,
+			round: 1,
+			pick: 1,
+			season: 2026,
+		};
+		await idb.cache.draftPicks.put(pick);
+		vi.spyOn(rotationReconciliation, "default").mockResolvedValue(undefined);
+		await draft.selectPlayer(pick, current.pid);
+		const drafted = (await idb.cache.players.get(current.pid))!;
+		if (auto) {
+			assert.deepStrictEqual(drafted.firstNBAContract, {
+				tid: 1,
+				season: 2026,
+				phase: PHASE.DRAFT,
+			});
+		} else {
+			assert.isUndefined(drafted.firstNBAContract);
+		}
+	},
+);
+
+test("legacy signing with missing salary and stat logs does not reset first-contract history", async () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = (await idb.cache.players.get(2))!;
+	p.draft.year = 2018;
+	p.draft.tid = -1;
+	p.draft.originalTid = -1;
+	p.salaries = [];
+	p.stats = [];
+	p.awards = [{ season: 2026, type: "Most Valuable Player" }];
+	p.transactions = [
+		{ type: "freeAgent", tid: 1, season: 2018, phase: PHASE.FREE_AGENCY },
+		{ type: "freeAgent", tid: 0, season: 2024, phase: PHASE.FREE_AGENCY },
+	];
+	await player.sign(p, 0, { amount: 1000, exp: 2031 }, PHASE.RESIGN_PLAYERS);
+	assert.isUndefined(p.firstNBAContract);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 30000);
+});

@@ -16,7 +16,12 @@ type PlayerWithAwards = Pick<Player, "awards" | "born" | "draft"> &
 	Partial<
 		Pick<
 			Player,
-			"transactions" | "salaries" | "tid" | "priorContractTid" | "stats"
+			| "transactions"
+			| "salaries"
+			| "tid"
+			| "priorContractTid"
+			| "stats"
+			| "firstNBAContract"
 		>
 	>;
 
@@ -107,14 +112,42 @@ const hasDesignatedVeteranTeamHistory = (
 	p: PlayerWithAwards,
 	teamTid: number,
 ) => {
-	let eligibleTid = p.draft.originalTid;
-	if (eligibleTid < 0) {
-		return false;
-	}
 	const transactions = [...(p.transactions ?? [])]
 		.filter((transaction) => transaction.season >= p.draft.year)
 		.sort((a, b) => a.season - b.season || a.phase - b.phase);
+	// Legacy saves: chronological roster evidence is stronger than draft metadata.
+	// A trade identifies the contracted team before the move. Draft transaction
+	// tid is the selecting team, unlike originalTid (the original pick owner).
+	const evidence = [
+		...transactions.map((transaction) => ({
+			season: transaction.season,
+			phase: transaction.phase,
+			tid: transaction.type === "trade" ? transaction.fromTid : transaction.tid,
+		})),
+		...(p.stats ?? [])
+			.filter((row) => row.tid >= 0)
+			.map((row) => ({
+				season: row.season,
+				phase: PHASE.PRESEASON,
+				tid: row.tid,
+			})),
+	]
+		.filter((row) => row.tid >= 0)
+		.sort((a, b) => a.season - b.season || a.phase - b.phase);
+	const firstContract = p.firstNBAContract ?? evidence[0];
+	let eligibleTid = firstContract?.tid ?? p.draft.tid;
+	if (eligibleTid < 0) {
+		return false;
+	}
 	for (const transaction of transactions) {
+		if (
+			firstContract &&
+			(transaction.season < firstContract.season ||
+				(transaction.season === firstContract.season &&
+					transaction.phase < firstContract.phase))
+		) {
+			continue;
+		}
 		if (transaction.type === "draft") {
 			continue;
 		}
@@ -130,6 +163,17 @@ const hasDesignatedVeteranTeamHistory = (
 		} else if (transaction.tid !== eligibleTid) {
 			return false;
 		}
+	}
+	// Stats can expose moves omitted from imported transaction histories.
+	if (
+		(p.stats ?? []).some(
+			(row) =>
+				row.tid >= 0 &&
+				row.tid !== eligibleTid &&
+				row.season > p.draft.year + 4,
+		)
+	) {
+		return false;
 	}
 	return teamTid === eligibleTid;
 };
@@ -230,8 +274,10 @@ export const getMaxContractForPlayerAndTerm = (
 		return getMaxContract();
 	}
 	const yearsOfService = getYearsOfService(p);
+	// Fifth Year Eligible players need four non-option seasons for any maximum
+	// above 25%, including the ordinary 105%-of-prior-salary maximum.
 	if (yearsOfService === 4 && contractYears - (option ? 1 : 0) < 4) {
-		return getOrdinaryMaxAmount(p, yearsOfService);
+		return Math.round(g.get("salaryCap") * 0.25);
 	}
 	const supermaxEligible =
 		(yearsOfService === 8 || yearsOfService === 9) &&

@@ -1,4 +1,4 @@
-import { PHASE } from "../../../common/index.ts";
+import { isSport, PHASE } from "../../../common/index.ts";
 import { player, league, team } from "../index.ts";
 import getRookieSalaries from "./getRookieSalaries.ts";
 import { idb } from "../../db/index.ts";
@@ -104,6 +104,19 @@ const selectPlayer = async (dp: DraftPick, pid: number) => {
 				true,
 			);
 		}
+	}
+
+	if (
+		!fantasyOrExpansionDraft &&
+		isSport("basketball") &&
+		p.salaries.length > 0 &&
+		!p.firstNBAContract
+	) {
+		p.firstNBAContract = {
+			tid: p.tid,
+			season: g.get("season"),
+			phase: g.get("phase"),
+		};
 	}
 
 	// Add stats row if necessary (fantasy draft in ongoing season)

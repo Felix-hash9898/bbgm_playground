@@ -30,6 +30,7 @@ const makePlayer = ({
 	p.awards = awards;
 	p.draft.year = draftYear ?? g.get("season") - (yearsOfService ?? 0);
 	p.draft.originalTid = 0;
+	p.draft.tid = 0;
 	p.tid = 0;
 	p.transactions = [];
 	return p;
@@ -378,6 +379,127 @@ test("traded rookie Higher Max uses prior contract team and four non-option seas
 	delete p.priorContractTid;
 	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4), 30000);
 	p.salaries = [{ season: g.get("season"), amount: 28000 }];
-	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 1), 29400);
-	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4, "player"), 29400);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 1), 25000);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 4, "player"), 25000);
+});
+
+test("4-YOS 105% above 25% requires four seasons excluding options", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({ yearsOfService: 4 });
+	p.salaries = [{ season: g.get("season"), amount: 30000 }];
+	for (const years of [1, 2, 3]) {
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, years), 25000);
+	}
+	for (const option of ["player", "team"] as const) {
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 4, option), 25000);
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5, option), 31500);
+	}
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 4), 31500);
+});
+
+test.each([false, true])(
+	"undrafted first-contract team qualifies and moves preserve or break continuity (snapshot %s)",
+	(snapshot) => {
+		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+		const p = makePlayer({
+			yearsOfService: 8,
+			awards: [{ season: 2026, type: "Most Valuable Player" }],
+		});
+		p.draft.tid = -1;
+		p.draft.originalTid = -1;
+		p.draft.round = 0;
+		const first = { season: p.draft.year, phase: PHASE.FREE_AGENCY, tid: 2 };
+		if (snapshot) {
+			p.firstNBAContract = first;
+		}
+		p.transactions = [{ ...first, type: "freeAgent" }];
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 2, 5), 35000);
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 30000);
+		p.transactions.push({
+			type: "trade",
+			season: p.draft.year + 3,
+			phase: PHASE.REGULAR_SEASON,
+			tid: 1,
+			fromTid: 2,
+		});
+		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 35000);
+		p.transactions.push({
+			type: "trade",
+			season: p.draft.year + 6,
+			phase: PHASE.REGULAR_SEASON,
+			tid: 0,
+			fromTid: 1,
+		});
+		for (const tid of [0, 1, 2]) {
+			assert.strictEqual(getMaxContractForPlayerAndTerm(p, tid, 5), 30000);
+		}
+	},
+);
+
+test("drafted first contract follows selecting team rather than original pick owner", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({
+		yearsOfService: 9,
+		awards: [{ season: 2026, type: "Most Valuable Player" }],
+	});
+	p.draft.tid = 2;
+	p.draft.originalTid = 0;
+	p.transactions = [
+		{
+			type: "draft",
+			season: p.draft.year,
+			phase: PHASE.DRAFT,
+			tid: 2,
+			pickNum: 1,
+		},
+	];
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 2, 5), 35000);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 30000);
+});
+
+test("legacy undrafted stats identify first contracted team before a later free-agent move", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({
+		yearsOfService: 8,
+		awards: [{ season: 2026, type: "Most Valuable Player" }],
+	});
+	p.draft.tid = -1;
+	p.draft.originalTid = -1;
+	p.stats = [{ season: p.draft.year + 1, tid: 2 }] as typeof p.stats;
+	p.transactions = [];
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 2, 5), 35000);
+	p.transactions = [
+		{
+			type: "freeAgent",
+			season: p.draft.year + 6,
+			phase: PHASE.FREE_AGENCY,
+			tid: 1,
+		},
+	];
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 30000);
+});
+
+test("first signing snapshot overrides an unsigned draft team's history", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({
+		yearsOfService: 8,
+		awards: [{ season: 2026, type: "Most Valuable Player" }],
+	});
+	p.firstNBAContract = {
+		tid: 2,
+		season: p.draft.year,
+		phase: PHASE.FREE_AGENCY,
+	};
+	p.transactions = [
+		{
+			type: "draft",
+			season: p.draft.year,
+			phase: PHASE.DRAFT,
+			tid: 0,
+			pickNum: 1,
+		},
+		{ type: "freeAgent", ...p.firstNBAContract },
+	];
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 2, 5), 35000);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 30000);
 });

@@ -1176,6 +1176,7 @@ test("eligible supermax team-option salary uses the captured term at commit", as
 	const p = (await harness.cache.players.get(harness.player.pid))!;
 	p.draft.year = g.get("season") - 8;
 	p.draft.originalTid = harness.team.tid;
+	p.draft.tid = harness.team.tid;
 	p.transactions = [];
 	p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];
 	p.salaries = [];
@@ -1252,4 +1253,64 @@ test("final validation rejects a stale Higher-Max proposal after awards change",
 		PLAYER.FREE_AGENT,
 	);
 	assert.strictEqual((await harness.cache.events.getAll()).length, 0);
+});
+
+test.each([
+	{ years: 1 },
+	{ years: 2 },
+	{ years: 3 },
+	{ years: 4, option: "player" as const },
+	{ years: 4, option: "team" as const },
+])(
+	"final validation rejects short 4-YOS 105% salary for $years seasons and $option",
+	async ({ years, option }) => {
+		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+		g.setWithoutSavingToDB("salaryCap", 100000);
+		const p = (await harness.cache.players.get(harness.player.pid))!;
+		p.draft.year = g.get("season") - 4;
+		p.salaries = [{ season: g.get("season"), amount: 30000 }];
+		p.awards = [];
+		delete p.contract.rookie;
+		await harness.cache.players.put(p);
+		await expectRejected(
+			runSigning({
+				player: p,
+				contract: { amount: 31500, exp: g.get("season") + years, option },
+			}),
+		);
+		assert.deepStrictEqual(await harness.cache.players.get(p.pid), p);
+		assert.strictEqual((await harness.cache.events.getAll()).length, 0);
+	},
+);
+
+test("first undrafted signing persists the first contracted team and subsequent signing preserves it", async () => {
+	const p = (await harness.cache.players.get(harness.player.pid))!;
+	p.draft.year = g.get("season");
+	p.draft.tid = -1;
+	p.draft.originalTid = -1;
+	p.salaries = [];
+	p.stats = [];
+	p.transactions = [];
+	await harness.cache.players.put(p);
+	await runSigning({
+		player: p,
+		contract: { amount: 5000, exp: g.get("season") + 1 },
+	});
+	const signed = (await readRecord(harness.db, "players", p.pid))!;
+	assert.deepStrictEqual(signed.firstNBAContract, {
+		tid: harness.team.tid,
+		season: g.get("season"),
+		phase: g.get("phase"),
+	});
+	await player.sign(
+		signed,
+		1,
+		{ amount: 5000, exp: g.get("season") + 2 },
+		g.get("phase"),
+	);
+	assert.deepStrictEqual(signed.firstNBAContract, {
+		tid: harness.team.tid,
+		season: g.get("season"),
+		phase: g.get("phase"),
+	});
 });

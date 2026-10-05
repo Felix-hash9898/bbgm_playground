@@ -460,11 +460,22 @@ const updateNegotiation = async (
 						),
 					}
 				: undefined;
-		const playerMaxAmount = getMaxContractForPlayerAndTerm(
-			p2,
-			userTid,
-			getContractYearsFromExpiration({ expiration: p.contract.exp }),
-			p.contract.option,
+		const maxStructures = contractOptions.filter(
+			(row) => row.type !== "twoWay",
+		);
+		const playerMaxAmount = Math.max(
+			...(maxStructures.length > 0
+				? maxStructures.map((row) =>
+						getMaxContractForPlayerAndTerm(p2, userTid, row.years, row.option),
+					)
+				: [
+						getMaxContractForPlayerAndTerm(
+							p2,
+							userTid,
+							getContractYearsFromExpiration({ expiration: p.contract.exp }),
+							p.contract.option,
+						),
+					]),
 		);
 		const maxSalaryInfo = isSport("basketball")
 			? {

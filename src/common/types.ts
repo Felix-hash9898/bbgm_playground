@@ -1294,6 +1294,8 @@ export type PlayerWithoutKey<PlayerRatings = any> = {
 	tradeReputationByTid?: Record<number, number>;
 	/** Last team under contract before entering veteran free agency. */
 	priorContractTid?: number;
+	/** First executed NBA contract, captured at signing rather than draft selection. */
+	firstNBAContract?: { tid: number; season: number; phase: Phase };
 	ratings: NonEmptyArray<PlayerRatings>;
 	real?: boolean;
 	relatives: Relative[];
