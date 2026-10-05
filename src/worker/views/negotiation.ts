@@ -4,6 +4,7 @@ import {
 	getContractException,
 	getMaxContractForPlayerAndTerm,
 	clampContractAmountForPlayer,
+	hasDesignatedVeteranContractRights,
 } from "../core/contracts/contractLimits.ts";
 import {
 	canOfferTwoWay,
@@ -20,7 +21,11 @@ import {
 	isMidLevelExceptionAvailable,
 } from "../core/contracts/contractMidLevel.ts";
 import { getBasketballContractMarketDemand } from "../core/contracts/contractMarket/index.ts";
-import { getContractYearsFromExpiration } from "../core/contracts/contractTerm.ts";
+import {
+	getBasketballContractTerm,
+	getBasketballMechanismMaxContractLength,
+	getContractYearsFromExpiration,
+} from "../core/contracts/contractTerm.ts";
 import {
 	getTermAdjustedContractOffer,
 	getIncumbentInjuredAsk,
@@ -177,6 +182,7 @@ const generateContractOptions = async (
 				);
 				const rowMood = await player.moodInfo(p, g.get("userTid"), {
 					contractAmount: rowHealthyV4,
+					contractYears: contractOption.years,
 				});
 				const rowHealthyH = rowMood.contractAmount;
 				contractOption.healthyAmount = rowHealthyH;
@@ -195,6 +201,22 @@ const generateContractOptions = async (
 						factor,
 						minimumAmount: playerMinimum,
 					}) / 1000;
+				if (
+					g.get("salaryCapType") === "soft" &&
+					contractOption.years === 5 &&
+					hasDesignatedVeteranContractRights(
+						p,
+						userTeam?.tid ?? g.get("userTid"),
+					)
+				) {
+					contractOption.amount =
+						clampContractAmountForPlayer(
+							p,
+							contractOption.amount * 1000,
+							userTeam?.tid ?? g.get("userTid"),
+							contractOption.years,
+						) / 1000;
+				}
 			}
 		} else {
 			contractOption.amount = contractOptions[found]!.amount * factor;
@@ -377,13 +399,29 @@ const updateNegotiation = async (
 		const payroll = await team.getPayroll(userTid);
 		const userTeam = await idb.cache.teams.get(userTid);
 		const birdException =
-			negotiation.resigning && g.get("salaryCapType") === "soft";
+			g.get("salaryCapType") === "soft" &&
+			(negotiation.resigning ||
+				hasDesignatedVeteranContractRights(p2, userTid));
+		const demandMechanism = birdException ? "bird" : "capSpace";
+		const cachedYears = getContractYearsFromExpiration({
+			expiration: p.contract.exp,
+		});
+		const demandExpiration =
+			isSport("basketball") &&
+			g.get("salaryCapType") !== "none" &&
+			!negotiation.resigning &&
+			cachedYears > getBasketballMechanismMaxContractLength(demandMechanism)
+				? (getBasketballContractTerm(p2, {
+						teamTid: userTid,
+						mechanism: demandMechanism,
+					})?.expiration ?? p.contract.exp)
+				: p.contract.exp;
 
 		const contractOptions = await generateContractOptions(
 			negotiation.pid,
 			{
 				amount: p.mood.user.contractAmount / 1000,
-				exp: p.contract.exp,
+				exp: demandExpiration,
 			},
 			p.ratings.ovr,
 			p2,

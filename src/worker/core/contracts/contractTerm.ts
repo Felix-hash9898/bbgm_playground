@@ -9,7 +9,9 @@ import type { CapturedSigningContext } from "../capturedContext.ts";
 import {
 	clampContractAmountForPlayer,
 	getMaxContractForPlayerAndTerm,
+	getPriorContractTid,
 	getYearsOfService,
+	hasDesignatedVeteranContractRights,
 } from "./contractLimits.ts";
 import {
 	getMinContractForPlayer,
@@ -28,6 +30,38 @@ export type ContractTermPlayer = {
 	born: { year: number };
 	ratings: { ovr?: number; pot?: number }[];
 	tid?: number;
+} & Partial<
+	Pick<
+		Player,
+		| "awards"
+		| "draft"
+		| "firstNBAContract"
+		| "priorContractTid"
+		| "salaries"
+		| "stats"
+		| "transactions"
+	>
+>;
+
+const hasPriorTeamContractRights = (p: ContractTermPlayer, teamTid: number) =>
+	teamTid >= 0 &&
+	((p.tid !== undefined && p.tid >= 0 && teamTid === p.tid) ||
+		(p.awards !== undefined &&
+			p.draft !== undefined &&
+			hasDesignatedVeteranContractRights(p as Player, teamTid)));
+
+// A cached ask has no bidding team. Preserve the incumbent's still-valid DVP
+// opportunity, then derive each bidding team's legal term and salary separately.
+// Scoring-only callers without contract history retain the ordinary FA limit.
+export const getBasketballContractDemandTeamTid = (p: ContractTermPlayer) => {
+	const tid = p.tid ?? -1;
+	if (tid >= 0 || p.awards === undefined || p.draft === undefined) {
+		return tid;
+	}
+	const priorTid = getPriorContractTid(p as Player);
+	return hasDesignatedVeteranContractRights(p as Player, priorTid)
+		? priorTid
+		: tid;
 };
 
 export type ContractTermContext = {
@@ -110,10 +144,12 @@ export const getBasketballContractYears = (
 	{
 		mechanism,
 		context,
+		teamTid = getBasketballContractDemandTeamTid(p),
 	}: {
 		mechanism?: BasketballMechanism;
 		randomizeExpiration?: boolean;
 		context?: ContractTermContext;
+		teamTid?: number;
 	} = {},
 ): number | null => {
 	const { season, minContractLength, maxContractLength } =
@@ -122,10 +158,17 @@ export const getBasketballContractYears = (
 	const defaultMech: BasketballMechanism =
 		salaryCapType === "none"
 			? "none"
-			: "tid" in p && typeof p.tid === "number" && p.tid >= 0
+			: hasPriorTeamContractRights(p, teamTid)
 				? "bird"
 				: "capSpace";
 	const mech = mechanism ?? defaultMech;
+	if (
+		mech === "bird" &&
+		salaryCapType !== "none" &&
+		!hasPriorTeamContractRights(p, teamTid)
+	) {
+		return null;
+	}
 	const legalMax = getBasketballMechanismMaxContractLength(
 		mech,
 		maxContractLength,
@@ -178,17 +221,20 @@ export const getBasketballContractTerm = (
 		randomizeExpiration = false,
 		nextSeason = false,
 		context,
+		teamTid,
 	}: {
 		mechanism?: BasketballMechanism;
 		randomizeExpiration?: boolean;
 		nextSeason?: boolean;
 		context?: ContractTermContext;
+		teamTid?: number;
 	} = {},
 ): { years: number; expiration: number } | null => {
 	const years = getBasketballContractYears(p, {
 		mechanism,
 		randomizeExpiration,
 		context,
+		teamTid,
 	});
 	if (years === null) {
 		return null;
@@ -228,6 +274,7 @@ export const getBasketballContractForMechanism = (
 		mechanism,
 		context,
 		nextSeason,
+		teamTid,
 	});
 	if (term === null) {
 		return null;

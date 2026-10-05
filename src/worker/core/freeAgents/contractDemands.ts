@@ -14,6 +14,7 @@ import {
 } from "../contracts/contractLowEnd.ts";
 import { clampContractAmountForPlayer } from "../contracts/contractLimits.ts";
 import {
+	getBasketballContractDemandTeamTid,
 	getBasketballContractTerm,
 	getContractYearsFromExpiration,
 	type BasketballMechanism,
@@ -60,7 +61,8 @@ const getExpiration = (
 		// Fall back through mechanisms if one is unavailable (minTerm > mechanism max)
 
 		const salaryCapType = context?.salaryCapType ?? g.get("salaryCapType");
-		const isIncumbent = p.tid >= 0;
+		const teamTid = getBasketballContractDemandTeamTid(p);
+		const isIncumbent = teamTid >= 0;
 		const mechanisms: BasketballMechanism[] =
 			salaryCapType === "none"
 				? ["none"]
@@ -76,6 +78,7 @@ const getExpiration = (
 				nextSeason,
 				context,
 				mechanism,
+				teamTid,
 			});
 			if (term !== null) {
 				return term.expiration;
@@ -403,6 +406,7 @@ export const getContractDemandResults = ({
 					type === "newLeague",
 					false,
 					basketballTerms.get(p.pid)?.years,
+					isSport("basketball") ? getBasketballContractDemandTeamTid(p) : p.tid,
 				).amount;
 			}
 		} else if (type === "newLeague") {
@@ -539,7 +543,7 @@ export const getContractDemandResults = ({
 			? clampContractAmountForPlayer(
 					p,
 					helpers.roundContract(amount),
-					p.tid,
+					getBasketballContractDemandTeamTid(p),
 					basketballTerms.get(p.pid)?.years,
 				)
 			: clampContractDemandForPlayer(p, helpers.roundContract(amount));

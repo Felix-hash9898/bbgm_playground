@@ -4,6 +4,13 @@ import { idb } from "../../db/index.ts";
 import moodComponents from "./moodComponents.ts";
 import type { Player } from "../../../common/types.ts";
 import { getMinContractForPlayer } from "../contracts/contractMinimum.ts";
+import {
+	getMaxContractForPlayerAndTerm,
+	getPriorContractTid,
+	hasDesignatedVeteranContractRights,
+} from "../contracts/contractLimits.ts";
+import { getContractYearsFromExpiration } from "../contracts/contractTerm.ts";
+import { getEffectiveOfferAmount } from "../contracts/contractOption.ts";
 
 const hasActiveNegotiation = async (tid: number, pid: number) => {
 	return (await idb.cache.negotiations.getAll()).some(
@@ -17,6 +24,7 @@ const moodInfo = async (
 	overrides: {
 		activeNegotiation?: boolean;
 		contractAmount?: number;
+		contractYears?: number;
 	} = {},
 ) => {
 	const components = await moodComponents(p, tid);
@@ -94,7 +102,18 @@ const moodInfo = async (
 		sumAndStuff -= 3;
 	}
 
-	let contractAmount = overrides.contractAmount ?? p.contract.amount;
+	// The DVP market cache can carry an option. Recover its economic ask before
+	// quoting each team; explicit row amounts already represent a healthy anchor.
+	const designatedVeteranDemand =
+		isSport("basketball") &&
+		g.get("salaryCapType") === "soft" &&
+		p.tid === PLAYER.FREE_AGENT &&
+		hasDesignatedVeteranContractRights(p, getPriorContractTid(p));
+	let contractAmount =
+		overrides.contractAmount ??
+		(designatedVeteranDemand
+			? getEffectiveOfferAmount(p.contract.amount, p.contract.option)
+			: p.contract.amount);
 	const playerMinimum = getMinContractForPlayer(p);
 
 	// Up to 50% penalty for bad mood, except if this is a rookie contract
@@ -107,7 +126,16 @@ const moodInfo = async (
 	contractAmount = helpers.bound(
 		helpers.roundContract(contractAmount),
 		playerMinimum,
-		g.get("maxContract"),
+		isSport("basketball") &&
+			g.get("salaryCapType") !== "none" &&
+			p.tid === PLAYER.FREE_AGENT
+			? getMaxContractForPlayerAndTerm(
+					p,
+					tid,
+					overrides.contractYears ??
+						getContractYearsFromExpiration({ expiration: p.contract.exp }),
+				)
+			: g.get("maxContract"),
 	);
 
 	let willing = false;

@@ -5,10 +5,14 @@ import type {
 	PlayerContract,
 	Team,
 } from "../../common/types.ts";
-import { isSport, PHASE } from "../../common/index.ts";
+import { isSport, PHASE, PLAYER } from "../../common/index.ts";
 import type { ContractExceptionType } from "./contracts/contractMidLevel.ts";
 import { getMidLevelExceptionAmount } from "./contracts/contractMidLevel.ts";
-import { getMaxContractForPlayerAndTerm } from "./contracts/contractLimits.ts";
+import {
+	getMaxContractForPlayerAndTerm,
+	getPriorContractTid,
+	hasDesignatedVeteranContractRights,
+} from "./contracts/contractLimits.ts";
 import { getContractYearsFromExpiration } from "./contracts/contractTerm.ts";
 import { getMinContractForPlayer } from "./contracts/contractMinimum.ts";
 import {
@@ -222,6 +226,22 @@ const applySigningTransactionInQueue = async (
 				throw new Error(
 					"Contract salary exceeds the legal maximum for this team and term",
 				);
+			}
+			if (
+				context.salaryCapType !== "none" &&
+				currentPlayer.tid === PLAYER.FREE_AGENT
+			) {
+				const priorTeamRights =
+					context.salaryCapType === "soft" &&
+					((oldNegotiation?.resigning === true &&
+						oldNegotiation.tid === input.tid &&
+						getPriorContractTid(currentPlayer) === input.tid) ||
+						hasDesignatedVeteranContractRights(currentPlayer, input.tid));
+				if (contractLength > (priorTeamRights ? 5 : 4)) {
+					throw new Error(
+						"Contract term exceeds this free agent team's maximum",
+					);
+				}
 			}
 		}
 		if (isSport("basketball") && contractToCommit.option !== undefined) {

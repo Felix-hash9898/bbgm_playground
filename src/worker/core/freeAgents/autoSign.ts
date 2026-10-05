@@ -3,7 +3,11 @@ import { team } from "../index.ts";
 import getBest from "./getBest.ts";
 import { helpers, local, random } from "../../util/index.ts";
 import { orderBy } from "../../../common/utils.ts";
-import { getContractException } from "../contracts/contractLimits.ts";
+import {
+	getContractException,
+	getMaxContractForPlayerAndTerm,
+	hasDesignatedVeteranContractRights,
+} from "../contracts/contractLimits.ts";
 import { isMinimumContractForPlayer } from "../contracts/contractMinimum.ts";
 import {
 	canOfferTwoWay,
@@ -12,7 +16,10 @@ import {
 	makeTwoWayContract,
 } from "../contracts/contractTwoWay.ts";
 import { getBasketballSigningPriority } from "../contracts/contractMarket/injuryAdjustment.ts";
-import { getBasketballContractForMechanism } from "../contracts/contractTerm.ts";
+import {
+	getBasketballContractForMechanism,
+	getContractYearsFromExpiration,
+} from "../contracts/contractTerm.ts";
 import { captureSigningContext } from "../capturedContext.ts";
 import { applySigningTransaction } from "../signingTransaction.ts";
 
@@ -90,7 +97,9 @@ const autoSign = async () => {
 				context.cache,
 			);
 			expectedContractException = getContractException({
-				birdException: false,
+				birdException:
+					context.salaryCapType === "soft" &&
+					hasDesignatedVeteranContractRights(p, tid),
 				contract,
 				p,
 				payroll: currentPayroll,
@@ -126,7 +135,9 @@ const autoSign = async () => {
 									context.cache,
 								);
 								return getContractException({
-									birdException: false,
+									birdException:
+										context.salaryCapType === "soft" &&
+										hasDesignatedVeteranContractRights(currentPlayer, tid),
 									contract,
 									p: currentPlayer,
 									payroll: currentPayroll,
@@ -225,25 +236,73 @@ const autoSign = async () => {
 			);
 		}
 
-		const p = getBest(playersOnRoster, playersSortedForTeam, payroll);
+		// The stored demand describes the market. Requote it for this team before
+		// selection so an external team cannot inherit a prior team's five-year ask,
+		// and a qualifying prior team can use its rights even when already over cap.
+		const quotes =
+			isSport("basketball") && context.salaryCapType !== "none"
+				? playersSortedForTeam.flatMap((p) => {
+						const birdException =
+							context.salaryCapType === "soft" &&
+							hasDesignatedVeteranContractRights(p, t.tid);
+						const currentException = getContractException({
+							birdException,
+							contract: p.contract,
+							p,
+							payroll,
+							team: t,
+						}).type;
+						if (
+							currentException !== undefined &&
+							p.contract.amount <=
+								getMaxContractForPlayerAndTerm(
+									p,
+									t.tid,
+									getContractYearsFromExpiration({
+										expiration: p.contract.exp,
+										context,
+									}),
+									p.contract.option,
+								)
+						) {
+							return [p];
+						}
+						const mechanism = birdException ? "bird" : "capSpace";
+						const contract = getBasketballContractForMechanism(p, mechanism, {
+							context,
+							teamTid: t.tid,
+						});
+						return contract ? [{ ...p, contract }] : [];
+					})
+				: playersSortedForTeam;
+		const quote = getBest(
+			playersOnRoster,
+			quotes,
+			payroll,
+			(p) =>
+				context.salaryCapType === "soft" &&
+				isSport("basketball") &&
+				hasDesignatedVeteranContractRights(p, t.tid),
+		);
+		const p = quote && playersSortedForTeam.find((p) => p.pid === quote.pid);
 		let signedViaGetBest = false;
 		if (p) {
 			// Mechanism-specific contract derivation (Defect B fix):
 			// If p.contract is legal under cap space, sign it directly.
 			// Otherwise (e.g. over-cap team), sign minimum exception (<=2 years).
 			let contractToSign: (typeof players)[number]["contract"] | undefined =
-				p.contract;
+				quote?.contract ?? p.contract;
 			if (isSport("basketball") && context.salaryCapType !== "none") {
 				const currentException = getContractException({
-					birdException: false,
-					contract: p.contract,
+					birdException:
+						context.salaryCapType === "soft" &&
+						hasDesignatedVeteranContractRights(p, t.tid),
+					contract: contractToSign,
 					p,
 					payroll,
 					team: t,
 				}).type;
-				if (currentException === "capSpace") {
-					contractToSign = p.contract;
-				} else {
+				if (currentException !== "capSpace" && currentException !== "bird") {
 					contractToSign = undefined;
 					const capSpaceContract = getBasketballContractForMechanism(
 						p,

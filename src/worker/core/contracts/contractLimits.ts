@@ -136,6 +136,26 @@ export const hasRoseOrHigherMaxQualification = (p: PlayerWithAwards) => {
 const firstCoveredSeason = (contract: { season: number; phase: number }) =>
 	contract.season + (contract.phase > PHASE.AFTER_TRADE_DEADLINE ? 1 : 0);
 
+const hasQualifyingVeteranFreeAgentContinuity = (p: PlayerWithAwards) => {
+	// Salary logs include future guarantees and retained pay after release, so
+	// they cannot establish whether a Player Contract covered a particular year.
+	// Roster rows (even with zero games), executed signings, and trades establish
+	// their individual cap years. Never infer an unknown term or fill a gap.
+	const contractedSeasons = new Set([
+		...(p.stats ?? []).filter((row) => row.tid >= 0).map((row) => row.season),
+		...(p.transactions ?? [])
+			.filter((row) => row.tid >= 0 && row.type !== "draft")
+			.map(firstCoveredSeason),
+		...(p.firstNBAContract && p.firstNBAContract.tid >= 0
+			? [firstCoveredSeason(p.firstNBAContract)]
+			: []),
+	]);
+	const lastSeason = getLastCompletedSeason();
+	return [lastSeason, lastSeason - 1, lastSeason - 2].every((season) =>
+		contractedSeasons.has(season),
+	);
+};
+
 const hasDesignatedVeteranTeamHistory = (
 	p: PlayerWithAwards,
 	teamTid: number,
@@ -264,7 +284,7 @@ const getOrdinaryMaxAmount = (p: PlayerWithAwards, yearsOfService: number) => {
 	);
 };
 
-const getPriorContractTid = (p: PlayerWithAwards) => {
+export const getPriorContractTid = (p: PlayerWithAwards) => {
 	if (p.tid !== undefined && p.tid >= 0) {
 		return p.tid;
 	}
@@ -277,11 +297,29 @@ const getPriorContractTid = (p: PlayerWithAwards) => {
 	return lastTransaction?.tid ?? p.stats?.at(-1)?.tid ?? -1;
 };
 
+export const hasDesignatedVeteranContractRights = (
+	p: PlayerWithAwards,
+	teamTid: number,
+) => {
+	if (!isSport("basketball")) {
+		return false;
+	}
+	const yearsOfService = getYearsOfService(p);
+	return (
+		(yearsOfService === 8 || yearsOfService === 9) &&
+		teamTid >= 0 &&
+		teamTid === getPriorContractTid(p) &&
+		hasDesignatedVeteranTeamHistory(p, teamTid) &&
+		hasQualifyingVeteranFreeAgentContinuity(p) &&
+		hasRoseOrHigherMaxQualification(p)
+	);
+};
+
 export const getMaxSalaryTier = (
 	p: PlayerWithAwards,
 	teamTid: number = p.tid ?? -1,
 ) => {
-	if (!isSport("basketball")) {
+	if (!isSport("basketball") || g.get("salaryCapType") === "none") {
 		return Math.round((getMaxContract() / g.get("salaryCap")) * 100);
 	}
 
@@ -299,7 +337,7 @@ export const getMaxSalaryTier = (
 };
 
 export const getDynamicMaxContractAmount = (p: PlayerWithAwards) => {
-	if (!isSport("basketball")) {
+	if (!isSport("basketball") || g.get("salaryCapType") === "none") {
 		return getMaxContract();
 	}
 
@@ -310,7 +348,7 @@ export const getMaxContractForPlayer = (
 	p: PlayerWithAwards,
 	teamTid: number = p.tid ?? -1,
 ) => {
-	if (!isSport("basketball")) {
+	if (!isSport("basketball") || g.get("salaryCapType") === "none") {
 		return getMaxContract();
 	}
 	const yearsOfService = getYearsOfService(p);
@@ -326,7 +364,9 @@ export const getMaxContractForPlayerAndTerm = (
 	contractYears: number,
 	option?: PlayerContract["option"],
 ) => {
-	if (!isSport("basketball")) {
+	// No-cap leagues use the configured salary ceiling for every team and term;
+	// NBA percentage, designation, and prior-salary rules apply only with a cap.
+	if (!isSport("basketball") || g.get("salaryCapType") === "none") {
 		return getMaxContract();
 	}
 	const yearsOfService = getYearsOfService(p);
@@ -336,11 +376,7 @@ export const getMaxContractForPlayerAndTerm = (
 		return Math.round(g.get("salaryCap") * 0.25);
 	}
 	const supermaxEligible =
-		(yearsOfService === 8 || yearsOfService === 9) &&
-		teamTid >= 0 &&
-		hasDesignatedVeteranTeamHistory(p, teamTid) &&
-		hasRoseOrHigherMaxQualification(p) &&
-		contractYears === 5;
+		contractYears === 5 && hasDesignatedVeteranContractRights(p, teamTid);
 	if (supermaxEligible) {
 		return Math.max(
 			Math.round((g.get("salaryCap") * 35) / 100),

@@ -1,5 +1,5 @@
 import { afterEach, assert, beforeEach, test, vi } from "vitest";
-import { PLAYER } from "../../../common/index.ts";
+import { PHASE, PLAYER } from "../../../common/index.ts";
 import { resetCache, resetG } from "../../../test/helpers.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
@@ -7,6 +7,11 @@ import { player, team } from "../index.ts";
 import { captureSigningContext } from "../capturedContext.ts";
 import { getContractDemandResults } from "./contractDemands.ts";
 import normalizeContractDemands from "./normalizeContractDemands.ts";
+import { getEffectiveOfferAmount } from "../contracts/contractOption.ts";
+import {
+	getBasketballContractForMechanism,
+	getContractYearsFromExpiration,
+} from "../contracts/contractTerm.ts";
 
 const makePlayer = (
 	pid: number,
@@ -323,4 +328,101 @@ test("dummyExpiringContracts only updates targeted dummy players", async () => {
 	});
 
 	assert.deepStrictEqual([...results.keys()], [2]);
+});
+
+const makeDesignatedVeteran = (value = 70) => {
+	const p = makePlayer(1, {
+		tid: 0,
+		age: 27,
+		draftYearsAgo: 8,
+		ovr: 80,
+		pot: 80,
+		value,
+		valueNoPot: value,
+	});
+	const season = g.get("season");
+	p.draft.tid = 0;
+	p.transactions = [];
+	p.firstNBAContract = {
+		season: season - 8,
+		phase: PHASE.FREE_AGENCY,
+		tid: 0,
+	};
+	p.stats = Array.from({ length: 8 }, (_, i) => ({
+		season: season - 7 + i,
+		tid: 0,
+		playoffs: false,
+		gp: 0,
+		min: 0,
+	})) as typeof p.stats;
+	p.salaries = p.stats.map((row) => ({ season: row.season, amount: 20000 }));
+	p.awards = [{ season, type: "Most Valuable Player" }];
+	return p;
+};
+
+test("open-FA normalization retains the prior team's five-year market ask below the DVP ceiling", async () => {
+	g.setWithoutSavingToDB("season", 2026);
+	g.setWithoutSavingToDB("phase", PHASE.FREE_AGENCY);
+	g.setWithoutSavingToDB("salaryCap", 100000);
+	g.setWithoutSavingToDB("maxContractLength", 5);
+	const p = makeDesignatedVeteran();
+	await player.addToFreeAgents(p, {});
+	await resetCache({ players: [p], teams: makeTeams() });
+
+	await normalizeContractDemands({ type: "freeAgentsOnly" });
+	const current = (await idb.cache.players.get(1))!;
+	assert.strictEqual(current.priorContractTid, 0);
+	assert.strictEqual(
+		getContractYearsFromExpiration({ expiration: current.contract.exp }),
+		5,
+	);
+	const effectiveAsk = getEffectiveOfferAmount(
+		current.contract.amount,
+		current.contract.option,
+	);
+	assert.strictEqual(effectiveAsk, 33000);
+	assert.isBelow(effectiveAsk, 35000);
+
+	const priorOffer = getBasketballContractForMechanism(current, "bird", {
+		teamTid: 0,
+		realAmount: 32000,
+	})!;
+	assert.isAbove(priorOffer.amount, 30000);
+	assert.strictEqual(
+		getContractYearsFromExpiration({ expiration: priorOffer.exp }),
+		5,
+	);
+	assert.isNull(
+		getBasketballContractForMechanism(current, "bird", { teamTid: 1 }),
+	);
+	const externalOffer = getBasketballContractForMechanism(current, "capSpace", {
+		teamTid: 1,
+		realAmount: 32000,
+	})!;
+	assert.isAtMost(externalOffer.amount, 30000);
+	assert.strictEqual(
+		getContractYearsFromExpiration({ expiration: externalOffer.exp }),
+		4,
+	);
+});
+
+test("DVP eligibility does not raise a lower open-FA market ask to either maximum", async () => {
+	g.setWithoutSavingToDB("season", 2026);
+	g.setWithoutSavingToDB("phase", PHASE.FREE_AGENCY);
+	g.setWithoutSavingToDB("salaryCap", 100000);
+	g.setWithoutSavingToDB("maxContractLength", 5);
+	const p = makeDesignatedVeteran(64);
+	await player.addToFreeAgents(p, {});
+	await resetCache({ players: [p], teams: makeTeams() });
+
+	await normalizeContractDemands({ type: "freeAgentsOnly" });
+	const current = (await idb.cache.players.get(1))!;
+	assert.strictEqual(
+		getContractYearsFromExpiration({ expiration: current.contract.exp }),
+		5,
+	);
+	assert.isBelow(
+		getEffectiveOfferAmount(current.contract.amount, current.contract.option),
+		30000,
+	);
 });

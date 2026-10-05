@@ -12,6 +12,7 @@ import { PHASE, PLAYER } from "../../../common/index.ts";
 import {
 	getContractException,
 	getMaxContractForPlayerAndTerm,
+	hasDesignatedVeteranContractRights,
 } from "../contracts/contractLimits.ts";
 import { getContractYearsFromExpiration } from "../contracts/contractTerm.ts";
 import {
@@ -156,7 +157,10 @@ const acceptUnsafe = async ({
 			undefined,
 			context.cache,
 		);
-		const birdException = negotiation.resigning && salaryCapType === "soft";
+		const birdException =
+			salaryCapType === "soft" &&
+			(negotiation.resigning ||
+				hasDesignatedVeteranContractRights(p, context.userTid));
 		const contractException = getContractException({
 			birdException,
 			contract: contractWithCapHit,
@@ -251,8 +255,12 @@ const acceptUnsafe = async ({
 									);
 									return getContractException({
 										birdException:
-											currentNegotiation?.resigning === true &&
-											context.salaryCapType === "soft",
+											context.salaryCapType === "soft" &&
+											(currentNegotiation?.resigning === true ||
+												hasDesignatedVeteranContractRights(
+													currentPlayer,
+													context.userTid,
+												)),
 										contract: withContractCapHitForPlayer(
 											currentPlayer,
 											contract,

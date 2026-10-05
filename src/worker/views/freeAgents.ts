@@ -1,4 +1,4 @@
-import { bySport, PHASE, PLAYER } from "../../common/index.ts";
+import { bySport, isSport, PHASE, PLAYER } from "../../common/index.ts";
 import type {
 	Phase,
 	Player,
@@ -10,7 +10,14 @@ import { player, team } from "../core/index.ts";
 import {
 	getContractException,
 	getMaxContractForPlayer,
+	getMaxContractForPlayerAndTerm,
+	hasDesignatedVeteranContractRights,
 } from "../core/contracts/contractLimits.ts";
+import {
+	getBasketballContractTerm,
+	getBasketballMechanismMaxContractLength,
+	getContractYearsFromExpiration,
+} from "../core/contracts/contractTerm.ts";
 import {
 	getMinContractForPlayer,
 	withContractCapHitForPlayer,
@@ -61,6 +68,7 @@ export type FreeAgentTransaction = Extract<
 type FreeAgentSignability = {
 	canAffordNow: boolean;
 	contractExceptionType?: ReturnType<typeof getContractException>["type"];
+	contract?: Player["contract"];
 };
 
 const getFreeAgentSignability = ({
@@ -74,28 +82,52 @@ const getFreeAgentSignability = ({
 	payroll: number;
 	userTeam: Awaited<ReturnType<(typeof idb)["cache"]["teams"]["get"]>>;
 }): FreeAgentSignability => {
-	if (!p.mood?.user.willing) {
-		return {
-			canAffordNow: false,
-		};
-	}
-
-	const contract = withContractCapHitForPlayer(p, {
-		amount: p.mood.user.contractAmount,
+	const birdException =
+		g.get("salaryCapType") === "soft" &&
+		hasDesignatedVeteranContractRights(p, g.get("userTid"));
+	const demand = {
+		amount: p.mood?.user.contractAmount ?? p.contract.amount,
 		exp: p.contract.exp,
-	});
+	};
+	const mechanism = birdException ? "bird" : "capSpace";
+	let quote = demand;
+	if (
+		isSport("basketball") &&
+		g.get("salaryCapType") !== "none" &&
+		getContractYearsFromExpiration({ expiration: demand.exp }) >
+			getBasketballMechanismMaxContractLength(mechanism)
+	) {
+		const term = getBasketballContractTerm(p, {
+			mechanism,
+			teamTid: g.get("userTid"),
+		});
+		if (!term) {
+			return { canAffordNow: false };
+		}
+		quote = { ...demand, exp: term.expiration };
+	}
+	const contract = withContractCapHitForPlayer(p, quote);
 
 	if (
-		contract.amount > getMaxContractForPlayer(p) ||
+		!p.mood?.user.willing ||
+		contract.amount >
+			(isSport("basketball") && g.get("salaryCapType") !== "none"
+				? getMaxContractForPlayerAndTerm(
+						p,
+						g.get("userTid"),
+						getContractYearsFromExpiration({ expiration: contract.exp }),
+					)
+				: getMaxContractForPlayer(p)) ||
 		contract.amount < getMinContractForPlayer(p)
 	) {
 		return {
 			canAffordNow: false,
+			contract,
 		};
 	}
 
 	const contractException = getContractException({
-		birdException: false,
+		birdException,
 		contract,
 		p,
 		payroll,
@@ -105,6 +137,7 @@ const getFreeAgentSignability = ({
 	return {
 		canAffordNow: contractException.type !== undefined,
 		contractExceptionType: contractException.type,
+		contract,
 	};
 };
 
@@ -264,6 +297,7 @@ const updateFreeAgents = async (
 			if (p.freeAgentType === "available") {
 				p.contract.amount = p.mood.user.contractAmount / 1000;
 				const signability = signabilityByPid.get(p.pid);
+				p.contract.exp = signability?.contract?.exp ?? p.contract.exp;
 				p.canAffordNow = signability?.canAffordNow ?? false;
 				p.contractExceptionType = signability?.contractExceptionType;
 			} else {

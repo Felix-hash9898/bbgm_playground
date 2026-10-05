@@ -114,6 +114,22 @@ describe("contractTerm - S1 delayed-upper-clamp strong", () => {
 		);
 	});
 
+	it("an explicit external team gets the four-year term and cannot use Bird", () => {
+		g.setWithoutSavingToDB("salaryCapType", "soft");
+		const superstar = makePlayer({ age: 25, ovr: 80, tid: 0 });
+		assert.strictEqual(
+			getBasketballContractYears(superstar, { teamTid: 0 }),
+			5,
+		);
+		assert.strictEqual(
+			getBasketballContractYears(superstar, { teamTid: 1 }),
+			4,
+		);
+		assert.isNull(
+			getBasketballContractTerm(superstar, { mechanism: "bird", teamTid: 1 }),
+		);
+	});
+
 	it("no hard age ceilings: high OVR veterans get longer deals than low OVR peers", () => {
 		const oldStar = makePlayer({ age: 35, ovr: 75 });
 		const oldRole = makePlayer({ age: 35, ovr: 50 });

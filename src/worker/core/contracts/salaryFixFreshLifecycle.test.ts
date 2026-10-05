@@ -2002,7 +2002,7 @@ test("forceHistoricalRosters does not invent a no-cap term when hard-cap capSpac
 
 test("traded rookie production quotes, negotiation and acceptance use actual prior team", async () => {
 	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
-	g.setWithoutSavingToDB("salaryCapType", "none");
+	g.setWithoutSavingToDB("salaryCapType", "soft");
 	const p = makePlayer({
 		tid: 0,
 		age: 23,

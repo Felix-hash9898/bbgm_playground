@@ -4,6 +4,10 @@ import { g, helpers } from "../../util/index.ts";
 import { clampContractDemandForPlayer } from "../contracts/contractLowEnd.ts";
 import { clampContractAmountForPlayer } from "../contracts/contractLimits.ts";
 import {
+	getBasketballContractDemandTeamTid,
+	getContractYearsFromExpiration,
+} from "../contracts/contractTerm.ts";
+import {
 	getMinContractForPlayer,
 	withContractCapHitForPlayer,
 } from "../contracts/contractMinimum.ts";
@@ -44,10 +48,6 @@ const decreaseDemands = async () => {
 		if (p.contract.amount < playerMinimum) {
 			p.contract.amount = playerMinimum;
 		}
-		p.contract.amount = isSport("basketball")
-			? clampContractAmountForPlayer(p, p.contract.amount)
-			: clampContractDemandForPlayer(p, p.contract.amount);
-
 		if (g.get("phase") !== PHASE.FREE_AGENCY) {
 			// Since this is after the season has already started, ask for a short contract
 			if (p.contract.amount < 1.34 * playerMinimum) {
@@ -60,6 +60,14 @@ const decreaseDemands = async () => {
 		if (p.contract.exp < minContractExp) {
 			p.contract.exp = minContractExp;
 		}
+		p.contract.amount = isSport("basketball")
+			? clampContractAmountForPlayer(
+					p,
+					p.contract.amount,
+					getBasketballContractDemandTeamTid(p),
+					getContractYearsFromExpiration({ expiration: p.contract.exp }),
+				)
+			: clampContractDemandForPlayer(p, p.contract.amount);
 		p.contract = withContractCapHitForPlayer(p, p.contract);
 
 		// Free agents' resistance to signing decays after every regular season game

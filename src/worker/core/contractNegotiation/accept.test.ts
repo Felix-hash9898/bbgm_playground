@@ -495,7 +495,7 @@ test("reject offers above the player's dynamic max", async () => {
 });
 
 test("forged five-year supermax offer without designation eligibility is rejected", async () => {
-	g.setWithoutSavingToDB("salaryCapType", "none");
+	g.setWithoutSavingToDB("salaryCapType", "soft");
 	g.setWithoutSavingToDB("maxContractLength", 8);
 	g.setWithoutSavingToDB("salaryCap", 100000);
 	const pid = 0;

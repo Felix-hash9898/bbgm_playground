@@ -26,6 +26,7 @@ const getBest = <T extends PlayerWithoutKey>(
 	playersOnRoster: T[],
 	playersAvailable: T[],
 	payroll?: number,
+	canSignOverCap?: (p: T) => boolean,
 ): T | void => {
 	const maxRosterSize = g.get("maxRosterSize");
 	const salaryCap = g.get("salaryCap");
@@ -45,7 +46,10 @@ const getBest = <T extends PlayerWithoutKey>(
 				return false;
 			}
 
-			if (isMinimumContractForPlayer(p, p.contract) && p.injury.gamesRemaining === 0) {
+			if (
+				isMinimumContractForPlayer(p, p.contract) &&
+				p.injury.gamesRemaining === 0
+			) {
 				seenMinContractAtPos.add(pos);
 			}
 
@@ -117,6 +121,7 @@ const getBest = <T extends PlayerWithoutKey>(
 		const salaryCapCheck =
 			payroll === undefined ||
 			skipSalaryCapCheck ||
+			canSignOverCap?.(p) === true ||
 			getContractCapHit(p.contract) + payroll <= salaryCap;
 
 		// Don't sign minimum contract players to fill out the roster
