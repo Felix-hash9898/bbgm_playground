@@ -42,6 +42,10 @@ const makeFreeAgentVeteran = async (pid: number) => {
 
 	p.born.year = g.get("season") - 34;
 	p.draft.year = g.get("season") - 10;
+	p.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - p.draft.year) },
+		(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+	) as typeof p.stats;
 	p.contract.amount = getMinContractForPlayer(p);
 	await idb.cache.players.put(p);
 
@@ -467,6 +471,10 @@ test("reject offers above the player's dynamic max", async () => {
 		throw new Error("Invalid pid");
 	}
 	p.draft.year = g.get("season") - 10;
+	p.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - p.draft.year) },
+		(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+	) as typeof p.stats;
 	await idb.cache.players.put(p);
 
 	const error = await contractNegotiation.create(pid, false);
@@ -495,6 +503,10 @@ test("forged five-year supermax offer without designation eligibility is rejecte
 	const p = await idb.cache.players.get(pid);
 	assert(p);
 	p.draft.year = g.get("season") - 8;
+	p.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - p.draft.year) },
+		(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+	) as typeof p.stats;
 	p.draft.originalTid = g.get("userTid");
 	p.tid = PLAYER.FREE_AGENT;
 	p.awards = [];
@@ -592,6 +604,10 @@ test("normal rotation young players cannot sign two-way contracts", async () => 
 	}
 	p.born.year = g.get("season") - 22;
 	p.draft.year = g.get("season") - 2;
+	p.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - p.draft.year) },
+		(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+	) as typeof p.stats;
 	p.draft.round = 2;
 	p.draft.pick = 45;
 	p.value = 62;

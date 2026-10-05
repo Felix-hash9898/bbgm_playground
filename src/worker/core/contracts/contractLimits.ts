@@ -84,7 +84,30 @@ export const getContractException = ({
 };
 
 export const getYearsOfService = (p: PlayerWithAwards) => {
-	return Math.max(0, g.get("season") - p.draft.year);
+	if (!isSport("basketball")) {
+		return Math.max(0, g.get("season") - p.draft.year);
+	}
+	// Stats rows record roster membership, including seasons with no games played.
+	// Salary logs are a fallback for imports without roster rows; never count
+	// future guaranteed salaries or infer unsigned years from draft metadata.
+	// Prefer roster rows because salary logs can retain pay after release. When
+	// both logs are absent, transactions establish only their individual seasons.
+	const lastSeason = g.get("season");
+	const rosterSeasons = (p.stats ?? [])
+		.filter((row) => row.tid >= 0)
+		.map((row) => row.season);
+	const salarySeasons = (p.salaries ?? []).map((row) => row.season);
+	const seasons =
+		rosterSeasons.length > 0
+			? rosterSeasons
+			: salarySeasons.length > 0
+				? salarySeasons
+				: (p.transactions ?? [])
+						.filter((row) => row.tid >= 0 && row.type !== "draft")
+						.map((row) =>
+							row.type === "freeAgent" ? firstCoveredSeason(row) : row.season,
+						);
+	return new Set(seasons.filter((season) => season <= lastSeason)).size;
 };
 
 // BBGM advances the season at preseason, after offseason awards and re-signing.
@@ -108,6 +131,9 @@ export const hasRoseOrHigherMaxQualification = (p: PlayerWithAwards) => {
 	);
 };
 
+const firstCoveredSeason = (contract: { season: number; phase: number }) =>
+	contract.season + (contract.phase > PHASE.AFTER_TRADE_DEADLINE ? 1 : 0);
+
 const hasDesignatedVeteranTeamHistory = (
 	p: PlayerWithAwards,
 	teamTid: number,
@@ -119,11 +145,14 @@ const hasDesignatedVeteranTeamHistory = (
 	// A trade identifies the contracted team before the move. Draft transaction
 	// tid is the selecting team, unlike originalTid (the original pick owner).
 	const evidence = [
-		...transactions.map((transaction) => ({
-			season: transaction.season,
-			phase: transaction.phase,
-			tid: transaction.type === "trade" ? transaction.fromTid : transaction.tid,
-		})),
+		...transactions
+			.filter((transaction) => transaction.type !== "draft")
+			.map((transaction) => ({
+				season: transaction.season,
+				phase: transaction.phase,
+				tid:
+					transaction.type === "trade" ? transaction.fromTid : transaction.tid,
+			})),
 		...(p.stats ?? [])
 			.filter((row) => row.tid >= 0)
 			.map((row) => ({
@@ -134,7 +163,32 @@ const hasDesignatedVeteranTeamHistory = (
 	]
 		.filter((row) => row.tid >= 0)
 		.sort((a, b) => a.season - b.season || a.phase - b.phase);
-	const firstContract = p.firstNBAContract ?? evidence[0];
+	const firstContract =
+		p.firstNBAContract ??
+		evidence[0] ??
+		transactions.find((row) => row.type === "draft");
+	// Stats already name covered seasons. Transaction/snapshot dates name the
+	// signing season, which may precede the first salary season by one year.
+	const coveredSeasons = [
+		...(p.salaries ?? []).map((row) => row.season),
+		...(p.stats ?? []).filter((row) => row.tid >= 0).map((row) => row.season),
+		...(p.transactions ?? [])
+			.filter((row) => row.type === "freeAgent")
+			.map(firstCoveredSeason),
+	];
+	const firstSalarySeason = p.firstNBAContract
+		? firstCoveredSeason(p.firstNBAContract)
+		: Math.min(
+				...(coveredSeasons.length > 0
+					? coveredSeasons
+					: transactions
+							.filter((row) => row.type === "draft")
+							.map(firstCoveredSeason)),
+			);
+	if (!Number.isFinite(firstSalarySeason)) {
+		return false;
+	}
+	const lastEarlyTradeSeason = firstSalarySeason + 3;
 	let eligibleTid = firstContract?.tid ?? p.draft.tid;
 	if (eligibleTid < 0) {
 		return false;
@@ -155,7 +209,7 @@ const hasDesignatedVeteranTeamHistory = (
 			// Every move must preserve continuity, including moves after an early trade.
 			if (
 				transaction.fromTid !== eligibleTid ||
-				transaction.season - p.draft.year > 4
+				firstCoveredSeason(transaction) > lastEarlyTradeSeason
 			) {
 				return false;
 			}
@@ -170,7 +224,7 @@ const hasDesignatedVeteranTeamHistory = (
 			(row) =>
 				row.tid >= 0 &&
 				row.tid !== eligibleTid &&
-				row.season > p.draft.year + 4,
+				row.season > lastEarlyTradeSeason,
 		)
 	) {
 		return false;

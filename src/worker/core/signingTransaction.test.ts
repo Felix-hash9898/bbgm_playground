@@ -193,6 +193,13 @@ describe("captured signing transaction", () => {
 		g.setWithoutSavingToDB("salaryCap", 100000);
 		const current = (await harness.cache.players.get(harness.player.pid))!;
 		current.draft.year = g.get("season") - 7;
+		current.stats = Array.from(
+			{ length: Math.max(0, g.get("season") - current.draft.year) },
+			(_, i) => ({
+				season: current.draft.year + 1 + i,
+				tid: current.tid >= 0 ? current.tid : 1,
+			}),
+		) as typeof current.stats;
 		await harness.cache.players.put(current);
 		await expectRejected(
 			runSigning({
@@ -1175,8 +1182,13 @@ test("eligible supermax team-option salary uses the captured term at commit", as
 	g.setWithoutSavingToDB("salaryCap", 100000);
 	const p = (await harness.cache.players.get(harness.player.pid))!;
 	p.draft.year = g.get("season") - 8;
+	p.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - p.draft.year) },
+		(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+	) as typeof p.stats;
 	p.draft.originalTid = harness.team.tid;
 	p.draft.tid = harness.team.tid;
+	p.stats = p.stats.map((row) => ({ ...row, tid: harness.team.tid }));
 	p.transactions = [];
 	p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];
 	p.salaries = [];
@@ -1209,6 +1221,10 @@ test.each([
 		g.setWithoutSavingToDB("salaryCap", 100000);
 		const p = (await harness.cache.players.get(harness.player.pid))!;
 		p.draft.year = g.get("season") - 4;
+		p.stats = Array.from(
+			{ length: Math.max(0, g.get("season") - p.draft.year) },
+			(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+		) as typeof p.stats;
 		p.priorContractTid = harness.team.tid;
 		p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];
 		p.salaries = [];
@@ -1233,6 +1249,13 @@ test("final validation rejects a stale Higher-Max proposal after awards change",
 	g.setWithoutSavingToDB("salaryCap", 100000);
 	const proposalPlayer = structuredClone(harness.player);
 	proposalPlayer.draft.year = g.get("season") - 4;
+	proposalPlayer.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - proposalPlayer.draft.year) },
+		(_, i) => ({
+			season: proposalPlayer.draft.year + 1 + i,
+			tid: proposalPlayer.tid >= 0 ? proposalPlayer.tid : 1,
+		}),
+	) as typeof proposalPlayer.stats;
 	proposalPlayer.priorContractTid = harness.team.tid;
 	proposalPlayer.salaries = [];
 	proposalPlayer.awards = [
@@ -1268,6 +1291,10 @@ test.each([
 		g.setWithoutSavingToDB("salaryCap", 100000);
 		const p = (await harness.cache.players.get(harness.player.pid))!;
 		p.draft.year = g.get("season") - 4;
+		p.stats = Array.from(
+			{ length: Math.max(0, g.get("season") - p.draft.year) },
+			(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+		) as typeof p.stats;
 		p.salaries = [{ season: g.get("season"), amount: 30000 }];
 		p.awards = [];
 		delete p.contract.rookie;
@@ -1314,3 +1341,31 @@ test("first undrafted signing persists the first contracted team and subsequent 
 		phase: g.get("phase"),
 	});
 });
+
+test.each([PHASE.REGULAR_SEASON, PHASE.FREE_AGENCY])(
+	"delayed first signing in phase %s records the actual first covered salary season",
+	async (phase) => {
+		g.setWithoutSavingToDB("phase", phase);
+		const p = (await harness.cache.players.get(harness.player.pid))!;
+		p.draft.year = g.get("season") - 2;
+		p.draft.tid = -1;
+		p.stats = [];
+		p.salaries = [];
+		p.transactions = [];
+		await harness.cache.players.put(p);
+		await runSigning({
+			player: p,
+			contract: { amount: 5000, exp: g.get("season") + 1 },
+		});
+		const signed = (await readRecord(harness.db, "players", p.pid))!;
+		assert.deepStrictEqual(signed.firstNBAContract, {
+			tid: harness.team.tid,
+			season: g.get("season"),
+			phase,
+		});
+		assert.strictEqual(
+			signed.salaries[0]!.season,
+			g.get("season") + (phase > PHASE.AFTER_TRADE_DEADLINE ? 1 : 0),
+		);
+	},
+);

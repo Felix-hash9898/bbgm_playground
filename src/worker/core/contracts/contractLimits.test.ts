@@ -4,6 +4,7 @@ import { player } from "../index.ts";
 import { g } from "../../util/index.ts";
 import { resetG } from "../../../test/helpers.ts";
 import {
+	getYearsOfService,
 	getDynamicMaxContractAmount,
 	getMaxContractForPlayerAndTerm,
 	getMaxContractForPlayer,
@@ -33,6 +34,11 @@ const makePlayer = ({
 	p.draft.tid = 0;
 	p.tid = 0;
 	p.transactions = [];
+	p.stats = [];
+	p.salaries = Array.from({ length: yearsOfService ?? 0 }, (_, i) => ({
+		season: p.draft.year + 1 + i,
+		amount: 1000,
+	}));
 	return p;
 };
 
@@ -364,6 +370,10 @@ test("traded rookie Higher Max uses prior contract team and four non-option seas
 			fromTid: 0,
 		},
 	];
+	p.stats = p.salaries.map((row) => ({
+		season: row.season,
+		tid: 1,
+	})) as typeof p.stats;
 	p.salaries = [];
 	await player.addToFreeAgents(p, {});
 	assert.strictEqual(p.priorContractTid, 1);
@@ -386,6 +396,10 @@ test("traded rookie Higher Max uses prior contract team and four non-option seas
 test("4-YOS 105% above 25% requires four seasons excluding options", () => {
 	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
 	const p = makePlayer({ yearsOfService: 4 });
+	p.stats = p.salaries.map((row) => ({
+		season: row.season,
+		tid: 0,
+	})) as typeof p.stats;
 	p.salaries = [{ season: g.get("season"), amount: 30000 }];
 	for (const years of [1, 2, 3]) {
 		assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, years), 25000);
@@ -465,7 +479,10 @@ test("legacy undrafted stats identify first contracted team before a later free-
 	});
 	p.draft.tid = -1;
 	p.draft.originalTid = -1;
-	p.stats = [{ season: p.draft.year + 1, tid: 2 }] as typeof p.stats;
+	p.stats = p.salaries.map((row) => ({
+		season: row.season,
+		tid: 2,
+	})) as typeof p.stats;
 	p.transactions = [];
 	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 2, 5), 35000);
 	p.transactions = [
@@ -502,4 +519,189 @@ test("first signing snapshot overrides an unsigned draft team's history", () => 
 	];
 	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 2, 5), 35000);
 	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 30000);
+});
+
+test.each([PHASE.DRAFT, PHASE.FREE_AGENCY, PHASE.REGULAR_SEASON])(
+	"first signing phase %s anchors four covered salary seasons independently of draft age",
+	(phase) => {
+		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+		const p = makePlayer({
+			yearsOfService: 8,
+			awards: [{ season: 2026, type: "Most Valuable Player" }],
+		});
+		p.draft.year = 2016;
+		p.firstNBAContract = {
+			tid: 0,
+			season: phase === PHASE.REGULAR_SEASON ? 2019 : 2018,
+			phase,
+		};
+		const firstSalary = 2019;
+		for (const offset of [3, 4]) {
+			p.transactions = [
+				{
+					type: "trade",
+					fromTid: 0,
+					tid: 1,
+					season: firstSalary + offset,
+					phase: PHASE.REGULAR_SEASON,
+				},
+			];
+			assert.strictEqual(
+				getMaxContractForPlayerAndTerm(p, 1, 5),
+				offset === 3 ? 35000 : 30000,
+			);
+		}
+	},
+);
+
+test.each(["snapshot", "transactions", "stats"] as const)(
+	"delayed undrafted signing uses the same salary boundary with %s history",
+	(history) => {
+		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+		const p = makePlayer({
+			yearsOfService: 8,
+			awards: [{ season: 2026, type: "Most Valuable Player" }],
+		});
+		p.draft.year = 2016;
+		p.draft.tid = -1;
+		const first = { season: 2018, phase: PHASE.FREE_AGENCY, tid: 0 };
+		if (history === "snapshot") {
+			p.firstNBAContract = first;
+		}
+		for (const season of [2022, 2023]) {
+			p.stats = p.salaries.map((row) => ({
+				season: row.season,
+				tid: row.season < season ? 0 : 1,
+			})) as typeof p.stats;
+			p.transactions =
+				history === "stats"
+					? []
+					: [
+							{ ...first, type: "freeAgent" },
+							{
+								season,
+								phase: PHASE.REGULAR_SEASON,
+								type: "trade",
+								fromTid: 0,
+								tid: 1,
+							},
+						];
+			assert.strictEqual(
+				getMaxContractForPlayerAndTerm(p, 1, 5),
+				history === "stats" ? 30000 : season === 2022 ? 35000 : 30000,
+			);
+		}
+	},
+);
+
+test("service counts distinct roster seasons, excludes unsigned gaps, and all max rules share it", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	for (const yos of [4, 7, 8, 9, 10]) {
+		const p = makePlayer({
+			yearsOfService: yos,
+			awards: [{ season: 2026, type: "Most Valuable Player" }],
+		});
+		p.draft.year -= 2;
+		p.firstNBAContract = {
+			tid: 0,
+			season: 2026 - yos,
+			phase: PHASE.FREE_AGENCY,
+		};
+		assert.strictEqual(getYearsOfService(p), yos);
+		assert.strictEqual(getMaxSalaryTier(p), yos === 10 ? 35 : 30);
+		assert.strictEqual(
+			getMaxContractForPlayerAndTerm(p, 0, 5),
+			yos === 8 || yos === 9 || yos === 10 ? 35000 : 30000,
+		);
+		p.stats = p.salaries.map((row) => ({
+			season: row.season,
+			tid: 0,
+		})) as typeof p.stats;
+		p.stats.push({ ...p.stats[0]! });
+		assert.strictEqual(getYearsOfService(p), yos);
+	}
+	const p = makePlayer({ yearsOfService: 8 });
+	p.stats = [];
+	p.salaries = [
+		{ season: 2025, amount: 1000 },
+		{ season: 2027, amount: 1000 },
+	];
+	assert.strictEqual(getYearsOfService(p), 1);
+	p.salaries = [];
+	assert.strictEqual(getYearsOfService(p), 0);
+});
+
+test("legacy delayed signing ignores an unsigned draft transaction when locating salary years", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({
+		yearsOfService: 8,
+		awards: [{ season: 2026, type: "Most Valuable Player" }],
+	});
+	p.draft.year = 2016;
+	p.transactions = [
+		{ type: "draft", tid: 0, season: 2016, phase: PHASE.DRAFT, pickNum: 1 },
+		{ type: "freeAgent", tid: 0, season: 2018, phase: PHASE.FREE_AGENCY },
+		{
+			type: "trade",
+			tid: 1,
+			fromTid: 0,
+			season: 2022,
+			phase: PHASE.REGULAR_SEASON,
+		},
+	];
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 35000);
+	p.transactions[2]!.season = 2023;
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 30000);
+});
+
+test("roster service includes zero-game seasons and deduplicates teams without filling gaps", () => {
+	const p = makePlayer({ yearsOfService: 10 });
+	p.stats = [
+		{ season: 2020, tid: 0, gp: 0 },
+		{ season: 2020, tid: 1, gp: 0 },
+		{ season: 2022, tid: 1, gp: 0 },
+		{ season: 2023, tid: PLAYER.FREE_AGENT, gp: 0 },
+	] as typeof p.stats;
+	assert.strictEqual(getYearsOfService(p), 2);
+	assert.strictEqual(getMaxSalaryTier(p), 25);
+});
+
+test("legacy stats consistency checks use the fourth covered salary season", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({
+		yearsOfService: 8,
+		awards: [{ season: 2026, type: "Most Valuable Player" }],
+	});
+	p.draft.year = 2016;
+	for (const season of [2022, 2023]) {
+		p.stats = [
+			...p.salaries.map((row) => ({ season: row.season, tid: 0 })),
+			{ season, tid: 1 },
+		] as typeof p.stats;
+		assert.strictEqual(
+			getMaxContractForPlayerAndTerm(p, 0, 5),
+			season === 2022 ? 35000 : 30000,
+		);
+	}
+});
+
+test("offseason trade immediately after the fourth covered salary season is too late", () => {
+	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
+	const p = makePlayer({
+		yearsOfService: 8,
+		awards: [{ season: 2026, type: "Most Valuable Player" }],
+	});
+	p.firstNBAContract = { tid: 0, season: 2018, phase: PHASE.DRAFT };
+	p.transactions = [
+		{
+			type: "trade",
+			fromTid: 0,
+			tid: 1,
+			season: 2022,
+			phase: PHASE.REGULAR_SEASON,
+		},
+	];
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 35000);
+	p.transactions[0]!.phase = PHASE.FREE_AGENCY;
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 1, 5), 30000);
 });

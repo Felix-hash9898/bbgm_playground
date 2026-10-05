@@ -78,6 +78,10 @@ const makePlayer = ({
 	p.ratings.at(-1)!.pot = pot;
 	p.ratings.at(-1)!.season = g.get("season");
 	p.draft.year = g.get("season") - draftYearsAgo;
+	p.salaries = Array.from({ length: draftYearsAgo }, (_, i) => ({
+		season: p.draft.year + 1 + i,
+		amount: 1000,
+	}));
 	p.draft.round = 2;
 	p.draft.pick = 45;
 	p.value = value;
@@ -1588,6 +1592,13 @@ test("newPhaseResignPlayers bases the next hard-cap decision on the actual prior
 		exp: 2026,
 	});
 	first.draft.year = g.get("season") - 10;
+	first.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - first.draft.year) },
+		(_, i) => ({
+			season: first.draft.year + 1 + i,
+			tid: first.tid >= 0 ? first.tid : 1,
+		}),
+	) as typeof first.stats;
 	const second = makePlayer({
 		tid: 1,
 		age: 27,
@@ -1599,6 +1610,13 @@ test("newPhaseResignPlayers bases the next hard-cap decision on the actual prior
 		exp: 2026,
 	});
 	second.draft.year = g.get("season") - 10;
+	second.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - second.draft.year) },
+		(_, i) => ({
+			season: second.draft.year + 1 + i,
+			tid: second.tid >= 0 ? second.tid : 1,
+		}),
+	) as typeof second.stats;
 	await runResignPhase([existing, first, second]);
 	const teamPlayers = await idb.cache.players.indexGetAll("playersByTid", 1);
 	const firstBefore = teamPlayers.find((p) => p.value === 95);
@@ -1903,6 +1921,13 @@ const runForceHistoricalPreseason = async ({
 	});
 	historical.srID = "fresh-audit-player";
 	historical.draft.year = 2020;
+	historical.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - historical.draft.year) },
+		(_, i) => ({
+			season: historical.draft.year + 1 + i,
+			tid: historical.tid >= 0 ? historical.tid : 1,
+		}),
+	) as typeof historical.stats;
 	await resetLeague([historical]);
 	idb.league = mockIDBLeague();
 	vi.spyOn(idb.meta, "get").mockResolvedValue(undefined);
@@ -1997,6 +2022,10 @@ test("traded rookie production quotes, negotiation and acceptance use actual pri
 		},
 	];
 	p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];
+	p.stats = p.salaries.map((row) => ({
+		season: row.season,
+		tid: 0,
+	})) as typeof p.stats;
 	p.salaries = [];
 	await player.addToFreeAgents(p, {});
 	await resetLeague([p]);
@@ -2085,8 +2114,13 @@ test.each([
 		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
 		const p = (await idb.cache.players.get(2))!;
 		p.draft.year = 2026 - yos;
+		p.stats = Array.from(
+			{ length: Math.max(0, g.get("season") - p.draft.year) },
+			(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+		) as typeof p.stats;
 		p.draft.originalTid = 0;
 		p.draft.tid = 0;
+		p.stats = p.stats.map((row) => ({ ...row, tid: 0 }));
 		p.transactions = [];
 		p.salaries = prior ? [{ season: 2026, amount: prior }] : [];
 		p.awards = [{ season: 2026, type: "Most Valuable Player" }];
@@ -2114,6 +2148,10 @@ test("105% 4-YOS generated offers, rows and accept require four non-option seaso
 		draftYearsAgo: 4,
 	});
 	p.priorContractTid = 0;
+	p.stats = p.salaries.map((row) => ({
+		season: row.season,
+		tid: 0,
+	})) as typeof p.stats;
 	p.salaries = [{ season: 2026, amount: 30000 }];
 	p.awards = [];
 	p.contract = { amount: 1000, exp: 2030 };
@@ -2181,8 +2219,13 @@ test.each([8, 9])(
 		g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
 		const p = (await idb.cache.players.get(2))!;
 		p.draft.year = 2026 - yos;
+		p.stats = Array.from(
+			{ length: Math.max(0, g.get("season") - p.draft.year) },
+			(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+		) as typeof p.stats;
 		p.draft.originalTid = 0;
 		p.draft.tid = 0;
+		p.stats = p.stats.map((row) => ({ ...row, tid: 0 }));
 		p.transactions = [];
 		p.salaries = [];
 		p.awards = [{ season: 2026, type: "Most Valuable Player" }];
@@ -2246,6 +2289,10 @@ test("legacy signing with missing salary and stat logs does not reset first-cont
 	g.setWithoutSavingToDB("phase", PHASE.RESIGN_PLAYERS);
 	const p = (await idb.cache.players.get(2))!;
 	p.draft.year = 2018;
+	p.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - p.draft.year) },
+		(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+	) as typeof p.stats;
 	p.draft.tid = -1;
 	p.draft.originalTid = -1;
 	p.salaries = [];
@@ -2257,5 +2304,5 @@ test("legacy signing with missing salary and stat logs does not reset first-cont
 	];
 	await player.sign(p, 0, { amount: 1000, exp: 2031 }, PHASE.RESIGN_PLAYERS);
 	assert.isUndefined(p.firstNBAContract);
-	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 30000);
+	assert.strictEqual(getMaxContractForPlayerAndTerm(p, 0, 5), 25000);
 });

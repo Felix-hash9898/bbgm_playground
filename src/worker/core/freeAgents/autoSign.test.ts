@@ -626,6 +626,10 @@ test("AI free agency requotes a cached supermax ask using the signing team's fou
 		contractAmount: 33000,
 	});
 	p.draft.originalTid = 1;
+	p.stats = Array.from({ length: 8 }, (_, i) => ({
+		season: g.get("season") - 7 + i,
+		tid: 1,
+	})) as typeof p.stats;
 	p.transactions = [];
 	p.salaries = [];
 	p.awards = [{ season: g.get("season"), type: "Most Valuable Player" }];

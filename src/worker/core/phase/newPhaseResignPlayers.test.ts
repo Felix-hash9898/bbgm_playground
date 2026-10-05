@@ -409,6 +409,10 @@ const prepareAwardWinner = async (yos: number, value = 70) => {
 	g.setWithoutSavingToDB("salaryCapType", "soft");
 	const p = (await idb.cache.players.get(pid))!;
 	p.draft.year = g.get("season") - yos;
+	p.stats = Array.from(
+		{ length: Math.max(0, g.get("season") - p.draft.year) },
+		(_, i) => ({ season: p.draft.year + 1 + i, tid: p.tid >= 0 ? p.tid : 1 }),
+	) as typeof p.stats;
 	p.draft.originalTid = 1;
 	p.draft.tid = 1;
 	p.transactions = [];
