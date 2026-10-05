@@ -92,25 +92,27 @@ export const getYearsOfService = (p: PlayerWithAwards) => {
 	// future guaranteed salaries or infer unsigned years from draft metadata.
 	// Prefer roster rows because salary logs can retain pay after release. When
 	// both logs are absent, transactions establish only their individual seasons.
-	const lastSeason = g.get("season");
+	const lastSeason = getLastCompletedSeason();
 	const rosterSeasons = (p.stats ?? [])
-		.filter((row) => row.tid >= 0)
+		.filter((row) => row.tid >= 0 && !row.playoffs)
 		.map((row) => row.season);
 	const salarySeasons = (p.salaries ?? []).map((row) => row.season);
-	const seasons =
-		rosterSeasons.length > 0
-			? rosterSeasons
-			: salarySeasons.length > 0
-				? salarySeasons
-				: (p.transactions ?? [])
-						.filter((row) => row.tid >= 0 && row.type !== "draft")
-						.map((row) =>
-							row.type === "freeAgent" ? firstCoveredSeason(row) : row.season,
-						);
+	const seasons = (p.stats ?? []).some((row) => row.tid >= 0)
+		? rosterSeasons
+		: salarySeasons.length > 0
+			? salarySeasons
+			: (p.transactions ?? [])
+					.filter((row) => row.tid >= 0 && row.type !== "draft")
+					.map((row) =>
+						row.type === "freeAgent" ? firstCoveredSeason(row) : row.season,
+					);
 	return new Set(seasons.filter((season) => season <= lastSeason)).size;
 };
 
-// BBGM advances the season at preseason, after offseason awards and re-signing.
+// newPhaseBeforeDraft finalizes the season (awards and completed_season) before
+// DRAFT_LOTTERY. DRAFT and AFTER_DRAFT retain that completed season label, and
+// re-signing runs while still in AFTER_DRAFT. Count it throughout this offseason;
+// preseason advances the label. Special draft phases do not complete a season.
 const getLastCompletedSeason = () =>
 	g.get("season") - (g.get("phase") > PHASE.PLAYOFFS ? 0 : 1);
 
@@ -176,19 +178,19 @@ const hasDesignatedVeteranTeamHistory = (
 			.filter((row) => row.type === "freeAgent")
 			.map(firstCoveredSeason),
 	];
-	const firstSalarySeason = p.firstNBAContract
-		? firstCoveredSeason(p.firstNBAContract)
-		: Math.min(
-				...(coveredSeasons.length > 0
-					? coveredSeasons
-					: transactions
-							.filter((row) => row.type === "draft")
-							.map(firstCoveredSeason)),
-			);
-	if (!Number.isFinite(firstSalarySeason)) {
-		return false;
+	if (p.firstNBAContract) {
+		coveredSeasons.push(firstCoveredSeason(p.firstNBAContract));
 	}
-	const lastEarlyTradeSeason = firstSalarySeason + 3;
+	// Count only evidenced contracted cap years, never fill unsigned gaps. A
+	// signing establishes its first covered year, not an unknown contract term.
+	const contractedSeasons = [...new Set(coveredSeasons)].sort((a, b) => a - b);
+	// Sparse legacy histories cannot establish four contracted years. Fail closed
+	// for trades rather than treating a late isolated move as a rookie trade.
+	const lastEarlyTradeSeason = contractedSeasons[3];
+	const isEarlyTradeSeason = (season: number) =>
+		lastEarlyTradeSeason !== undefined &&
+		season <= lastEarlyTradeSeason &&
+		contractedSeasons.includes(season);
 	let eligibleTid = firstContract?.tid ?? p.draft.tid;
 	if (eligibleTid < 0) {
 		return false;
@@ -209,7 +211,7 @@ const hasDesignatedVeteranTeamHistory = (
 			// Every move must preserve continuity, including moves after an early trade.
 			if (
 				transaction.fromTid !== eligibleTid ||
-				firstCoveredSeason(transaction) > lastEarlyTradeSeason
+				!isEarlyTradeSeason(firstCoveredSeason(transaction))
 			) {
 				return false;
 			}
@@ -224,7 +226,7 @@ const hasDesignatedVeteranTeamHistory = (
 			(row) =>
 				row.tid >= 0 &&
 				row.tid !== eligibleTid &&
-				row.season > lastEarlyTradeSeason,
+				!isEarlyTradeSeason(row.season),
 		)
 	) {
 		return false;
