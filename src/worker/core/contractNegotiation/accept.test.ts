@@ -12,6 +12,7 @@ import { getRealAmountForEffectiveOffer } from "../contracts/contractOption.ts";
 import { player, team } from "../index.ts";
 import { PLAYER } from "../../../common/index.ts";
 import api from "../../api/index.ts";
+import updateNegotiationView from "../../views/negotiation.ts";
 
 beforeEach(beforeTests);
 afterEach(() => idb.cache.negotiations.clear());
@@ -50,6 +51,31 @@ const makeFreeAgentVeteran = async (pid: number) => {
 	await idb.cache.players.put(p);
 
 	return p;
+};
+
+const fillLastStandardRosterSpot = async () => {
+	const p = await idb.cache.players.get(0);
+	if (!p) {
+		throw new Error("Invalid roster filler");
+	}
+	p.tid = g.get("userTid");
+	p.contract.type = "standard";
+	await idb.cache.players.put(p);
+};
+
+const makeEligibleTwoWayFreeAgent = async (pid: number) => {
+	const p = await idb.cache.players.get(pid);
+	if (!p) {
+		throw new Error("Invalid two-way free agent");
+	}
+	p.born.year = g.get("season") - 22;
+	p.draft.year = g.get("season");
+	p.draft.round = 0;
+	p.draft.pick = 0;
+	p.value = 45;
+	p.valueNoPot = 42;
+	p.ratings.at(-1)!.ovr = 42;
+	await idb.cache.players.put(p);
 };
 
 const setupApiSigningReconcileFailure = async () => {
@@ -157,6 +183,15 @@ test("cap-space-insufficient signing within MLE succeeds and consumes MLE", asyn
 	});
 	assert.strictEqual(error2, undefined);
 
+	const roster = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		g.get("userTid"),
+	);
+	assert.strictEqual(
+		roster.filter((rosterPlayer) => rosterPlayer.contract.type !== "twoWay")
+			.length,
+		15,
+	);
 	const t = await idb.cache.teams.get(g.get("userTid"));
 	const signedPlayer = await idb.cache.players.get(pid);
 	assert.strictEqual(t?.midLevelExceptionUsedSeason, g.get("season"));
@@ -824,14 +859,278 @@ test("accept passes the signed player tid to keepRosterSorted decisions", async 
 	rosterAutoSort.mockRestore();
 });
 
-test("different players can accept concurrently without duplicate events", async () => {
+test("direct free-agent signing uses the fifteenth standard roster spot", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	const before = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		g.get("userTid"),
+	);
+	assert.strictEqual(
+		before.filter((rosterPlayer) => rosterPlayer.contract.type !== "twoWay")
+			.length,
+		14,
+	);
+
+	const result = await api.main.sign({
+		pid,
+		amount: g.get("minContract"),
+		exp: g.get("season") + 1,
+	});
+	assert.strictEqual(result, undefined);
+
+	const after = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		g.get("userTid"),
+	);
+	assert.strictEqual(
+		after.filter((rosterPlayer) => rosterPlayer.contract.type !== "twoWay")
+			.length,
+		15,
+	);
+	assert.strictEqual((await idb.cache.players.get(pid))?.tid, g.get("userTid"));
+});
+
+test("direct Sign failure at a full roster is reported and leaves no temporary negotiation", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await fillLastStandardRosterSpot();
+	const playerBefore = helpers.deepCopy(await idb.cache.players.get(pid));
+	const teamBefore = helpers.deepCopy(
+		await idb.cache.teams.get(g.get("userTid")),
+	);
+	const payrollBefore = await team.getPayroll(g.get("userTid"));
+	const eventCountBefore = (await idb.cache.events.getAll()).length;
+
+	const result = await api.main.sign({
+		pid,
+		amount: g.get("minContract"),
+		exp: g.get("season") + 1,
+	});
+	assert.strictEqual(
+		result,
+		"Your team has no standard roster spots available.",
+	);
+	assert.deepStrictEqual(await idb.cache.players.get(pid), playerBefore);
+	assert.deepStrictEqual(
+		await idb.cache.teams.get(g.get("userTid")),
+		teamBefore,
+	);
+	assert.strictEqual(await team.getPayroll(g.get("userTid")), payrollBefore);
+	assert.strictEqual(
+		(await idb.cache.events.getAll()).length,
+		eventCountBefore,
+	);
+	assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
+});
+
+test("rejected direct Sign is propagated without leaving a temporary negotiation", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	const playerBefore = helpers.deepCopy(await idb.cache.players.get(pid));
+	const teamBefore = helpers.deepCopy(
+		await idb.cache.teams.get(g.get("userTid")),
+	);
+	const payrollBefore = await team.getPayroll(g.get("userTid"));
+	const eventCountBefore = (await idb.cache.events.getAll()).length;
+	const accept = vi
+		.spyOn(contractNegotiation, "accept")
+		.mockRejectedValueOnce(new Error("Signing transaction rejected"));
+
+	try {
+		let caughtError: unknown;
+		try {
+			await api.main.sign({
+				pid,
+				amount: g.get("minContract"),
+				exp: g.get("season") + 1,
+			});
+		} catch (error) {
+			caughtError = error;
+		}
+		assert(caughtError instanceof Error);
+		assert.strictEqual(caughtError.message, "Signing transaction rejected");
+	} finally {
+		accept.mockRestore();
+	}
+
+	assert.deepStrictEqual(await idb.cache.players.get(pid), playerBefore);
+	assert.deepStrictEqual(
+		await idb.cache.teams.get(g.get("userTid")),
+		teamBefore,
+	);
+	assert.strictEqual(await team.getPayroll(g.get("userTid")), payrollBefore);
+	assert.strictEqual(
+		(await idb.cache.events.getAll()).length,
+		eventCountBefore,
+	);
+	assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
+});
+
+test("full standard roster disables standard offers but preserves eligible Two-Way signing", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await makeEligibleTwoWayFreeAgent(pid);
+	await putUserTeamNearCap(4000);
+
+	const createError = await contractNegotiation.create(pid, false);
+	assert.strictEqual(createError, undefined);
+	const mleAmount = getMidLevelExceptionAmount() - 500;
+	assert.strictEqual(
+		await contractNegotiation.accept({
+			pid,
+			amount: mleAmount,
+			exp: g.get("season") + 1,
+			dryRun: true,
+		}),
+		undefined,
+	);
+	await fillLastStandardRosterSpot();
+	const playerBefore = helpers.deepCopy(await idb.cache.players.get(pid));
+	const teamBefore = helpers.deepCopy(
+		await idb.cache.teams.get(g.get("userTid")),
+	);
+	const payrollBefore = await team.getPayroll(g.get("userTid"));
+	const eventCountBefore = (await idb.cache.events.getAll()).length;
+	const negotiationBefore = await idb.cache.negotiations.get(pid);
+	const rosterError = "Your team has no standard roster spots available.";
+
+	assert.strictEqual(
+		await contractNegotiation.accept({
+			pid,
+			amount: g.get("minContract"),
+			exp: g.get("season") + 1,
+			dryRun: true,
+		}),
+		rosterError,
+	);
+	assert.strictEqual(
+		await contractNegotiation.accept({
+			pid,
+			amount: g.get("minContract"),
+			exp: g.get("season") + 1,
+		}),
+		rosterError,
+	);
+	assert.strictEqual(
+		await contractNegotiation.accept({
+			pid,
+			amount: mleAmount,
+			exp: g.get("season") + 1,
+		}),
+		rosterError,
+	);
+	assert.deepStrictEqual(await idb.cache.players.get(pid), playerBefore);
+	assert.deepStrictEqual(
+		await idb.cache.teams.get(g.get("userTid")),
+		teamBefore,
+	);
+	assert.strictEqual(await team.getPayroll(g.get("userTid")), payrollBefore);
+	assert.strictEqual(
+		(await idb.cache.events.getAll()).length,
+		eventCountBefore,
+	);
+	assert.deepStrictEqual(
+		await idb.cache.negotiations.get(pid),
+		negotiationBefore,
+	);
+
+	const view = await updateNegotiationView({ pid }, ["firstRun"], {});
+	assert(view && "contractOptions" in view);
+	const standardOptions = view.contractOptions.filter(
+		(contract) => contract.type !== "twoWay",
+	);
+	assert(standardOptions.length > 0);
+	assert(
+		standardOptions.every((contract) => contract.disabledReason !== undefined),
+	);
+	assert(
+		standardOptions.some((contract) => contract.disabledReason === rosterError),
+	);
+	assert(standardOptions.some((contract) => contract.option === "player"));
+	assert(standardOptions.some((contract) => contract.option === "team"));
+	const twoWayOption = view.contractOptions.find(
+		(contract) => contract.type === "twoWay",
+	);
+	assert(twoWayOption);
+	assert.strictEqual(twoWayOption.disabledReason, undefined);
+
+	const twoWayResult = await contractNegotiation.accept({
+		pid,
+		amount: g.get("minContract"),
+		exp: g.get("season") + 1,
+		type: "twoWay",
+	});
+	assert.strictEqual(twoWayResult, undefined);
+	const signedPlayer = await idb.cache.players.get(pid);
+	assert.strictEqual(signedPlayer?.contract.type, "twoWay");
+	const rosterAfterTwoWay = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		g.get("userTid"),
+	);
+	assert.strictEqual(
+		rosterAfterTwoWay.filter(
+			(rosterPlayer) => rosterPlayer.contract.type !== "twoWay",
+		).length,
+		g.get("maxRosterSize"),
+	);
+});
+
+test("negotiation offers refresh after a roster spot is freed without a page reload", async () => {
+	const pid = 1;
+	await givePlayerMinContract(pid);
+	await fillLastStandardRosterSpot();
+	assert.strictEqual(await contractNegotiation.create(pid, false), undefined);
+
+	const fullRosterView = await updateNegotiationView({ pid }, ["firstRun"], {});
+	assert(fullRosterView && "contractOptions" in fullRosterView);
+	const unavailableStandardOffers = fullRosterView.contractOptions.filter(
+		(contract) => contract.type !== "twoWay",
+	);
+	assert(
+		unavailableStandardOffers.every(
+			(contract) => contract.disabledReason !== undefined,
+		),
+	);
+	assert(
+		unavailableStandardOffers.some(
+			(contract) =>
+				contract.disabledReason ===
+				"Your team has no standard roster spots available.",
+		),
+	);
+
+	const rosterFiller = await idb.cache.players.get(0);
+	assert(rosterFiller);
+	rosterFiller.tid = PLAYER.FREE_AGENT;
+	await idb.cache.players.put(rosterFiller);
+
+	const availableView = await updateNegotiationView(
+		{ pid },
+		["playerMovement"],
+		fullRosterView,
+	);
+	assert(availableView && "contractOptions" in availableView);
+	assert(
+		availableView.contractOptions.some(
+			(contract) =>
+				contract.type !== "twoWay" && contract.disabledReason === undefined,
+		),
+	);
+});
+
+test("concurrent free-agent signings cannot overfill the last standard roster spot", async () => {
 	for (const pid of [0, 1]) {
 		await givePlayerMinContract(pid);
 		const error = await contractNegotiation.create(pid, true);
 		assert.strictEqual(error, undefined);
+		const negotiation = await idb.cache.negotiations.get(pid);
+		assert(negotiation);
+		negotiation.resigning = false;
+		await idb.cache.negotiations.put(negotiation);
 	}
 
-	const results = await Promise.all(
+	const results = await Promise.allSettled(
 		[0, 1].map((pid) =>
 			contractNegotiation.accept({
 				pid,
@@ -841,11 +1140,26 @@ test("different players can accept concurrently without duplicate events", async
 		),
 	);
 
-	assert.deepStrictEqual(results, [undefined, undefined]);
-	assert.strictEqual((await idb.cache.events.getAll()).length, 2);
-	for (const pid of [0, 1]) {
-		assert.strictEqual(await idb.cache.negotiations.get(pid), undefined);
-	}
+	assert.strictEqual(
+		results.filter(
+			(result) => result.status === "fulfilled" && result.value === undefined,
+		).length,
+		1,
+	);
+	assert.strictEqual((await idb.cache.events.getAll()).length, 1);
+	const roster = await idb.cache.players.indexGetAll(
+		"playersByTid",
+		g.get("userTid"),
+	);
+	assert.strictEqual(
+		roster.filter((rosterPlayer) => rosterPlayer.contract.type !== "twoWay")
+			.length,
+		g.get("maxRosterSize"),
+	);
+	const negotiationsRemaining = await Promise.all(
+		[0, 1].map((pid) => idb.cache.negotiations.get(pid)),
+	);
+	assert.strictEqual(negotiationsRemaining.filter(Boolean).length, 1);
 });
 
 test("concurrent dry runs do not use the accept submission lock", async () => {

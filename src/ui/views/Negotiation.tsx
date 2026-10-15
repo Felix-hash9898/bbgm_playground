@@ -1,16 +1,18 @@
 import clsx from "clsx";
-import { OverlayTrigger, Tooltip } from "react-bootstrap";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useTitleBar from "../hooks/useTitleBar.tsx";
 import {
-	confirm,
 	helpers,
-	logEvent,
 	realtimeUpdate,
 	toWorker,
 	useLocalPartial,
 } from "../util/index.ts";
 import type { View } from "../../common/types.ts";
+import {
+	getContractStructureFilters,
+	getNegotiationRosterFullReason,
+	type ContractStructureFilter,
+} from "../util/rosterFullMessage.ts";
 import {
 	HelpPopover,
 	Mood,
@@ -18,93 +20,23 @@ import {
 	RatingsStatsPopover,
 } from "../components/index.tsx";
 import { isSport, PHASE } from "../../common/index.ts";
+import SignButton from "../components/ContractSignButton.tsx";
+import {
+	createContractSigningGuard,
+	type ContractSigningGuard,
+} from "../util/signing.ts";
 
 // Show the negotiations list if there are more ongoing negotiations
 const redirectNegotiationOrRoster = async (cancelled: boolean) => {
 	const count = await toWorker("main", "countNegotiations", undefined);
 	if (count > 0) {
-		realtimeUpdate([], helpers.leagueUrl(["negotiation"]));
+		await realtimeUpdate([], helpers.leagueUrl(["negotiation"]));
 	} else if (cancelled || isSport("football")) {
 		// After signing player in football, go back to free agents screen, cause you probably need more
-		realtimeUpdate([], helpers.leagueUrl(["free_agents"]));
+		await realtimeUpdate([], helpers.leagueUrl(["free_agents"]));
 	} else {
-		realtimeUpdate([], helpers.leagueUrl(["roster"]));
+		await realtimeUpdate([], helpers.leagueUrl(["roster"]));
 	}
-};
-
-const SignButton = ({
-	pid,
-	amount,
-	exp,
-	type,
-	option,
-	contractExceptionType,
-	disabledReason,
-	resigning,
-	text,
-}: {
-	pid: number;
-	amount: number;
-	exp: number;
-	type?: "standard" | "twoWay";
-	option?: "player" | "team";
-	contractExceptionType?: string;
-	disabledReason: string | undefined;
-	resigning: boolean;
-	text: string;
-}) => {
-	const button = (
-		<button
-			className={`btn btn-sm ${disabledReason !== undefined ? "btn-secondary" : "btn-success"}`}
-			disabled={disabledReason !== undefined}
-			style={{ minWidth: 86 }}
-			onClick={async () => {
-				if (!resigning && contractExceptionType === "midLevel") {
-					const proceed = await confirm(
-						"Signing this contract will use your Mid-Level Exception for the current season. Continue?",
-						{
-							okText: "Use MLE",
-						},
-					);
-					if (!proceed) {
-						return;
-					}
-				}
-
-				const errorMsg = await toWorker("main", "acceptContractNegotiation", {
-					pid,
-					amount: Math.round(amount * 1000),
-					exp,
-					type,
-					option,
-				});
-				if (errorMsg !== undefined && errorMsg) {
-					logEvent({
-						type: "error",
-						text: errorMsg,
-						saveToDb: false,
-					});
-				}
-				redirectNegotiationOrRoster(false);
-			}}
-		>
-			{text}
-		</button>
-	);
-
-	if (disabledReason === undefined) {
-		return button;
-	}
-
-	// Wrapper div around button is because otherwise there is no hover over the disabled button and no tooltip is shown.
-	return (
-		<OverlayTrigger
-			placement="top"
-			overlay={<Tooltip>{disabledReason}</Tooltip>}
-		>
-			<div>{button}</div>
-		</OverlayTrigger>
-	);
 };
 
 const headerStyle = { maxWidth: 900 };
@@ -119,23 +51,6 @@ const contractExceptionLabels: Record<string, string> = {
 };
 
 type ContractOption = View<"negotiation">["contractOptions"][number];
-type ContractStructureFilter =
-	| "all"
-	| "standard"
-	| "player"
-	| "team"
-	| "twoWay";
-
-const contractStructureFilters: {
-	key: ContractStructureFilter;
-	label: string;
-}[] = [
-	{ key: "all", label: "All" },
-	{ key: "standard", label: "Standard" },
-	{ key: "player", label: "PO" },
-	{ key: "team", label: "TO" },
-	{ key: "twoWay", label: "Two-Way" },
-];
 
 const getContractStructure = (
 	contract: ContractOption,
@@ -293,6 +208,7 @@ const Negotiation = ({
 	capSpace,
 	challengeNoRatings,
 	contractOptions,
+	numRosterSpots,
 	midLevelExceptionAmount,
 	midLevelExceptionAvailable,
 	minimumCapHit,
@@ -309,10 +225,32 @@ const Negotiation = ({
 }: View<"negotiation">) => {
 	useTitleBar({ title: "Contract Negotiation" });
 
+	const [, setSigningRevision] = useState(0);
+	const mountedRef = useRef(false);
+	useEffect(() => {
+		mountedRef.current = true;
+		return () => {
+			mountedRef.current = false;
+		};
+	}, []);
+	const signingGuardRef = useRef<ContractSigningGuard | null>(null);
+	if (signingGuardRef.current === null) {
+		signingGuardRef.current = createContractSigningGuard(() => {
+			if (mountedRef.current) {
+				setSigningRevision((revision) => revision + 1);
+			}
+		});
+	}
+	const signingGuard = signingGuardRef.current;
+	const signingStatus = signingGuard.statusFor(p.pid);
+
 	const [showUnavailableOffers, setShowUnavailableOffers] = useState(false);
 	const [contractStructureFilter, setContractStructureFilter] =
 		useState<ContractStructureFilter>("all");
 	const { gender } = useLocalPartial(["gender"]);
+	const visibleContractStructureFilters = getContractStructureFilters(
+		isSport("basketball"),
+	);
 
 	let message;
 	if (salaryCapType === "soft") {
@@ -436,8 +374,17 @@ const Negotiation = ({
 					) : null}
 				</div>
 			</div>
+			{!resigning && numRosterSpots <= 0 ? (
+				<div
+					className="alert alert-warning py-2"
+					role="status"
+					style={offerListStyle}
+				>
+					{getNegotiationRosterFullReason(isSport("basketball"))}
+				</div>
+			) : null}
 			<div className="d-flex flex-wrap gap-1 mb-2" style={offerListStyle}>
-				{contractStructureFilters.map(({ key, label }) => (
+				{visibleContractStructureFilters.map(({ key, label }) => (
 					<button
 						key={key}
 						type="button"
@@ -503,6 +450,9 @@ const Negotiation = ({
 											disabledReason={undefined}
 											resigning={resigning}
 											text={getSignButtonText(contract)}
+											signingGuard={signingGuard}
+											signingStatus={signingStatus}
+											onSigned={() => redirectNegotiationOrRoster(false)}
 										/>
 									</div>
 								))}
@@ -565,9 +515,10 @@ const Negotiation = ({
 				) : (
 					<button
 						className="minimal-ui-end-negotiation btn btn-danger"
+						disabled={signingStatus !== "idle"}
 						onClick={async () => {
 							await toWorker("main", "cancelContractNegotiation", p.pid);
-							redirectNegotiationOrRoster(true);
+							await redirectNegotiationOrRoster(true);
 						}}
 					>
 						Can't reach a deal? End negotiation

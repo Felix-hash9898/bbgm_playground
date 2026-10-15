@@ -9,6 +9,7 @@ import {
 import {
 	canOfferTwoWay,
 	canTeamAddTwoWay,
+	isStandardContract,
 	makeTwoWayContract,
 } from "../core/contracts/contractTwoWay.ts";
 import {
@@ -351,7 +352,8 @@ const updateNegotiation = async (
 		!state.p ||
 		(state.p && inputs.pid !== state.p.pid) ||
 		updateEvents.includes("gameSim") ||
-		updateEvents.includes("newPhase")
+		updateEvents.includes("newPhase") ||
+		updateEvents.includes("playerMovement")
 	) {
 		const userTid = g.get("userTid");
 
@@ -398,6 +400,15 @@ const updateNegotiation = async (
 		p.mood = await player.moodInfos(p2);
 		const payroll = await team.getPayroll(userTid);
 		const userTeam = await idb.cache.teams.get(userTid);
+		const playersOnTeam = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			userTid,
+		);
+		const numRosterSpots =
+			g.get("maxRosterSize") -
+			playersOnTeam.filter((rosterPlayer) =>
+				isStandardContract(rosterPlayer.contract),
+			).length;
 		const birdException =
 			g.get("salaryCapType") === "soft" &&
 			(negotiation.resigning ||
@@ -432,10 +443,6 @@ const updateNegotiation = async (
 			negotiation.resigning,
 		);
 		if (!negotiation.resigning && canOfferTwoWay(p2)) {
-			const players = await idb.cache.players.indexGetAll(
-				"playersByTid",
-				userTid,
-			);
 			const twoWayContract = makeTwoWayContract();
 			const twoWayOption = {
 				exp: twoWayContract.exp,
@@ -444,7 +451,7 @@ const updateNegotiation = async (
 				smallestAmount: false,
 				type: twoWayContract.type,
 				contractExceptionType: "twoWay" as const,
-				disabledReason: canTeamAddTwoWay(players, userTid)
+				disabledReason: canTeamAddTwoWay(playersOnTeam, userTid)
 					? undefined
 					: "Your team already has the maximum number of two-way contracts.",
 			};
@@ -537,6 +544,7 @@ const updateNegotiation = async (
 		return {
 			capSpace: (g.get("salaryCap") - payroll) / 1000,
 			challengeNoRatings: g.get("challengeNoRatings"),
+			numRosterSpots,
 			contractOptions,
 			salaryCapType: g.get("salaryCapType"),
 			payroll: payroll / 1000,

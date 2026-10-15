@@ -206,6 +206,26 @@ const acceptUnsafe = async ({
 		return "Player will not accept this contract.";
 	}
 
+	// Match the commit-time standard-roster validation below when generating offers.
+	// Keep this preflight for a useful disabled reason, but retain the queued
+	// revalidation as the authority when another signing changes the roster.
+	if (
+		!isTwoWay &&
+		!negotiation.resigning &&
+		(p.tid === PLAYER.FREE_AGENT || p.tid === PLAYER.UNDRAFTED)
+	) {
+		const currentRoster = await context.cache.players.indexGetAll(
+			"playersByTid",
+			context.userTid,
+		);
+		const standardRosterSize = currentRoster.filter((rosterPlayer) =>
+			isStandardContract(rosterPlayer.contract),
+		).length;
+		if (standardRosterSize >= context.maxRosterSize) {
+			return "Your team has no standard roster spots available.";
+		}
+	}
+
 	if (p.contract.rookie && context.phase === PHASE.RESIGN_PLAYERS) {
 		// Not sure if the phase condition is necessary. The purpose of this is for hard cap rookies with rookie contract scale.
 		contractWithCapHit.rookie = true;

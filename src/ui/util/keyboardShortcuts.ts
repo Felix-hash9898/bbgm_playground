@@ -379,15 +379,26 @@ export const formatKeyboardShortcutRaw = (
 	return parts.join(IS_APPLE ? "" : "+");
 };
 
-export const formatKeyboardShortcut = <T extends KeyboardShortcutCategories>(
+export const getKeyboardShortcut = <T extends KeyboardShortcutCategories>(
 	category: T,
 	action: keyof KeyboardShortcuts[T],
 	keyboardShortcutsLocal: KeyboardShortcutsLocal,
 ) => {
-	let shortcut = keyboardShortcutsLocal?.[category]?.[action];
-	if (shortcut === undefined) {
-		shortcut = (keyboardShortcuts[category][action] as KeyboardShortcutInfo)
-			.shortcut;
+	const shortcutLocal = keyboardShortcutsLocal?.[category]?.[action];
+	if (shortcutLocal === null) {
+		return;
 	}
-	return formatKeyboardShortcutRaw(shortcut);
+	return (
+		shortcutLocal ??
+		(keyboardShortcuts[category][action] as KeyboardShortcutInfo).shortcut
+	);
 };
+
+export const formatKeyboardShortcut = <T extends KeyboardShortcutCategories>(
+	category: T,
+	action: keyof KeyboardShortcuts[T],
+	keyboardShortcutsLocal: KeyboardShortcutsLocal,
+) =>
+	formatKeyboardShortcutRaw(
+		getKeyboardShortcut(category, action, keyboardShortcutsLocal) ?? null,
+	);

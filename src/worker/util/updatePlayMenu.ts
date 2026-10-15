@@ -12,6 +12,7 @@ import local from "./local.ts";
 import lock from "./lock.ts";
 import toUI from "./toUI.ts";
 import type { Option } from "../../common/types.ts";
+import { assignPlayMenuKeyboardShortcuts } from "../../common/playMenu.ts";
 import { idb } from "../db/index.ts";
 
 const updatePlayMenu = async () => {
@@ -387,10 +388,7 @@ const updatePlayMenu = async () => {
 		};
 	});
 
-	// Set first option to always be primary
-	if (someOptions[0]) {
-		someOptions[0].keyboardShortcut = "primary";
-	}
+	assignPlayMenuKeyboardShortcuts(someOptions);
 
 	toUI("updateLocal", [
 		{

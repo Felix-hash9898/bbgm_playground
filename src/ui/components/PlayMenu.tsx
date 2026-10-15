@@ -11,8 +11,84 @@ import type { Option } from "../../common/types.ts";
 import clsx from "clsx";
 import {
 	formatKeyboardShortcut,
+	getKeyboardShortcut,
+	keyboardShortcuts,
 	useKeyboardShortcuts,
+	type KeyboardShortcutsLocal,
 } from "../util/keyboardShortcuts.ts";
+
+type PlayMenuShortcutAction = NonNullable<Option["keyboardShortcut"]>;
+
+const getPlayMenuShortcutActions = (options: Option[]) => {
+	const activeActions = new Set<PlayMenuShortcutAction>(
+		options.flatMap((option) =>
+			option.keyboardShortcut === undefined ? [] : [option.keyboardShortcut],
+		),
+	);
+	return (
+		Object.keys(keyboardShortcuts.playMenu) as PlayMenuShortcutAction[]
+	).filter((action) => activeActions.has(action));
+};
+
+const getShortcutIdentity = (
+	shortcut: NonNullable<ReturnType<typeof getKeyboardShortcut>>,
+) =>
+	JSON.stringify([
+		shortcut.altKey,
+		shortcut.ctrlKey,
+		shortcut.metaKey,
+		shortcut.shiftKey,
+		shortcut.key.length === 1 ? shortcut.key.toLowerCase() : shortcut.key,
+	]);
+
+const removeDuplicateShortcutLabels = (
+	options: Option[],
+	keyboardShortcutsLocal: KeyboardShortcutsLocal,
+	activeActions: PlayMenuShortcutAction[],
+) => {
+	const actionForShortcut = new Map<
+		string,
+		NonNullable<Option["keyboardShortcut"]>
+	>();
+	for (const action of activeActions) {
+		const shortcut = getKeyboardShortcut(
+			"playMenu",
+			action,
+			keyboardShortcutsLocal,
+		);
+		if (shortcut !== undefined) {
+			const identity = getShortcutIdentity(shortcut);
+			if (!actionForShortcut.has(identity)) {
+				actionForShortcut.set(identity, action);
+			}
+		}
+	}
+
+	const displayedActions = new Set<NonNullable<Option["keyboardShortcut"]>>();
+	return options.map((option) => {
+		const action = option.keyboardShortcut;
+		if (action === undefined) {
+			return option;
+		}
+		const shortcut = getKeyboardShortcut(
+			"playMenu",
+			action,
+			keyboardShortcutsLocal,
+		);
+		if (shortcut === undefined) {
+			return { ...option, keyboardShortcut: undefined };
+		}
+		const identity = getShortcutIdentity(shortcut);
+		if (
+			actionForShortcut.get(identity) !== action ||
+			displayedActions.has(action)
+		) {
+			return { ...option, keyboardShortcut: undefined };
+		}
+		displayedActions.add(action);
+		return option;
+	});
+};
 
 const handleOptionClick = (option: Option, event: MouseEvent) => {
 	if (!option.url) {
@@ -30,9 +106,11 @@ const PlayMenu = ({
 	spectator: boolean;
 	options: Option[];
 }) => {
+	const shortcutActions = getPlayMenuShortcutActions(options);
+
 	useKeyboardShortcuts(
 		"playMenu",
-		undefined,
+		shortcutActions,
 		useCallback(
 			async (action) => {
 				const option = options.find(
@@ -70,6 +148,11 @@ const PlayMenu = ({
 	);
 
 	const keyboardShortcutsLocal = useLocal((state) => state.keyboardShortcuts);
+	const displayedOptions = removeDuplicateShortcutLabels(
+		options,
+		keyboardShortcutsLocal,
+		shortcutActions,
+	);
 
 	if (lid === undefined) {
 		return null;
@@ -93,7 +176,7 @@ const PlayMenu = ({
 				Play
 			</Dropdown.Toggle>
 			<Dropdown.Menu>
-				{options.map((option, i) => {
+				{displayedOptions.map((option, i) => {
 					return (
 						<Dropdown.Item
 							key={i}

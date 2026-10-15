@@ -268,6 +268,7 @@ const FreeAgents = ({
 								<NegotiateButtons
 									canGoOverCap={salaryCapType === "none"}
 									capSpace={capSpace}
+									numRosterSpots={numRosterSpots}
 									disabled={gameSimInProgress}
 									minContract={minContract}
 									spectator={spectator}

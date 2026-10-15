@@ -3721,18 +3721,37 @@ const sign = async ({
 }) => {
 	// Kind of hacky that a negotiation is needed...
 	const negotiation = await idb.cache.negotiations.get(pid);
+	let createdNegotiation = false;
 
 	if (!negotiation) {
 		const errorMsg = await contractNegotiation.create(pid, false);
 		if (errorMsg !== undefined && errorMsg) {
 			return errorMsg;
 		}
+		createdNegotiation = true;
 	}
 
-	const errorMsg = await contractNegotiation.accept({ pid, amount, exp });
+	const removeTemporaryNegotiation = async () => {
+		if (!createdNegotiation) {
+			return;
+		}
+		try {
+			await contractNegotiation.cancel(pid);
+		} catch (error) {
+			console.warn("Unable to clean up failed direct-sign negotiation", error);
+		}
+	};
 
-	if (errorMsg !== undefined && errorMsg) {
-		return errorMsg;
+	try {
+		const errorMsg = await contractNegotiation.accept({ pid, amount, exp });
+
+		if (errorMsg !== undefined && errorMsg) {
+			await removeTemporaryNegotiation();
+			return errorMsg;
+		}
+	} catch (error) {
+		await removeTemporaryNegotiation();
+		throw error;
 	}
 	await reconcileBasketballRotationAfterSigning();
 };
