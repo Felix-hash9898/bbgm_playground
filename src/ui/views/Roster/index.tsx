@@ -452,10 +452,14 @@ const Roster = ({
 			(isAutoFilled && healthyMinutes > 0 ? healthyMinutes : undefined);
 		const hasInjuryContext =
 			unavailablePids.size > 0 && effectiveMinutes !== undefined;
+		const effectiveDiffersAtDisplayedPrecision =
+			currentMinutes !== undefined &&
+			Number.isFinite(healthyMinutes) &&
+			Number(currentMinutes.toFixed(1)) !== Number(healthyMinutes.toFixed(1));
 		const showEffectiveMinutes =
 			currentMinutes !== undefined &&
 			(hasInjuryContext
-				? isAutoFilled || Number.isFinite(baseMinutes)
+				? effectiveDiffersAtDisplayedPrecision
 				: isAutoFilled
 					? healthyMinutes > 0 ||
 						Math.abs(currentMinutes - healthyMinutes) > 1e-7 ||
@@ -786,10 +790,20 @@ const Roster = ({
 					<div className="d-flex flex-wrap align-items-center gap-2 mt-2 small">
 						<label className="d-flex align-items-center gap-1">
 							<span>Depth</span>
+							<span
+								className="visually-hidden"
+								id="basketball-rotation-depth-help"
+							>
+								Depth changes the preferred size of Auto rotations and how
+								readily zero-minute reserves join injury coverage. It guides
+								target minutes, not a hard cap.
+							</span>
 							<select
 								className="form-select form-select-sm"
 								style={rosterCompactControlStyle}
 								value={rotationDepth}
+								title="Depth changes the preferred size of Auto rotations and how readily zero-minute reserves join injury coverage. It guides target minutes, not a hard cap."
+								aria-describedby="basketball-rotation-depth-help"
 								onChange={(event) => {
 									void updateBasketballRotationProfile(
 										tid,
@@ -806,10 +820,20 @@ const Roster = ({
 						</label>
 						<label className="d-flex align-items-center gap-1">
 							<span>Core</span>
+							<span
+								className="visually-hidden"
+								id="basketball-core-reliance-help"
+							>
+								High favors the core; Low spreads targets more broadly. This
+								guides target minutes and can increase the core's workload. It
+								does not set a hard workload cap.
+							</span>
 							<select
 								className="form-select form-select-sm"
 								style={rosterCompactControlStyle}
 								value={coreReliance}
+								title="High favors the core; Low spreads targets more broadly. This guides target minutes and can increase the core's workload. It does not set a hard workload cap."
+								aria-describedby="basketball-core-reliance-help"
 								onChange={(event) => {
 									void updateBasketballRotationProfile(
 										tid,

@@ -228,12 +228,20 @@ export const getBasketballOvrPercentiles = (
 		return;
 	}
 	const sorted = [...values].sort((a, b) => a.ovr! - b.ovr! || a.pid - b.pid);
-	return new Map(
-		sorted.map((player, index) => [
-			player.pid,
-			sorted.length > 1 ? index / (sorted.length - 1) : 0.5,
-		]),
-	);
+	const percentiles = new Map<number, number>();
+	for (let start = 0; start < sorted.length; ) {
+		let end = start + 1;
+		while (end < sorted.length && sorted[end]!.ovr === sorted[start]!.ovr) {
+			end += 1;
+		}
+		const midrank = (start + end - 1) / 2;
+		const percentile = sorted.length > 1 ? midrank / (sorted.length - 1) : 0.5;
+		for (let index = start; index < end; index += 1) {
+			percentiles.set(sorted[index]!.pid, percentile);
+		}
+		start = end;
+	}
+	return percentiles;
 };
 
 /**

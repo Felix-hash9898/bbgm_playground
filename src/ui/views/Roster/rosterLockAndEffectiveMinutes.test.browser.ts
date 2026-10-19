@@ -311,7 +311,7 @@ describe("Roster Lock and effective minutes", () => {
 		).toBeNull();
 	});
 
-	test("shows an equal baseline and current value in an injury context", () => {
+	test("does not show an unchanged current target in an injury context", () => {
 		renderRoster({
 			effectiveMinutesByPid: { 101: 36, 102: 0 },
 			unavailablePids: [102],
@@ -319,7 +319,31 @@ describe("Roster Lock and effective minutes", () => {
 
 		expect(
 			container.querySelector(
-				'[aria-label="Current injury-effective planned minutes: 36"]',
+				'[aria-label^="Current injury-effective planned minutes"]',
+			),
+		).toBeNull();
+	});
+
+	test("shows injury-effective targets only when the displayed value changes", () => {
+		renderRoster({
+			effectiveMinutesByPid: { 101: 36.04, 102: 0 },
+			unavailablePids: [102],
+		});
+
+		expect(
+			container.querySelector(
+				'[aria-label^="Current injury-effective planned minutes"]',
+			),
+		).toBeNull();
+
+		renderRoster({
+			effectiveMinutesByPid: { 101: 36.1, 102: 0 },
+			unavailablePids: [102],
+		});
+
+		expect(
+			container.querySelector(
+				'[aria-label="Current injury-effective planned minutes: 36.1"]',
 			),
 		).not.toBeNull();
 	});

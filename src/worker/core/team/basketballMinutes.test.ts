@@ -1,5 +1,6 @@
 import { assert, describe, test } from "vitest";
 import {
+	getBasketballOvrPercentiles,
 	generateBasketballAutoMinutes,
 	getBasketballGameAvailability,
 	getBasketballMinutesOverrideContext,
@@ -26,6 +27,17 @@ const makePlayers = (count: number): BasketballMinutesPlayer[] =>
 
 const sum = (minutes: Record<number, number>) =>
 	Object.values(minutes).reduce((total, value) => total + value, 0);
+
+test("equal OVR players receive equal percentile signals regardless of pid", () => {
+	const percentiles = getBasketballOvrPercentiles([
+		{ pid: 99, ovr: 50 },
+		{ pid: 2, ovr: 50 },
+		{ pid: 31, ovr: 50 },
+	]);
+
+	assert.strictEqual(percentiles?.get(99), percentiles?.get(2));
+	assert.strictEqual(percentiles?.get(2), percentiles?.get(31));
+});
 
 describe("basketball Dynamic minute plans", () => {
 	test.each([
