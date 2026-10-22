@@ -42,12 +42,6 @@ const RELIANCE_PARAMETERS: Record<
 	low: { regularExponent: 1, playoffExponent: 1.2, reserveShare: 0.67 },
 };
 
-const COVERAGE_REACH: Record<BasketballRotationDepth, number> = {
-	short: 2,
-	normal: 3,
-	long: 5,
-};
-
 const INCUMBENT_PROMOTION_EXTRA: Record<BasketballCoreReliance, number> = {
 	high: 3,
 	balanced: 2,
@@ -816,22 +810,12 @@ export const currentMinutesOverrideContextMatches = (
 	a.rosterPids.every((pid, index) => pid === b.rosterPids[index]) &&
 	a.unavailablePids.every((pid, index) => pid === b.unavailablePids[index]);
 
-type ApplyCurrentMinutesOverridesResult = {
-	minutesByPid: Record<number, number>;
-	activeCurrentMinutesOverrideByPid?: Record<number, number>;
-	currentMinutesOverrideError?: string;
-	protectionOverridePids?: number[];
-};
-
-const applyCurrentMinutesOverrides = ({
+/** Validate persisted pins before allocating any temporary minutes. */
+const getCurrentMinutesOverridePins = ({
 	players,
 	available,
-	automaticMinutesByPid,
 	baseMinutes,
 	protectedPids,
-	ordinaryMaximumByPid,
-	extendedMaximumByPid,
-	reservePromotionOrderPids,
 	numPlayersOnCourt,
 	regulationMinutes,
 	targetTotalMinutes,
@@ -840,23 +824,19 @@ const applyCurrentMinutesOverrides = ({
 }: {
 	players: OrderedPlayer[];
 	available: ReadonlySet<number>;
-	automaticMinutesByPid: Record<number, number>;
 	baseMinutes: ReadonlyMap<number, number>;
 	protectedPids: ReadonlySet<number>;
-	ordinaryMaximumByPid?: ReadonlyMap<number, number>;
-	extendedMaximumByPid?: ReadonlyMap<number, number>;
-	reservePromotionOrderPids?: readonly number[];
 	numPlayersOnCourt: number;
 	regulationMinutes: number;
 	targetTotalMinutes: number;
 	currentMinutesOverrideByPid?: Record<number, number>;
 	currentMinutesOverrideContext?: BasketballMinutesOverrideContext;
-}): ApplyCurrentMinutesOverridesResult => {
+}): { pinned?: Map<number, number>; currentMinutesOverrideError?: string } => {
 	const hasOverrides =
 		currentMinutesOverrideByPid !== undefined &&
 		Object.keys(currentMinutesOverrideByPid).length > 0;
 	if (!hasOverrides) {
-		return { minutesByPid: automaticMinutesByPid };
+		return { pinned: new Map() };
 	}
 
 	const context = getBasketballMinutesOverrideContext({
@@ -871,7 +851,7 @@ const applyCurrentMinutesOverrides = ({
 			context,
 		)
 	) {
-		return { minutesByPid: automaticMinutesByPid };
+		return { pinned: new Map() };
 	}
 
 	const playerByPid = new Map(players.map((p) => [p.pid, p]));
@@ -882,7 +862,6 @@ const applyCurrentMinutesOverrides = ({
 		const pid = Number(pidString);
 		if (!playerByPid.has(pid)) {
 			return {
-				minutesByPid: automaticMinutesByPid,
 				currentMinutesOverrideError:
 					"Current minutes include a player who is no longer on the roster",
 			};
@@ -895,7 +874,6 @@ const applyCurrentMinutesOverrides = ({
 			value > regulationMinutes
 		) {
 			return {
-				minutesByPid: automaticMinutesByPid,
 				currentMinutesOverrideError:
 					"Current minutes must target available players between 0 and the game length",
 			};
@@ -905,7 +883,6 @@ const applyCurrentMinutesOverrides = ({
 			value > (baseMinutes.get(pid) ?? 0) + EPSILON
 		) {
 			return {
-				minutesByPid: automaticMinutesByPid,
 				currentMinutesOverrideError:
 					"Disable Prevent injury increase before setting this player's current minutes above the healthy plan",
 			};
@@ -920,208 +897,21 @@ const applyCurrentMinutesOverrides = ({
 	);
 	if (pinnedTotal > required + EPSILON) {
 		return {
-			minutesByPid: automaticMinutesByPid,
 			currentMinutesOverrideError:
 				"Current minute overrides exceed the team's regulation total",
 		};
 	}
 
-	const candidates = players.filter(
+	const unpinned = players.filter(
 		(p) => available.has(p.pid) && !pinned.has(p.pid),
 	);
-	const activeCandidates = candidates.filter(
-		(p) => (automaticMinutesByPid[p.pid] ?? 0) > EPSILON,
-	);
-	const inactiveCandidates = candidates.filter(
-		(p) => (automaticMinutesByPid[p.pid] ?? 0) <= EPSILON,
-	);
-	const inactiveByPid = new Map(inactiveCandidates.map((p) => [p.pid, p]));
-	const promotionOrder =
-		reservePromotionOrderPids ??
-		inactiveCandidates
-			.slice()
-			.sort(
-				(a, b) =>
-					a.rosterOrder - b.rosterOrder || a.pid - b.pid || a.index - b.index,
-			)
-			.map((p) => p.pid);
-	const promotionCandidates = promotionOrder
-		.map((pid) => inactiveByPid.get(pid))
-		.filter(
-			(p): p is OrderedPlayer => p !== undefined && !protectedPids.has(p.pid),
-		);
-	const adjusted = new Map(
-		players.map((p) => [
-			p.pid,
-			available.has(p.pid) ? (automaticMinutesByPid[p.pid] ?? 0) : 0,
-		]),
-	);
-	for (const [pid, value] of pinned) {
-		adjusted.set(pid, value);
-	}
-	let delta =
-		required -
-		Array.from(adjusted.values()).reduce((total, value) => total + value, 0);
-	if (Math.abs(delta) > EPSILON && candidates.length === 0) {
+	if (unpinned.length === 0 && Math.abs(pinnedTotal - required) > EPSILON) {
 		return {
-			minutesByPid: automaticMinutesByPid,
 			currentMinutesOverrideError:
 				"Leave at least one available player for the remaining minutes",
 		};
 	}
-
-	const weights = new Map(
-		candidates.map((p) => [
-			p.pid,
-			Math.max(
-				automaticMinutesByPid[p.pid] ?? 0,
-				baseMinutes.get(p.pid) ?? 0,
-				0.001,
-			),
-		]),
-	);
-	const addToMaximum = (
-		maximumFor: (p: OrderedPlayer) => number,
-		allowed: (p: OrderedPlayer) => boolean = () => true,
-		pool: OrderedPlayer[] = candidates,
-	) => {
-		if (delta <= EPSILON) {
-			return;
-		}
-		const adjustable = pool.filter(
-			(p) => allowed(p) && maximumFor(p) - (adjusted.get(p.pid) ?? 0) > EPSILON,
-		);
-		if (adjustable.length === 0) {
-			return;
-		}
-		const caps = new Map(
-			adjustable.map((p) => [
-				p.pid,
-				Math.max(0, maximumFor(p) - (adjusted.get(p.pid) ?? 0)),
-			]),
-		);
-		const totalCapacity = Array.from(caps.values()).reduce(
-			(total, value) => total + value,
-			0,
-		);
-		const total = Math.min(delta, totalCapacity);
-		if (total <= EPSILON) {
-			return;
-		}
-		const additions = allocateWeightedWithCaps({
-			players: adjustable,
-			weights,
-			total,
-			caps,
-		});
-		for (const p of adjustable) {
-			adjusted.set(
-				p.pid,
-				(adjusted.get(p.pid) ?? 0) + (additions.get(p.pid) ?? 0),
-			);
-		}
-		delta -= total;
-	};
-
-	if (delta > EPSILON) {
-		const ordinaryMaximum = (p: OrderedPlayer) =>
-			ordinaryMaximumByPid?.get(p.pid) ??
-			(protectedPids.has(p.pid)
-				? (baseMinutes.get(p.pid) ?? 0)
-				: regulationMinutes);
-		const extendedMaximum = (p: OrderedPlayer) =>
-			extendedMaximumByPid?.get(p.pid) ?? ordinaryMaximum(p);
-		addToMaximum(ordinaryMaximum, () => true, activeCandidates);
-		addToMaximum(extendedMaximum, () => true, activeCandidates);
-		for (const p of promotionCandidates) {
-			addToMaximum(ordinaryMaximum, () => true, [p]);
-			if ((adjusted.get(p.pid) ?? 0) > EPSILON) {
-				addToMaximum(extendedMaximum, () => true, [p]);
-			}
-		}
-		addToMaximum(
-			() => regulationMinutes,
-			(p) => !protectedPids.has(p.pid),
-			activeCandidates,
-		);
-		for (const p of promotionCandidates) {
-			addToMaximum(
-				() => regulationMinutes,
-				() => true,
-				[p],
-			);
-			if (delta <= EPSILON) {
-				break;
-			}
-		}
-	} else if (delta < -EPSILON) {
-		let excess = -delta;
-		const reduceToFloor = (floorFor: (p: OrderedPlayer) => number) => {
-			if (excess <= EPSILON) {
-				return;
-			}
-			const adjustable = candidates.filter(
-				(p) => (adjusted.get(p.pid) ?? 0) - floorFor(p) > EPSILON,
-			);
-			if (adjustable.length === 0) {
-				return;
-			}
-			const caps = new Map(
-				adjustable.map((p) => [
-					p.pid,
-					Math.max(0, (adjusted.get(p.pid) ?? 0) - floorFor(p)),
-				]),
-			);
-			const totalCapacity = Array.from(caps.values()).reduce(
-				(total, value) => total + value,
-				0,
-			);
-			const total = Math.min(excess, totalCapacity);
-			if (total <= EPSILON) {
-				return;
-			}
-			const reductions = allocateWeightedWithCaps({
-				players: adjustable,
-				weights: caps,
-				total,
-				caps,
-			});
-			for (const p of adjustable) {
-				adjusted.set(
-					p.pid,
-					(adjusted.get(p.pid) ?? 0) - (reductions.get(p.pid) ?? 0),
-				);
-			}
-			excess -= total;
-		};
-		reduceToFloor((p) =>
-			Math.min(adjusted.get(p.pid) ?? 0, baseMinutes.get(p.pid) ?? 0),
-		);
-		reduceToFloor(() => 0);
-		delta = -excess;
-	}
-
-	if (Math.abs(delta) > EPSILON) {
-		return {
-			minutesByPid: automaticMinutesByPid,
-			currentMinutesOverrideError:
-				"Current minute overrides leave no legal way to reach the team's regulation total",
-		};
-	}
-
-	const protectionOverridePids = candidates
-		.filter(
-			(p) =>
-				protectedPids.has(p.pid) &&
-				(adjusted.get(p.pid) ?? 0) > (baseMinutes.get(p.pid) ?? 0) + EPSILON,
-		)
-		.map((p) => p.pid);
-
-	return {
-		minutesByPid: Object.fromEntries(adjusted) as Record<number, number>,
-		activeCurrentMinutesOverrideByPid: Object.fromEntries(pinned),
-		protectionOverridePids,
-	};
+	return { pinned };
 };
 
 /**
@@ -1509,6 +1299,7 @@ export const getGameEffectiveBasketballMinutesWithStatus = ({
 	numPlayersOnCourt,
 	regulationMinutes,
 	targetTotalMinutes = regulationMinutes * numPlayersOnCourt,
+	playoffs = false,
 	noInjuryMinutesIncreasePids = [],
 	rotationDepth = DEFAULT_ROTATION_DEPTH,
 	coreReliance = DEFAULT_CORE_RELIANCE,
@@ -1524,6 +1315,7 @@ export const getGameEffectiveBasketballMinutesWithStatus = ({
 	regulationMinutes: number;
 	/** Preview-only target; production callers use the regulation total. */
 	targetTotalMinutes?: number;
+	playoffs?: boolean;
 	noInjuryMinutesIncreasePids?: ReadonlySet<number> | readonly number[];
 	rotationDepth?: BasketballRotationDepth;
 	coreReliance?: BasketballCoreReliance;
@@ -1551,82 +1343,137 @@ export const getGameEffectiveBasketballMinutesWithStatus = ({
 		noInjuryMinutesIncreasePids instanceof Set
 			? noInjuryMinutesIncreasePids
 			: new Set(noInjuryMinutesIncreasePids);
-	const assertHardProtectionCaps = (result: Record<number, number>) => {
-		for (const pid of protectedPids) {
-			if ((result[pid] ?? 0) > (baseMinutes.get(pid) ?? 0) + EPSILON) {
-				throw new Error(
-					"Injury minutes cannot exceed Prevent injury increase limits",
-				);
-			}
-		}
-	};
-	const applyCurrentOverrides = (
-		automaticMinutesByPid: Record<number, number>,
-		protectionOverridePids: number[],
-		ordinaryMaximumByPid?: ReadonlyMap<number, number>,
-		extendedMaximumByPid?: ReadonlyMap<number, number>,
-		reservePromotionOrderPids?: readonly number[],
-	): GameEffectiveBasketballMinutesResult => {
-		const current = applyCurrentMinutesOverrides({
-			players: ordered,
-			available: availablePids,
-			automaticMinutesByPid,
-			baseMinutes,
-			protectedPids,
-			ordinaryMaximumByPid,
-			extendedMaximumByPid,
-			reservePromotionOrderPids,
-			numPlayersOnCourt,
-			regulationMinutes,
-			targetTotalMinutes: totalTarget,
-			currentMinutesOverrideByPid,
-			currentMinutesOverrideContext,
-		});
-		assertHardProtectionCaps(current.minutesByPid);
-		const combinedProtectionOverrides = new Set([
-			...protectionOverridePids,
-			...(current.protectionOverridePids ?? []),
-		]);
-		for (const pid of combinedProtectionOverrides) {
-			if (
-				(current.minutesByPid[pid] ?? 0) <=
-				(baseMinutes.get(pid) ?? 0) + EPSILON
-			) {
-				combinedProtectionOverrides.delete(pid);
-			}
-		}
+	const validation = getCurrentMinutesOverridePins({
+		players: ordered,
+		available: availablePids,
+		baseMinutes,
+		protectedPids,
+		numPlayersOnCourt,
+		regulationMinutes,
+		targetTotalMinutes: totalTarget,
+		currentMinutesOverrideByPid,
+		currentMinutesOverrideContext,
+	});
+	if (validation.currentMinutesOverrideError) {
 		return {
-			minutesByPid: current.minutesByPid,
-			protectionOverridePids: [...combinedProtectionOverrides].sort(
-				(a, b) => a - b,
-			),
-			...(current.activeCurrentMinutesOverrideByPid
-				? {
-						activeCurrentMinutesOverrideByPid:
-							current.activeCurrentMinutesOverrideByPid,
-					}
-				: {}),
-			...(current.currentMinutesOverrideError
-				? { currentMinutesOverrideError: current.currentMinutesOverrideError }
-				: {}),
+			...getGameEffectiveBasketballMinutesWithStatus({
+				players,
+				minutesByPid,
+				numPlayersOnCourt,
+				regulationMinutes,
+				targetTotalMinutes,
+				playoffs,
+				noInjuryMinutesIncreasePids,
+				rotationDepth,
+				coreReliance,
+			}),
+			currentMinutesOverrideError: validation.currentMinutesOverrideError,
 		};
-	};
-	if (available.length === ordered.length) {
-		return applyCurrentOverrides(
-			Object.fromEntries(
+	}
+	const pinned = validation.pinned!;
+	if (available.length === ordered.length && pinned.size === 0) {
+		return {
+			minutesByPid: Object.fromEntries(
 				ordered.map((p) => [p.pid, baseMinutes.get(p.pid) ?? 0]),
-			) as Record<number, number>,
-			[],
-		);
+			),
+			protectionOverridePids: [],
+		};
 	}
 
+	// Keep the already preferred automatic plan as the starting point. Pinning a
+	// player to that target must be a no-op for the rest of the team.
+	const automatic =
+		pinned.size > 0
+			? getGameEffectiveBasketballMinutesWithStatus({
+					players,
+					minutesByPid,
+					numPlayersOnCourt,
+					regulationMinutes,
+					targetTotalMinutes,
+					playoffs,
+					noInjuryMinutesIncreasePids,
+					rotationDepth,
+					coreReliance,
+				})
+			: undefined;
+	if (automatic?.allocationError) {
+		return automatic;
+	}
 	const effective = new Map(
-		available.map((p) => [p.pid, baseMinutes.get(p.pid) ?? 0]),
+		available.map((p) => [
+			p.pid,
+			pinned.get(p.pid) ??
+				automatic?.minutesByPid[p.pid] ??
+				baseMinutes.get(p.pid) ??
+				0,
+		]),
 	);
 	let remaining =
 		totalTarget -
 		Array.from(effective.values()).reduce((sum, value) => sum + value, 0);
-	const roleDemand = getRoleDemand(ordered, baseMinutes, availablePids);
+	// Upward pins consume injury extras before reducing the healthy plan.
+	if (remaining < -EPSILON) {
+		const adjustable = available.filter((p) => !pinned.has(p.pid));
+		const reduceToFloor = (floorFor: (p: OrderedPlayer) => number) => {
+			const caps = new Map(
+				adjustable.map((p) => [
+					p.pid,
+					Math.max(0, (effective.get(p.pid) ?? 0) - floorFor(p)),
+				]),
+			);
+			const capacity = Array.from(caps.values()).reduce((a, b) => a + b, 0);
+			const total = Math.min(-remaining, capacity);
+			if (total <= EPSILON) {
+				return;
+			}
+			// Here weights equal capacities, so the capped allocation has this exact
+			// proportional solution. Keep sub-epsilon extras in the total: individually
+			// discarding them can make an otherwise legal upward pin throw.
+			const fraction = total / capacity;
+			for (const p of adjustable) {
+				effective.set(
+					p.pid,
+					(effective.get(p.pid) ?? 0) - (caps.get(p.pid) ?? 0) * fraction,
+				);
+			}
+			remaining += total;
+		};
+		reduceToFloor((p) =>
+			Math.min(effective.get(p.pid) ?? 0, baseMinutes.get(p.pid) ?? 0),
+		);
+		reduceToFloor(() => 0);
+	}
+
+	const demand =
+		pinned.size === 0
+			? getRoleDemand(ordered, baseMinutes, availablePids)
+			: (Object.fromEntries(
+					ROLE_NAMES.map((role) => [
+						role,
+						Math.max(
+							0,
+							ordered.reduce((total, p) => {
+								const vacancy =
+									(baseMinutes.get(p.pid) ?? 0) -
+									(p.available
+										? (pinned.get(p.pid) ?? baseMinutes.get(p.pid) ?? 0)
+										: 0);
+								return (
+									total + vacancy * getPositionRoleAffinities(p.position)[role]
+								);
+							}, 0),
+						),
+					]),
+				) as Record<BasketballRotationRole, number>);
+	const demandTotal = demand
+		? Object.values(demand).reduce((a, b) => a + b, 0)
+		: 0;
+	const roleDemand =
+		demand && demandTotal > EPSILON
+			? (Object.fromEntries(
+					Object.entries(demand).map(([k, v]) => [k, v / demandTotal]),
+				) as Record<BasketballRotationRole, number>)
+			: undefined;
 	const ovrPercentiles = getOvrPercentiles(ordered);
 	const maxValue = Math.max(
 		...ordered.map((p) => Math.max(0, p.value ?? 0)),
@@ -1653,68 +1500,89 @@ export const getGameEffectiveBasketballMinutesWithStatus = ({
 		const absoluteQuality = smoothstep(0.15, 0.55, clamp(quality, 0, 1));
 		const endurance = 0.7 + 0.3 * clamp(p.endurance, 0, 1);
 		const roleFit = 0.65 + 0.35 * getRoleFit(p, roleDemand);
-		const relianceFactor =
-			coreReliance === "high" ? 0.75 : coreReliance === "low" ? 1.25 : 1;
 		const standardGameCapacity = clamp(
-			6 + 30 * absoluteQuality * endurance * roleFit * relianceFactor,
+			6 + 30 * absoluteQuality * endurance * roleFit,
 			4,
 			40,
 		);
 		return Math.min(regulationMinutes, standardGameCapacity * scale);
 	};
 
-	const healthyPositive = ordered
-		.filter((p) => (baseMinutes.get(p.pid) ?? 0) > EPSILON)
-		.sort(
-			(a, b) =>
-				(baseMinutes.get(b.pid) ?? 0) - (baseMinutes.get(a.pid) ?? 0) ||
-				a.rosterOrder - b.rosterOrder ||
-				a.pid - b.pid,
-		);
-	const availablePositive = healthyPositive.filter((p) =>
-		availablePids.has(p.pid),
-	);
-	const availablePositiveRank = new Map(
-		availablePositive.map((p, index) => [p.pid, index]),
-	);
+	const referencePlayers = available.filter((p) => !protectedPids.has(p.pid));
+	const flexible = referencePlayers.filter((p) => !pinned.has(p.pid));
+	const reference = generateBasketballAutoMinutes({
+		players: referencePlayers,
+		numPlayersOnCourt,
+		playoffs,
+		rotationDepth,
+		coreReliance,
+	});
+	const healthyReference = generateBasketballAutoMinutes({
+		players: ordered,
+		numPlayersOnCourt,
+		playoffs,
+		rotationDepth,
+		coreReliance,
+	});
+	// The existing Auto model already changes workload preference for playoffs.
+	// Use its relative phase adjustment without importing hidden GameSim ratings.
+	const regularReference = playoffs
+		? generateBasketballAutoMinutes({
+				players: referencePlayers,
+				numPlayersOnCourt,
+				playoffs: false,
+				rotationDepth,
+				coreReliance,
+			})
+		: reference;
 	const ordinaryMaximumByPid = new Map<number, number>();
 	const extendedMaximumByPid = new Map<number, number>();
+	const fallbackMaximumByPid = new Map<number, number>();
 	for (const p of available) {
 		const base = baseMinutes.get(p.pid) ?? 0;
-		if (protectedPids.has(p.pid)) {
-			ordinaryMaximumByPid.set(p.pid, base);
-			extendedMaximumByPid.set(p.pid, base);
-			continue;
-		}
-		if (base > EPSILON) {
-			const rank = availablePositiveRank.get(p.pid) ?? 0;
-			const promotedSlot = Math.max(
-				base,
-				baseMinutes.get(healthyPositive[rank]?.pid ?? p.pid) ?? base,
-			);
-			const ordinaryMaximum = Math.min(
-				regulationMinutes,
-				promotedSlot + INCUMBENT_PROMOTION_EXTRA[coreReliance] * scale,
-			);
-			ordinaryMaximumByPid.set(p.pid, ordinaryMaximum);
-			extendedMaximumByPid.set(
-				p.pid,
-				Math.min(
+		const commitment =
+			(healthyReference[p.pid] ?? 0) > EPSILON
+				? clamp(base / (healthyReference[p.pid]! * scale), 0, 1)
+				: base / regulationMinutes;
+		const incumbent =
+			base +
+			INCUMBENT_PROMOTION_EXTRA[coreReliance] * scale * commitment +
+			Math.max(0, (reference[p.pid] ?? 0) - (regularReference[p.pid] ?? 0)) *
+				scale;
+		const phaseIncrease =
+			Math.max(0, (reference[p.pid] ?? 0) - (regularReference[p.pid] ?? 0)) *
+			scale;
+		const reserve = Math.min(
+			regulationMinutes,
+			reserveCapacity(p) + phaseIncrease,
+		);
+		const ordinary = protectedPids.has(p.pid)
+			? base
+			: Math.min(
 					regulationMinutes,
-					ordinaryMaximum + EXTENDED_INCUMBENT_EXTRA[coreReliance] * scale,
-				),
-			);
-		} else {
-			const ordinaryMaximum = reserveCapacity(p);
-			ordinaryMaximumByPid.set(p.pid, ordinaryMaximum);
-			extendedMaximumByPid.set(
-				p.pid,
-				Math.min(
-					regulationMinutes,
-					ordinaryMaximum + EXTENDED_RESERVE_EXTRA[coreReliance] * scale,
-				),
-			);
-		}
+					Math.max(
+						incumbent,
+						(reference[p.pid] ?? 0) > EPSILON ? reserve : base,
+					),
+				);
+		ordinaryMaximumByPid.set(p.pid, ordinary);
+		fallbackMaximumByPid.set(
+			p.pid,
+			protectedPids.has(p.pid) ? base : Math.max(ordinary, reserve),
+		);
+		extendedMaximumByPid.set(
+			p.pid,
+			protectedPids.has(p.pid)
+				? base
+				: Math.min(
+						regulationMinutes,
+						Math.max(
+							incumbent +
+								EXTENDED_INCUMBENT_EXTRA[coreReliance] * scale * commitment,
+							reserve + EXTENDED_RESERVE_EXTRA[coreReliance] * scale,
+						),
+					),
+		);
 	}
 
 	const addMinutes = ({
@@ -1772,190 +1640,82 @@ export const getGameEffectiveBasketballMinutesWithStatus = ({
 		remaining -= total;
 	};
 
-	const protectedHealthy = (p: OrderedPlayer) => protectedPids.has(p.pid);
-	const unprotectedPositive = availablePositive.filter(
-		(p) =>
-			!protectedHealthy(p) &&
-			regulationMinutes - (effective.get(p.pid) ?? 0) > EPSILON,
-	);
-	const unprotectedDeep = available.filter(
-		(p) =>
-			!protectedHealthy(p) &&
-			(baseMinutes.get(p.pid) ?? 0) <= EPSILON &&
-			regulationMinutes - (effective.get(p.pid) ?? 0) > EPSILON,
-	);
-	const orderedDeep = [...unprotectedDeep].sort(
-		(a, b) =>
-			reserveWeight(b) - reserveWeight(a) ||
-			a.rosterOrder - b.rosterOrder ||
-			a.pid - b.pid,
-	);
-	const primaryDeep = orderedDeep.slice(0, COVERAGE_REACH[rotationDepth]);
-	const fallbackDeep = orderedDeep.slice(COVERAGE_REACH[rotationDepth]);
-	const positiveWeights = new Map(
-		unprotectedPositive.map((p) => [
+	const reserveOdds =
+		RELIANCE_PARAMETERS[coreReliance].reserveShare /
+		(1 - RELIANCE_PARAMETERS[coreReliance].reserveShare);
+	const weights = new Map(
+		flexible.map((p) => [
 			p.pid,
-			Math.max(baseMinutes.get(p.pid) ?? 0, 0.001),
+			(baseMinutes.get(p.pid) ?? 0) +
+				(reference[p.pid] ?? 0) * scale * reserveOdds * reserveWeight(p),
 		]),
 	);
-	const deepWeights = (candidates: OrderedPlayer[]) =>
-		new Map(candidates.map((p) => [p.pid, reserveWeight(p)]));
-	const redistributionTotal = Math.max(0, remaining);
-	const reserveShare =
-		orderedDeep.length > 0 ? RELIANCE_PARAMETERS[coreReliance].reserveShare : 0;
 	addMinutes({
-		candidates: unprotectedPositive,
-		weights: positiveWeights,
-		requestedTotal: redistributionTotal * (1 - reserveShare),
+		candidates: flexible,
+		weights,
 		maximumByPid: ordinaryMaximumByPid,
 	});
-	addMinutes({
-		candidates: primaryDeep,
-		weights: deepWeights(primaryDeep),
-		requestedTotal: redistributionTotal * reserveShare,
-		maximumByPid: ordinaryMaximumByPid,
-	});
-
-	if (coreReliance === "low") {
-		addMinutes({
-			candidates: primaryDeep,
-			weights: deepWeights(primaryDeep),
-			maximumByPid: ordinaryMaximumByPid,
-		});
-		addMinutes({
-			candidates: fallbackDeep,
-			weights: deepWeights(fallbackDeep),
-			maximumByPid: ordinaryMaximumByPid,
-		});
-		addMinutes({
-			candidates: unprotectedPositive,
-			weights: positiveWeights,
-			maximumByPid: ordinaryMaximumByPid,
-		});
-		addMinutes({
-			candidates: orderedDeep,
-			weights: deepWeights(orderedDeep),
-			maximumByPid: extendedMaximumByPid,
-		});
-		addMinutes({
-			candidates: unprotectedPositive,
-			weights: positiveWeights,
-			maximumByPid: extendedMaximumByPid,
-		});
-	} else if (coreReliance === "balanced") {
-		addMinutes({
-			candidates: unprotectedPositive,
-			weights: positiveWeights,
-			maximumByPid: ordinaryMaximumByPid,
-		});
-		addMinutes({
-			candidates: primaryDeep,
-			weights: deepWeights(primaryDeep),
-			maximumByPid: ordinaryMaximumByPid,
-		});
-		addMinutes({
-			candidates: fallbackDeep,
-			weights: deepWeights(fallbackDeep),
-			maximumByPid: ordinaryMaximumByPid,
-		});
-		addMinutes({
-			candidates: unprotectedPositive,
-			weights: positiveWeights,
-			maximumByPid: extendedMaximumByPid,
-		});
-		addMinutes({
-			candidates: orderedDeep,
-			weights: deepWeights(orderedDeep),
-			maximumByPid: extendedMaximumByPid,
-		});
-	} else {
-		addMinutes({
-			candidates: unprotectedPositive,
-			weights: positiveWeights,
-			maximumByPid: ordinaryMaximumByPid,
-		});
-		addMinutes({
-			candidates: primaryDeep,
-			weights: deepWeights(primaryDeep),
-			maximumByPid: ordinaryMaximumByPid,
-		});
-		addMinutes({
-			candidates: unprotectedPositive,
-			weights: positiveWeights,
-			maximumByPid: extendedMaximumByPid,
-		});
-		addMinutes({
-			candidates: fallbackDeep,
-			weights: deepWeights(fallbackDeep),
-			maximumByPid: ordinaryMaximumByPid,
-		});
-		addMinutes({
-			candidates: orderedDeep,
-			weights: deepWeights(orderedDeep),
-			maximumByPid: extendedMaximumByPid,
-		});
-	}
-
-	const unprotectedEmergencyPositive = unprotectedPositive.filter(
-		(p) => regulationMinutes - (effective.get(p.pid) ?? 0) > EPSILON,
+	const fallbackWeights = new Map(
+		flexible.map((p) => [
+			p.pid,
+			Math.max(weights.get(p.pid) ?? 0, reserveWeight(p)),
+		]),
 	);
 	addMinutes({
-		candidates: unprotectedEmergencyPositive,
-		weights: new Map(
-			unprotectedEmergencyPositive.map((p) => [
-				p.pid,
-				Math.max(baseMinutes.get(p.pid) ?? 0, reserveWeight(p)),
-			]),
-		),
+		candidates: flexible,
+		weights: fallbackWeights,
+		maximumByPid: fallbackMaximumByPid,
 	});
-	const unprotectedEmergencyDeep = unprotectedDeep.filter(
-		(p) => regulationMinutes - (effective.get(p.pid) ?? 0) > EPSILON,
-	);
 	addMinutes({
-		candidates: unprotectedEmergencyDeep,
-		weights: new Map(
-			unprotectedEmergencyDeep.map((p) => [
-				p.pid,
-				Math.max(baseMinutes.get(p.pid) ?? 0, reserveWeight(p)),
-			]),
-		),
+		candidates: flexible,
+		weights: fallbackWeights,
+		maximumByPid: extendedMaximumByPid,
 	});
+	// Exhausted automatic preferences are softened only as far as necessary.
+	// Do not apply ability/role priority a second time to already larger caps.
+	const emergencyHeadroom = new Map(
+		flexible.map((p) => [
+			p.pid,
+			Math.max(0, regulationMinutes - (effective.get(p.pid) ?? 0)),
+		]),
+	);
+	addMinutes({ candidates: flexible, weights: emergencyHeadroom });
+
+	const result = Object.fromEntries(
+		ordered.map((p) => [p.pid, p.available ? (effective.get(p.pid) ?? 0) : 0]),
+	);
 	if (remaining > EPSILON) {
-		const partialMinutesByPid = Object.fromEntries(
-			ordered.map((p) => [
-				p.pid,
-				p.available ? (effective.get(p.pid) ?? 0) : 0,
-			]),
-		) as Record<number, number>;
-		assertHardProtectionCaps(partialMinutesByPid);
+		if (pinned.size > 0) {
+			return {
+				...getGameEffectiveBasketballMinutesWithStatus({
+					players,
+					minutesByPid,
+					numPlayersOnCourt,
+					regulationMinutes,
+					targetTotalMinutes,
+					playoffs,
+					noInjuryMinutesIncreasePids,
+					rotationDepth,
+					coreReliance,
+				}),
+				currentMinutesOverrideError:
+					"Current minute overrides leave no legal way to reach the team's regulation total",
+			};
+		}
 		return {
-			minutesByPid: partialMinutesByPid,
+			minutesByPid: result,
 			protectionOverridePids: [],
 			allocationError:
 				"Injury minutes cannot reach the team's regulation total without exceeding Prevent injury increase limits",
 		};
 	}
-
-	const protectionOverridePids = ordered
-		.filter(
-			(p) =>
-				protectedHealthy(p) &&
-				(effective.get(p.pid) ?? 0) > (baseMinutes.get(p.pid) ?? 0) + EPSILON,
-		)
-		.map((p) => p.pid);
-
-	return applyCurrentOverrides(
-		Object.fromEntries(
-			ordered.map((p) => [
-				p.pid,
-				p.available ? (effective.get(p.pid) ?? 0) : 0,
-			]),
-		) as Record<number, number>,
-		protectionOverridePids,
-		ordinaryMaximumByPid,
-		extendedMaximumByPid,
-		orderedDeep.map((p) => p.pid),
-	);
+	return {
+		minutesByPid: result,
+		protectionOverridePids: [],
+		...(pinned.size > 0
+			? { activeCurrentMinutesOverrideByPid: Object.fromEntries(pinned) }
+			: {}),
+	};
 };
 
 export const getGameEffectiveBasketballMinutes = (
@@ -2042,6 +1802,7 @@ export const validateBasketballCurrentMinutesState = ({
 		};
 	}
 	const effective = getGameEffectiveBasketballMinutesWithStatus({
+		playoffs,
 		players: minutesPlayers.map((p, index) => ({
 			...p,
 			available: availableValues[index]!,

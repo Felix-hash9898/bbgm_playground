@@ -1027,3 +1027,81 @@ test("API accepts a protected Current Override legal under the league-relative h
 	) as { plannedMinutes: number } | undefined;
 	assert.strictEqual(processedTarget?.plannedMinutes, overrideMinutes);
 });
+
+test("an injured zero-minute edit preserves a valid pinned and protected Custom plan through processTeam", async () => {
+	g.setWithoutSavingToDB("challengeNoRatings", true);
+	const positions = ["PG", "SG", "SF", "PF", "C", "G", "FC", "PG", "GF", "C"];
+	const players = positions.map((position, pid) => {
+		const p = player.generate(0, 25, 2020, true, DEFAULT_LEVEL);
+		p.pid = pid;
+		p.rosterOrder = pid;
+		p.ratings.at(-1)!.pos = position;
+		p.injury = {
+			type: pid === 6 ? "Ankle" : "Healthy",
+			gamesRemaining: pid === 6 ? 5 : 0,
+		};
+		return p;
+	});
+	const t = team.generate({ ...helpers.getTeamsDefault()[0], tid: 0 });
+	t.playThroughInjuries = [0, 0];
+	await resetCache({ players, teams: [t] });
+	const original: Record<number, number> = {
+		0: 48,
+		1: 48,
+		2: 48,
+		3: 48,
+		4: 24,
+		5: 24,
+		6: 0,
+		7: 0,
+		8: 0,
+		9: 0,
+	};
+	await api.main.updateBasketballMinutes({ tid: 0, minutesByPid: original });
+	const configured = (await idb.cache.teams.get(0))!;
+	configured.basketballRotation!.rotationDepth = "short";
+	configured.basketballRotation!.coreReliance = "high";
+	await idb.cache.teams.put(configured);
+	for (const pid of [1, 2, 3, 4, 5]) {
+		await api.main.updateBasketballNoInjuryMinutesIncrease({
+			tid: 0,
+			pid,
+			protectedFromIncrease: true,
+		});
+	}
+	await api.main.updateBasketballCurrentMinutesOverride({
+		tid: 0,
+		pid: 0,
+		minutes: 28,
+	});
+	const processed = async () => {
+		const record = (await idb.cache.teams.get(0))!;
+		return processTeam(
+			record,
+			{ won: 0, lost: 0, tied: 0, otl: 0, cid: 0, did: 0 },
+			await idb.cache.players.indexGetAll("playersByTid", 0),
+		);
+	};
+	const before = await processed();
+	const changed: Record<number, number> = { ...original, 1: 47, 6: 1 };
+	await api.main.updateBasketballMinutes({ tid: 0, minutesByPid: changed });
+	const stored = (await idb.cache.teams.get(0))!.basketballRotation!;
+	assert.deepEqual(stored.minutesByPid, changed);
+	assert.deepEqual(stored.currentMinutesOverrideByPid, { 0: 28 });
+	const after = await processed();
+	for (const p of after.player) {
+		const prior = before.player.find((q: { id: number }) => q.id === p.id)!;
+		assert.isBelow(Math.abs(p.plannedMinutes - prior.plannedMinutes), 3);
+		if ([1, 2, 3, 4, 5].includes(p.id)) {
+			assert.isAtMost(p.plannedMinutes, changed[p.id]!);
+		}
+	}
+	assert.equal(
+		after.player.find((p: { id: number }) => p.id === 0)!.plannedMinutes,
+		28,
+	);
+	assert.equal(
+		after.player.find((p: { id: number }) => p.id === 6)!.plannedMinutes,
+		0,
+	);
+});

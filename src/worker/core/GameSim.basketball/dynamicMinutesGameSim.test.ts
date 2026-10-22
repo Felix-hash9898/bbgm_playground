@@ -827,3 +827,60 @@ test("foul trouble, blowout abandonment, and overtime all use real GameSim excep
 	});
 	assert(overtime.result.overtimes >= 1);
 });
+
+test("a locked Current Override stays continuous through loadTeams and two complete games", async () => {
+	g.setWithoutSavingToDB("challengeNoRatings", true);
+	const plan = [48, 48, 48, 48, 24, 24, 0, 0, 0, 0];
+	const rosters = await setup({ plan, injuredIndex: 6 });
+	const t = (await idb.cache.teams.get(0))!;
+	t.basketballRotation = {
+		...t.basketballRotation!,
+		coreReliance: "high",
+		rotationDepth: "short",
+		noInjuryMinutesIncreasePids: [1, 2, 3, 4, 5],
+		currentMinutesOverrideByPid: { 0: 28 },
+		currentMinutesOverrideContext: {
+			rosterPids: rosters[0]!.map((p) => p.pid!).toSorted((a, b) => a - b),
+			unavailablePids: [6],
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		},
+	};
+	await idb.cache.teams.put(t);
+	let firstTargets: Record<number, number> = {};
+	const first = await simOne(104100001, (sim) => {
+		firstTargets = Object.fromEntries(
+			sim.team[0].player.map((p) => [p.id, p.plannedMinutes]),
+		);
+	});
+	const edited = (await idb.cache.teams.get(0))!;
+	edited.basketballRotation!.minutesByPid = {
+		...edited.basketballRotation!.minutesByPid,
+		1: 47,
+		6: 1,
+	};
+	await idb.cache.teams.put(edited);
+	let secondTargets: Record<number, number> = {};
+	const second = await simOne(104100002, (sim) => {
+		secondTargets = Object.fromEntries(
+			sim.team[0].player.map((p) => [p.id, p.plannedMinutes]),
+		);
+	});
+	for (const pid of Object.keys(secondTargets).map(Number)) {
+		assert.isBelow(Math.abs(secondTargets[pid]! - firstTargets[pid]!), 3);
+	}
+	for (const targets of [firstTargets, secondTargets]) {
+		assert.equal(targets[0], 28);
+		assert.equal(targets[6], 0);
+	}
+	for (const match of [first, second]) {
+		for (const team of match.result.team) {
+			assert.isAbove(team.stat.pts, 0);
+			assert.closeTo(team.stat.min, 240 + 25 * match.result.overtimes, 1e-5);
+		}
+	}
+	const stored = (await idb.cache.teams.get(0))!.basketballRotation!;
+	assert.deepEqual(stored.currentMinutesOverrideByPid, { 0: 28 });
+	assert.equal(stored.minutesByPid![1], 47);
+	assert.equal(stored.minutesByPid![6], 1);
+});

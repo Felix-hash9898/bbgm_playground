@@ -445,6 +445,7 @@ const updateRoster = async (
 									) *
 									(regulationMinutes / 48);
 								effective = getGameEffectiveBasketballMinutesWithStatus({
+									playoffs,
 									players: minutesPlayers.map((p, index) => ({
 										...p,
 										available: available[index]!,

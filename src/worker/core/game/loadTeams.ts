@@ -466,6 +466,7 @@ export const processTeam = async (
 			numPlayersOnCourt: g.get("numPlayersOnCourt"),
 		});
 		const effective = getGameEffectiveBasketballMinutes({
+			playoffs,
 			players: minutesPlayers.map((p, i) => ({
 				...p,
 				available: available[i]!,
