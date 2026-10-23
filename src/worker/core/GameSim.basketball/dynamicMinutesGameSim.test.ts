@@ -341,7 +341,7 @@ test("loadTeams applies injury no-increase protection only to effective planned 
 	);
 });
 
-test("loadTeams keeps inactive reserves strictly zero through Current Override promotion boundaries", async () => {
+test("loadTeams promotes a healthy zero-plan reserve only for injury coverage and keeps Custom intact", async () => {
 	const plan = [38, 35, 33, 30, 27, 24, 20, 18, 15, 0, 0, 0, 0, 0];
 	const rosters = await setup({ plan, injuredIndex: 0 });
 	const userTeam = (await idb.cache.teams.get(0))!;
@@ -358,6 +358,9 @@ test("loadTeams keeps inactive reserves strictly zero through Current Override p
 		},
 	};
 	await idb.cache.teams.put(userTeam);
+	const savedMinutesByPid = structuredClone(
+		userTeam.basketballRotation.minutesByPid,
+	);
 
 	const loaded = await loadTeams([0, 1], {});
 	assert(loaded[0]);
@@ -365,16 +368,36 @@ test("loadTeams keeps inactive reserves strictly zero through Current Override p
 		loaded[0].player.map((p: any) => [p.id, p]),
 	);
 	assert.strictEqual(byId.get(1)!.plannedMinutes, 10);
-	assert.strictEqual(byId.get(9)!.plannedMinutes, 0);
-	assert.isAbove(byId.get(10)!.plannedMinutes, 0);
-	assert.isAbove(byId.get(11)!.plannedMinutes, 0);
-	for (const pid of [12, 13]) {
-		assert.strictEqual(byId.get(pid)!.plannedMinutes, 0);
-	}
+	assert(
+		[9, 10, 11, 12, 13].some((pid) => byId.get(pid)!.plannedMinutes > 0),
+		"injury coverage can promote a healthy zero-plan reserve when the remaining plan needs it",
+	);
 	assert.closeTo(
 		loaded[0].player.reduce((sum: number, p: any) => sum + p.plannedMinutes, 0),
 		240,
 		1e-7,
+	);
+	assert.deepEqual(
+		(await idb.cache.teams.get(0))!.basketballRotation!.minutesByPid,
+		savedMinutesByPid,
+	);
+
+	// Once the injury is gone, the saved healthy Custom DNPs return. Injury
+	// coverage must not rewrite the user's reusable healthy plan.
+	const returned = (await idb.cache.players.get(rosters[0]![0]!.pid!))!;
+	returned.injury = { type: "Healthy", gamesRemaining: 0 };
+	await idb.cache.players.put(returned);
+	const healthyReload = await loadTeams([0, 1], {});
+	assert(healthyReload[0]);
+	const healthyById = new Map<number, any>(
+		healthyReload[0].player.map((p: any) => [p.id, p]),
+	);
+	for (const [index, minutes] of plan.entries()) {
+		assert.strictEqual(healthyById.get(index)!.plannedMinutes, minutes);
+	}
+	assert.deepEqual(
+		(await idb.cache.teams.get(0))!.basketballRotation!.minutesByPid,
+		savedMinutesByPid,
 	);
 });
 
