@@ -174,7 +174,7 @@ Candidate code commit: [`755f0c2bfa63565c3787307816c45efb0b021bb2`](https://gith
 - `src/ui/views/Roster/index.tsx:796–849`: Depth and Core are expressly documented as preferred target behavior, not hard caps/workload limits.
 - Red assertions: `src/worker/core/team/basketballMinutes.test.ts:885–920`, `:1180–1235`, `:1309–1370`; `src/worker/core/GameSim.basketball/dynamicMinutesGameSim.test.ts:344–382`, and timeout case `:744–770`.
 - Reused full-season analysis: `holistic-review/season-analysis-v3.md`; raw pair manifest/data: `holistic-review/RUNS-v3.jsonl`, `holistic-review/results-v3/`, `holistic-review/analyze-seasons-v3.py`.
-- New factorial raw output: `holistic-review/depth-core-factorial.json`; fixture: `holistic-review/fixtures/holdout2024.json`; temporary runner: `repair-auto/tools/research/holisticDecisionGate.test.ts` (research path, not part of the candidate commit).
+- New factorial raw output: `holistic-review/depth-core-factorial.json`; the review branch also carries a compact, reviewer-readable JSONL export with all 432 factor cells and 144 cross-play seeds, plus its SHA manifest. It records every player's target, average actual minutes and energy by cell, and each seed's score. Rated-only OVR arrays are omitted from No Ratings rows. Fixture: `holistic-review/fixtures/holdout2024.json`; temporary runner: `repair-auto/tools/research/holisticDecisionGate.test.ts` (research path, not part of the candidate commit).
 
 ### Reproduction
 
@@ -188,5 +188,6 @@ The report-only GitHub audit branch carries this review. Local raw files remain 
 factorial output:  87a02957bd40342e4b6b60aae977121bd0ec1f60d9822ec1c707fb2b9a5c9161
 season pair index: 92929fddd75625e9315e7b54ce0d7c61ce42c99e8bc01b54cb20ad9882fa9bae
 factorial runner:  595303aee85292474d55a1ed928a03d61f1599bb1434b46670e6d7ba003a5868
+factorial review-data manifest: 22b3636572e0ee08602072c8cd4adc04bcd02e5122b8678d49d9577a0c01a844
 candidate allocator source: f3cd3e48f586e92af19707a82019b08ef88019165d38b97616eb9bb9ed29f571
 ```
