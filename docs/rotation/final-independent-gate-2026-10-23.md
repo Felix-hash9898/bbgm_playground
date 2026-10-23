@@ -110,7 +110,7 @@ Decision-Relevance 判断：不增加固定上限、不调大 High/Low 数值差
 
 - 固定代码：755f0c2bfa63565c3787307816c45efb0b021bb2
 - 既有审计数据：253332bad933e7512ebb048cc491fd4dc2899374；576 行导出 manifest 的 SHA256 为 22b3636572e0ee08602072c8cd4adc04bcd02e5122b8678d49d9577a0c01a844
-- 新一伤病完整输出（Cloud 本地）：core-single-injury-factorial.json，SHA256 682dbc639c62dafb2ead1048ffd9eacd7001260ebc9a7ca649934f29471339d8
+- 新一伤病完整输出：[core-single-injury-factorial.json.gz](https://github.com/Felix-hash9898/bbgm_playground/blob/review/rotation-final-gate-2026-10-23/docs/rotation/core-single-injury-factorial.json.gz)；压缩文件 SHA256 `1c04a1b6c657980a32f7779f595fceabe0c2d68f18137bfad353a962c572f0b4`，解压后 JSON SHA256 `682dbc639c62dafb2ead1048ffd9eacd7001260ebc9a7ca649934f29471339d8`
 - 修正最低能量跨 seed 聚合后的 runner（Cloud 本地）：coreRelianceInjuryScale.test.ts，SHA256 cefffdc2806ef0cf95181aee388bf59c314c289aa32227d2e1fab87e94442553
 - 一伤病数据 fixture 沿用 2024 holdout2024.json，SHA256 a0843c6eaecd024443cf8fd7c9ef9bc0e53cf099c1a0234863e1a941983bc21a
 
