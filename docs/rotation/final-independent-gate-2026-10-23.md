@@ -61,6 +61,19 @@ ORL Rated、Short、Franz Wagner 伤停的全队目标 / 12 场平均实际分�
 
 全部四种计划总目标均为 240 分钟；伤员保持 0。候选 High / Low 的比分均值分别为 ORL 108.6–103.4 和 108.4–110.6，Main 为 106.2–108.5 和 110.9–108.2。12 场间方向不稳定；不能把该比分差归因于 Core。候选把 Queen 的 17.5 分钟健康零计划晋升为 0.4 / 0.3 分钟，而用相对适配的健康轮换承接主要增量；这是 UI 明确允许的伤病覆盖语义。
 
+### ORL 最差初始比分单元的独立追加检查
+
+初始 12 seeds 中，在 54 个 Rated/No Ratings × 球队 × Core × Depth 的 Main–候选对照单元里，ORL-IND Rated、Balanced/Short 是观察到的最差单元：候选相对 Main 的 ORL 净分差为 −10.75 分/场，描述性配对 95% 区间约 [−21.87,+0.37]。这是从 54 个单元中挑出的极值，存在选择偏差，不能直接作为回退证据。按 Decision-Relevance 只对该真实反例追加 48 场/臂。
+
+追加输入：同一 2024 ORL–IND roster、Rated、Custom 健康计划、Balanced/Short、无 Lock/Pin；伤病为最高健康目标的 Franz Wagner；保持完整生产 GameSim.run()，baseInjuryRate=0。Main 和候选分别使用独立 seed 列表 202621000–202621047（两臂相同初始 seeds 只是 PRNG 共同起点，不保证球权级配对）。额外运行器还重复生成了 48 场三伤病交叉对照；这些重复行不计入本次追加的 96 场证据。
+
+| 48 场/臂 | ORL 得分 | 对手得分 | ORL 分差 | ORL 胜场 | 全队低于 0.5 能量的球员分钟/场 |
+|---|---:|---:|---:|---:|---:|
+| Main | 107.81 | 108.94 | −1.13 | 23/48 | 0 |
+| Candidate | 107.98 | 109.25 | −1.27 | 21/48 | 0 |
+
+候选−Main 的 ORL 分差变化为 −0.15 分/场；同 seed 描述性 95% 区间约 [−4.77,+4.48]，不能确认真实比分退化。合并原 12 场后点估计为 −2.27，但原 12 场是因极值而被选择，故不应作为无偏确认值。两臂的前五人目标/深度目标分别为 Main 160.6/79.4、候选160.5/79.5，候选的分钟再分配在这个 Balanced 案例并未产生可测低能量收益；活跃球员跨 48 场的最低能量均值约为 0.836 / 0.815。结论是该单元保留潜在小幅球队特定性能代价，但原 −10.75 极端未能复现；现有证据不足以定因或触发局部修复。该追加输出 SHA256（解压 JSON）为 `4a9390c5c0c6e6fd3a7a024d21e9e9df16ed024aa74ab0a1b86b63dfb0f56824`，压缩输出见[原始追加结果](https://github.com/Felix-hash9898/bbgm_playground/blob/review/rotation-final-gate-2026-10-23/docs/rotation/core-single-injury-followup-orl.json.gz)（gzip SHA256 `3035fb3b2b5495be5482acb418bbe58f238f525f3fe82dbd9502c6d338321d47`）。
+
 ### 能量统计审计
 
 旧 576 行导出中的 minimumEnergy 字段只取每个单元的第一个 seed；旧报告不应把它解释为 12 场平均或跨 seed 最差能量。本轮一伤病运行器已经修正为聚合 12 个 seed 的最低能量均值与最差 seed；这里的低能量分钟数则从一开始就是跨 12 场均值。本报告的 Core 疲劳判断只依据跨 seed 低能量分钟暴露，不使用旧的单 seed minimumEnergy 字段。
@@ -111,7 +124,8 @@ Decision-Relevance 判断：不增加固定上限、不调大 High/Low 数值差
 - 固定代码：755f0c2bfa63565c3787307816c45efb0b021bb2
 - 既有审计数据：253332bad933e7512ebb048cc491fd4dc2899374；576 行导出 manifest 的 SHA256 为 22b3636572e0ee08602072c8cd4adc04bcd02e5122b8678d49d9577a0c01a844
 - 新一伤病完整输出：[core-single-injury-factorial.json.gz](https://github.com/Felix-hash9898/bbgm_playground/blob/review/rotation-final-gate-2026-10-23/docs/rotation/core-single-injury-factorial.json.gz)；压缩文件 SHA256 `1c04a1b6c657980a32f7779f595fceabe0c2d68f18137bfad353a962c572f0b4`，解压后 JSON SHA256 `682dbc639c62dafb2ead1048ffd9eacd7001260ebc9a7ca649934f29471339d8`
-- 修正最低能量跨 seed 聚合后的 runner（Cloud 本地）：coreRelianceInjuryScale.test.ts，SHA256 cefffdc2806ef0cf95181aee388bf59c314c289aa32227d2e1fab87e94442553
+- 原 1,296 场一伤病因子 runner（Cloud 本地）：coreRelianceInjuryScale.test.ts，SHA256 cefffdc2806ef0cf95181aee388bf59c314c289aa32227d2e1fab87e94442553
+- 追加 48-seed ORL 负面单元 runner（Cloud 本地）：targetedOrlNegativeAudit.test.ts；同一 GameSim 方法，输出 JSON 的 SHA256 已列在上文
 - 一伤病数据 fixture 沿用 2024 holdout2024.json，SHA256 a0843c6eaecd024443cf8fd7c9ef9bc0e53cf099c1a0234863e1a941983bc21a
 
 来源：src/worker/core/team/basketballMinutes.ts:617–685、1296–1718；src/worker/core/game/loadTeams.ts:429–498；src/worker/views/roster.ts:395–488；src/ui/views/Roster/index.tsx:354、796–849；src/worker/core/GameSim.basketball/dynamicMinutesGameSim.test.ts:344–382；src/worker/core/team/basketballMinutes.test.ts:885–920、1180–1235、1309–1370。
