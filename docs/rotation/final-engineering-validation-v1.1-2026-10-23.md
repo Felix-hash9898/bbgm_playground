@@ -4,7 +4,7 @@ Date: 2026-10-23
 
 ## Decision
 
-This branch is ready for **ChatGPT's independent v1.1 code review**, not authorized for merge. The algorithm is unchanged from fixed candidate `755f0c2bfa63565c3787307816c45efb0b021bb2`; this engineering round updates four obsolete behavioral assertions while retaining their fixtures and meaningful regression checks. No production source, formal `main`, save, or deployment was changed.
+This branch is ready for **ChatGPT's independent v1.1 code review**, not authorized for merge. The algorithm is unchanged from fixed candidate `755f0c2bfa63565c3787307816c45efb0b021bb2`; this engineering round updates four obsolete behavioral assertions, adds a targeted injured-Depth contract, and retains the original fixtures and meaningful regression checks. No production source, formal `main`, save, or deployment was changed.
 
 The four legacy failures were contract mismatches, not permission to delete coverage. The replacements passed the candidate suite and were tested against temporary, reverted mutants that represented the relevant wrong behaviors. There is no new Rotation Blocker or Significant regression from these changes. Repository-wide tests and static checks still have baseline failures, so this is not a claim that the repository is fully green or a formal merge Go.
 
@@ -18,10 +18,10 @@ The four legacy failures were contract mismatches, not permission to delete cove
 
 | Scope | Main | Candidate |
 |---|---:|---:|
-| Six shared Rotation/API/Roster/GameSim files | 149/149 pass | 151/151 pass |
+| Six shared Rotation/API/Roster/GameSim files (final follow-up rerun) | 149/149 pass | 152/152 pass |
 | Candidate's additional continuity, Override-boundary and real-roster injury tests | — | 10/10 pass across 3 files |
-| Full `node --run test` (Vitest defaults) | 1,173 passed, 2 failed, 17 skipped; 11 failed files, 7 skipped files; 1 unhandled error; 448.97s | 1,205 passed, 2 failed, 17 skipped; 11 failed files, 7 skipped files; 1 unhandled error; 397.19s |
-| Full build | pass | pass |
+| Inherited full `node --run test` at commit 8151 (Vitest defaults; not rerun after this test-only follow-up) | 1,173 passed, 2 failed, 17 skipped; 11 failed files, 7 skipped files; 1 unhandled error; 448.97s | 1,205 passed, 2 failed, 17 skipped; 11 failed files, 7 skipped files; 1 unhandled error; 397.19s |
+| Full build | pass at 8151 | pass at 8151 and rebuilt after this follow-up |
 | Full ESLint | 464 errors, 0 warnings | 464 errors, 0 warnings |
 | Full TypeScript check | 183 diagnostics | 183 diagnostics; same normalized diagnostic set |
 | Changed-file ESLint / format / diff check | n/a | pass / pass / pass |
@@ -34,16 +34,17 @@ One unmodified API test, `an Auto profile write removes only the Current Overrid
 
 | Old failing assertion and preserved fixture | Why the old assertion was wrong | Replacement behavior and mutation sensitivity |
 |---|---|---|
-| `basketballMinutes.test.ts`: reserve must always stay at or below 10 minutes. The original six-available-player injury fixture is retained. | No universal weak-reserve cap is part of the product contract; injury burden and available alternatives matter. | The six-player injury case allows a high emergency allocation while enforcing injured-player zero and 240-minute conservation. A second 12-player fixture puts a stronger OVR82, zero-plan alternative after a weak OVR20 reserve in roster order and verifies the stronger alternative receives more coverage. A temporary OVR-blind allocator mutant failed this comparison. |
+| `basketballMinutes.test.ts`: reserve must always stay at or below 10 minutes. The original six-available-player injury fixture is retained. | Six available players do not mathematically require the sixth player to play: five can cover 240 minutes. A fixed weak-reserve threshold ignores both ability and fatigue. | With no locks, compare weak and stronger reserve versions of the same fixture: the stronger reserve takes more minutes while the five incumbents' target load and `minutes × (1 − endurance)` energy-drain proxy fall. The weak reserve has no required floor. A separate 12-player fixture verifies a stronger OVR82, zero-plan option receives more than an OVR20 alternative. Finally, four explicit protections and a pin derive the weak reserve's necessary minutes from remaining legal capacity; this shows emergency 40+ is permitted only when the actual hard constraints require it. The injured player, total, hard caps, exact pin, and 48-minute legal ceiling remain checked. A temporary constant-percentile mutant failed the quality comparison. |
 | Same file: Current Override must preserve exactly two Short reserves. | Depth is a soft preference, not a fixed active-player count, particularly after pins and injuries. | Retains one downward pin, two zero pins, one upward pin, and exact current override assertions; verifies injured-player zero, 240 total, and legal per-player bounds. |
 | Same file: injury allocation must activate exactly 2/3/5 reserves for Short/Normal/Long. | UI and design define preferred depth, not a hard headcount or zero-mask. | Retains the 14-player injury input and all 3×3 Core/Depth profiles. Separately checks Auto plan totals/bounds, Long's tail allocation versus Short on this fixture, distinct adjacent Depth plans, and High>Balanced>Low top-core minutes. Injury cases preserve zero injured minutes and total/bounds without forcing headcount. A temporary mutant that made every depth use Normal failed. |
+| New injury Depth regression in `basketballMinutes.test.ts`. | Healthy Auto tests alone do not prove that Depth remains an input to injury allocation. | Holds one 14-player Custom plan, three injuries (guard, wing, center), position/role/OVR/endurance inputs, and available alternatives fixed while comparing all depths across Core settings. Checks legal totals, zero injured minutes, a position-relevant center/guard reserve trade, Depth-dependent target maps, and core workload ordering. Repeats under two protected incumbents and an exact Current Override; there it checks hard contracts without demanding a Depth difference when constraints bind. A temporary implementation that forced all depths to Normal failed the free-capacity injury comparison. |
 | `dynamicMinutesGameSim.test.ts`: saved Custom zero-plan reserves must remain DNP after injury. | UI permits zero-plan reserves to participate in injury coverage; explicit Prevent injury increase/Lock is the control for users who want that protection. | Retains `loadTeams` injury input, verifies pin exactness, injured-player zero, total 240, and that some eligible zero-plan player is promoted. It verifies the saved Custom `minutesByPid` is unchanged and reloads the healthy roster to verify all original minutes/zeroes return. A temporary mutant forbidding zero-plan promotion failed. |
 
-The temporary mutants were reverted before final checks; production source remains byte-for-byte unchanged from 755. Thus the revised tests do not pass regardless of behavior: they detect ignoring quality, ignoring Depth, and silently treating healthy Custom zero as a permanent injury DNP.
+The temporary mutants were reverted before final checks; production source remains byte-for-byte unchanged from 755. Thus the revised tests do not pass regardless of behavior: they detect ignoring quality, ignoring Depth under a free-capacity injury case, and silently treating healthy Custom zero as a permanent injury DNP. Emergency participation is tested through actual lock/pin-derived remaining capacity, never a universal minute threshold.
 
 ## Inherited basketball evidence and decision relevance
 
-No allocator or GameSim code changed in this round, so repeating tens of thousands of games would not add decision value. The fixed candidate's real-GameSim evidence remains in [`rotation-injury-integration-review.md`](../rotation-injury-integration-review.md) and the previous independent supplement at `review/rotation-final-gate-2026-10-23`. The portable real-roster GameSim test was rerun: 3 files / 10 tests pass. Full-team tables and scenario definitions are preserved in those reports.
+No allocator or GameSim code changed in this round, so repeating tens of thousands of games would not add decision value. The fixed candidate's real-GameSim evidence remains in [`rotation-injury-integration-review.md`](../rotation-injury-integration-review.md) and the previous independent supplement at `review/rotation-final-gate-2026-10-23`. The portable real-roster GameSim test was rerun: 3 files / 10 tests pass. The six shared files were rerun on main and candidate after the final tests; the entire repository suite was not rerun because this follow-up changes only already-covered test files and the prior full run found only shared baseline/environment failures. Full-team tables and scenario definitions are preserved in those reports.
 
 Key prior paired-seed real GameSim findings (targets / actual minutes where shown):
 
@@ -76,6 +77,8 @@ Use the repo's Node 24 environment and installed dependencies. Run the six-file 
   src/worker/core/team/basketballOverrideBoundary.regression.test.ts \
   src/worker/core/GameSim.basketball/injuryRotationRealRoster.test.ts
 ```
+
+The new injured-Depth case is in `src/worker/core/team/basketballMinutes.test.ts` under `injury Depth preference changes reserve roles without breaking locks or pins`; the emergency-quality case is `injury coverage weighs reserve quality and allows unavoidable emergency minutes`.
 
 Full comparison uses unmodified repository defaults:
 

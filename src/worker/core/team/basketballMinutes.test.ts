@@ -884,8 +884,9 @@ describe("basketball Dynamic minute plans", () => {
 
 	test("injury coverage weighs reserve quality and allows unavoidable emergency minutes", () => {
 		// Historical red fixture: one starter is out and only six players remain
-		// available. The old <=10-minute assertion treated the weak reserve as if
-		// a legal alternative existed, although all six players must cover 240 minutes.
+		// available. This does not imply the reserve must play: five players can
+		// mathematically cover regulation. Compare plans and energy-loss exposure
+		// instead of imposing a per-player floor or ceiling.
 		const players = makePlayers(7).map((p, index) => ({
 			...p,
 			ovr: index === 6 ? 20 : 70,
@@ -909,12 +910,92 @@ describe("basketball Dynamic minute plans", () => {
 		const weak = makeEffective(20);
 		const strong = makeEffective(82);
 
-		assert.isAbove(weak.minutesByPid[106]!, 10);
+		const corePids = [101, 102, 103, 104, 105];
+		const coreMinutes = (minutesByPid: Record<number, number>) =>
+			corePids.reduce((total, pid) => total + minutesByPid[pid]!, 0);
+		// GameSim drains energy per on-court minute in proportion to 1 - endurance.
+		// This is a planned-load proxy; the full GameSim remains the final fatigue check.
+		const plannedEnergyDrain = (minutesByPid: Record<number, number>) =>
+			corePids.reduce(
+				(total, pid) =>
+					total + minutesByPid[pid]! * (1 - players[pid - 100]!.endurance!),
+				0,
+			);
+		for (const result of [weak, strong]) {
+			assert.strictEqual(result.minutesByPid[100], 0);
+			assert.closeTo(sum(result.minutesByPid), 240, 1e-7);
+			for (const p of players) {
+				assert.isAtLeast(result.minutesByPid[p.pid]!, 0);
+				assert.isAtMost(result.minutesByPid[p.pid]!, 48);
+			}
+		}
 		assert.isAbove(strong.minutesByPid[106]!, weak.minutesByPid[106]!);
-		assert.strictEqual(weak.minutesByPid[100], 0);
-		assert.strictEqual(strong.minutesByPid[100], 0);
-		assert.closeTo(sum(weak.minutesByPid), 240, 1e-7);
-		assert.closeTo(sum(strong.minutesByPid), 240, 1e-7);
+		assert.isBelow(
+			coreMinutes(strong.minutesByPid),
+			coreMinutes(weak.minutesByPid),
+		);
+		assert.isBelow(
+			plannedEnergyDrain(strong.minutesByPid),
+			plannedEnergyDrain(weak.minutesByPid),
+		);
+
+		// A weak reserve may receive high emergency minutes when user hard caps
+		// remove the alternatives. Derive the required floor from actual remaining
+		// capacity; do not encode a universal emergency minute threshold.
+		const protectedPids = [101, 102, 103, 104];
+		const available = new Set(
+			players.filter((p) => p.pid !== 100).map((p) => p.pid),
+		);
+		const currentMinutesOverrideContext = getBasketballMinutesOverrideContext({
+			players,
+			available,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		});
+		for (const pin of [undefined, 34]) {
+			const result = getGameEffectiveBasketballMinutesWithStatus({
+				players: players.map((p) => ({ ...p, available: p.pid !== 100 })),
+				minutesByPid: saved,
+				numPlayersOnCourt: 5,
+				regulationMinutes: 48,
+				coreReliance: "low",
+				rotationDepth: "normal",
+				noInjuryMinutesIncreasePids: protectedPids,
+				...(pin === undefined
+					? {}
+					: {
+							currentMinutesOverrideByPid: { 105: pin },
+							currentMinutesOverrideContext,
+						}),
+			});
+			assert.isUndefined(result.allocationError);
+			assert.isUndefined(result.currentMinutesOverrideError);
+			assert.strictEqual(result.minutesByPid[100], 0);
+			assert.closeTo(sum(result.minutesByPid), 240, 1e-7);
+			for (const pid of protectedPids) {
+				assert.isAtMost(result.minutesByPid[pid]!, saved[pid]!);
+			}
+			if (pin !== undefined) {
+				assert.strictEqual(result.minutesByPid[105], pin);
+			}
+			const maximumMinutesForOtherAvailablePlayers = players
+				.filter((p) => p.pid !== 100 && p.pid !== 106)
+				.reduce((total, p) => {
+					if (p.pid === 105 && pin !== undefined) {
+						return total + pin;
+					}
+					if (protectedPids.includes(p.pid)) {
+						return total + saved[p.pid]!;
+					}
+					return total + 48;
+				}, 0);
+			const reserveMinutesRequiredByCaps =
+				240 - maximumMinutesForOtherAvailablePlayers;
+			assert.isAtLeast(
+				result.minutesByPid[106]!,
+				reserveMinutesRequiredByCaps - 1e-7,
+			);
+		}
 
 		// In this held-out shape there are several alternatives. The stronger
 		// zero-plan reserve follows the weak reserve in roster order, so a quality
@@ -944,6 +1025,162 @@ describe("basketball Dynamic minute plans", () => {
 		);
 		assert.strictEqual(withAlternatives.minutesByPid[100], 0);
 		assert.closeTo(sum(withAlternatives.minutesByPid), 240, 1e-7);
+	});
+
+	test("injury Depth preference changes reserve roles without breaking locks or pins", () => {
+		const positions = [
+			"PG",
+			"SG",
+			"SF",
+			"PF",
+			"C",
+			"G",
+			"F",
+			"FC",
+			"GF",
+			"C",
+			"PG",
+			"SG",
+			"SF",
+			"PF",
+		];
+		const ovr = [96, 92, 88, 84, 82, 78, 75, 72, 68, 65, 62, 59, 55, 50];
+		const players = makePlayers(14).map((p, index) => ({
+			...p,
+			position: positions[index]!,
+			endurance: [
+				0.9, 0.82, 0.78, 0.75, 0.72, 0.7, 0.68, 0.7, 0.67, 0.65, 0.63, 0.6,
+				0.58, 0.55,
+			][index]!,
+			ovr: ovr[index]!,
+			ovrPercentile: 0.98 - index * 0.06,
+			roleScores: {
+				handler: index < 2 || [5, 10, 11].includes(index) ? 0.9 : 0.45,
+				wing: [2, 6, 8, 12].includes(index) ? 0.9 : 0.5,
+				interior: [3, 4, 7, 9, 13].includes(index) ? 0.9 : 0.4,
+			},
+			value: ovr[index]! / 100,
+		}));
+		const minutesByPid = Object.fromEntries(
+			[42, 38, 35, 33, 31, 25, 18, 14, 4, 0, 0, 0, 0, 0].map(
+				(minutes, index) => [players[index]!.pid, minutes],
+			),
+		);
+		const injuredPids = new Set([100, 102, 104]);
+		const availablePlayers = players.map((p) => ({
+			...p,
+			available: !injuredPids.has(p.pid),
+		}));
+		const available = new Set(
+			availablePlayers.filter((p) => p.available).map((p) => p.pid),
+		);
+		const outputs = new Map<string, Map<string, Record<number, number>>>();
+
+		// Same Custom health plan, three injuries (a guard, wing, and center),
+		// capabilities, and position needs; vary only Core/Depth within each row.
+		// This leaves several viable substitutes with room to absorb minutes.
+		for (const coreReliance of ["high", "balanced", "low"] as const) {
+			const byDepth = new Map<string, Record<number, number>>();
+			for (const rotationDepth of ["short", "normal", "long"] as const) {
+				const result = getGameEffectiveBasketballMinutesWithStatus({
+					players: availablePlayers,
+					minutesByPid,
+					numPlayersOnCourt: 5,
+					regulationMinutes: 48,
+					coreReliance,
+					rotationDepth,
+				});
+				assert.isUndefined(result.allocationError);
+				assert.closeTo(sum(result.minutesByPid), 240, 1e-7);
+				for (const p of players) {
+					assert.isAtLeast(result.minutesByPid[p.pid]!, 0);
+					assert.isAtMost(result.minutesByPid[p.pid]!, 48);
+					if (injuredPids.has(p.pid)) {
+						assert.strictEqual(result.minutesByPid[p.pid], 0);
+					}
+				}
+				byDepth.set(rotationDepth, result.minutesByPid);
+			}
+			outputs.set(coreReliance, byDepth);
+
+			// In this position-constrained case, Short keeps more of the available
+			// center's coverage on the stronger center reserve than Normal. This is a
+			// role comparison, not a fixed depth or active-player count requirement.
+			assert.isAbove(byDepth.get("short")![109]!, byDepth.get("short")![110]!);
+			assert.isAbove(
+				byDepth.get("normal")![109]!,
+				byDepth.get("normal")![110]!,
+			);
+			assert.notDeepEqual(byDepth.get("short"), byDepth.get("normal"));
+		}
+
+		// Core remains a soft workload preference under this injury set.
+		const corePlayers = [101, 103, 105, 106, 107];
+		const coreLoad = (core: "high" | "balanced" | "low") =>
+			corePlayers.reduce(
+				(total, pid) => total + outputs.get(core)!.get("normal")![pid]!,
+				0,
+			);
+		assert.isAbove(coreLoad("high"), coreLoad("balanced"));
+		assert.isAbove(coreLoad("balanced"), coreLoad("low"));
+		assert.deepEqual(
+			minutesByPid,
+			{
+				100: 42,
+				101: 38,
+				102: 35,
+				103: 33,
+				104: 31,
+				105: 25,
+				106: 18,
+				107: 14,
+				108: 4,
+				109: 0,
+				110: 0,
+				111: 0,
+				112: 0,
+				113: 0,
+			},
+			"injury allocation must not mutate the saved Custom health plan",
+		);
+
+		// Lock/Prevent injury increase and a Current Override constrain how much
+		// Depth can affect the answer. The same inputs are checked under all three
+		// depths; hard contracts must hold even when the soft preference is bounded.
+		const currentMinutesOverrideContext = getBasketballMinutesOverrideContext({
+			players,
+			available,
+			numPlayersOnCourt: 5,
+			regulationMinutes: 48,
+		});
+		for (const coreReliance of ["high", "balanced", "low"] as const) {
+			for (const rotationDepth of ["short", "normal", "long"] as const) {
+				const result = getGameEffectiveBasketballMinutesWithStatus({
+					players: availablePlayers,
+					minutesByPid,
+					numPlayersOnCourt: 5,
+					regulationMinutes: 48,
+					coreReliance,
+					rotationDepth,
+					noInjuryMinutesIncreasePids: [101, 103],
+					currentMinutesOverrideByPid: { 105: 30 },
+					currentMinutesOverrideContext,
+				});
+				assert.isUndefined(result.allocationError);
+				assert.isUndefined(result.currentMinutesOverrideError);
+				assert.strictEqual(result.minutesByPid[105], 30);
+				assert.closeTo(sum(result.minutesByPid), 240, 1e-7);
+				for (const pid of [100, 102, 104]) {
+					assert.strictEqual(result.minutesByPid[pid], 0);
+				}
+				for (const pid of [101, 103]) {
+					assert.isAtMost(result.minutesByPid[pid]!, minutesByPid[pid]!);
+				}
+				for (const p of players) {
+					assert.isAtMost(result.minutesByPid[p.pid]!, 48);
+				}
+			}
+		}
 	});
 
 	test("preview and GameSim share the same allowed rotation input policy", () => {
