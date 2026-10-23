@@ -175,6 +175,7 @@ Candidate code commit: [`755f0c2bfa63565c3787307816c45efb0b021bb2`](https://gith
 - Red assertions: `src/worker/core/team/basketballMinutes.test.ts:885–920`, `:1180–1235`, `:1309–1370`; `src/worker/core/GameSim.basketball/dynamicMinutesGameSim.test.ts:344–382`, and timeout case `:744–770`.
 - Reused full-season analysis: `holistic-review/season-analysis-v3.md`; raw pair manifest/data: `holistic-review/RUNS-v3.jsonl`, `holistic-review/results-v3/`, `holistic-review/analyze-seasons-v3.py`.
 - New factorial raw output: `holistic-review/depth-core-factorial.json`; the review branch also carries a compact, reviewer-readable JSONL export with all 432 factor cells and 144 cross-play seeds, plus its SHA manifest. It records every player's target, average actual minutes and energy by cell, and each seed's score. Rated-only OVR arrays are omitted from No Ratings rows. Fixture: `holistic-review/fixtures/holdout2024.json`; temporary runner: `repair-auto/tools/research/holisticDecisionGate.test.ts` (research path, not part of the candidate commit).
+- Reviewer-accessible export paths are `docs/rotation/factorial-review-data-manifest.json` and `docs/rotation/factorial-review-data-00.jsonl` through `factorial-review-data-05.jsonl`; concatenate parts in numeric order for the 576-row JSONL stream.
 
 ### Reproduction
 
