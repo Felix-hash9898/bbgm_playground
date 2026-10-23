@@ -1,0 +1,667 @@
+{
+  "schema": "rotation-factorial-summary-jsonl-v1",
+  "candidateCommit": "755f0c2bfa63565c3787307816c45efb0b021bb2",
+  "baselineCommit": "ac9345383dcf4fe555a121cfe6bbe9bfb1b8cf54",
+  "sourceRawSha256": "87a02957bd40342e4b6b60aae977121bd0ec1f60d9822ec1c707fb2b9a5c9161",
+  "fixtureSha256": "a0843c6eaecd024443cf8fd7c9ef9bc0e53cf099c1a0234863e1a941983bc21a",
+  "seeds": {
+    "factorial": [
+      202610230,
+      202610231,
+      202610232,
+      202610233,
+      202610234,
+      202610235,
+      202610236,
+      202610237,
+      202610238,
+      202610239,
+      202610240,
+      202610241
+    ],
+    "crossPlay": [
+      202619000,
+      202619001,
+      202619002,
+      202619003,
+      202619004,
+      202619005,
+      202619006,
+      202619007,
+      202619008,
+      202619009,
+      202619010,
+      202619011
+    ]
+  },
+  "matchups": {
+    "BOS-NYK": [
+      0,
+      1
+    ],
+    "ORL-IND": [
+      25,
+      21
+    ],
+    "MIN-DEN": [
+      26,
+      20
+    ]
+  },
+  "teamRosterCatalog": {
+    "BOS-NYK": [
+      {
+        "tid": 0,
+        "team": "BOS",
+        "players": [
+          [
+            714,
+            "Jayson Tatum",
+            "F"
+          ],
+          [
+            98,
+            "Jaylen Brown",
+            "GF"
+          ],
+          [
+            605,
+            "Kristaps Porziņģis",
+            "FC"
+          ],
+          [
+            332,
+            "Jrue Holiday",
+            "G"
+          ],
+          [
+            786,
+            "Derrick White",
+            "G"
+          ],
+          [
+            337,
+            "Al Horford",
+            "C"
+          ],
+          [
+            309,
+            "Sam Hauser",
+            "F"
+          ],
+          [
+            612,
+            "Payton Pritchard",
+            "G"
+          ],
+          [
+            702,
+            "Jaden Springer",
+            "G"
+          ],
+          [
+            615,
+            "Neemias Queta",
+            "C"
+          ],
+          [
+            730,
+            "Xavier Tillman Sr.",
+            "FC"
+          ],
+          [
+            421,
+            "Luke Kornet",
+            "C"
+          ],
+          [
+            90,
+            "Oshae Brissett",
+            "F"
+          ],
+          [
+            582,
+            "Drew Peterson",
+            "PF"
+          ],
+          [
+            542,
+            "Svi Mykhailiuk",
+            "SF"
+          ],
+          [
+            766,
+            "Jordan Walsh",
+            "F"
+          ],
+          [
+            172,
+            "JD Davison",
+            "G"
+          ]
+        ]
+      },
+      {
+        "tid": 1,
+        "team": "NYK",
+        "players": [
+          [
+            103,
+            "Jalen Brunson",
+            "G"
+          ],
+          [
+            19,
+            "OG Anunoby",
+            "F"
+          ],
+          [
+            621,
+            "Julius Randle",
+            "FC"
+          ],
+          [
+            640,
+            "Mitchell Robinson",
+            "C"
+          ],
+          [
+            307,
+            "Josh Hart",
+            "GF"
+          ],
+          [
+            306,
+            "Isaiah Hartenstein",
+            "FC"
+          ],
+          [
+            188,
+            "Donte DiVincenzo",
+            "SG"
+          ],
+          [
+            73,
+            "Bojan Bogdanović",
+            "F"
+          ],
+          [
+            480,
+            "Miles McBride",
+            "PG"
+          ],
+          [
+            1,
+            "Precious Achiuwa",
+            "FC"
+          ],
+          [
+            685,
+            "Jericho Sims",
+            "FC"
+          ],
+          [
+            109,
+            "Alec Burks",
+            "GF"
+          ],
+          [
+            770,
+            "Duane Washington Jr.",
+            "G"
+          ],
+          [
+            511,
+            "Shake Milton",
+            "SG"
+          ],
+          [
+            372,
+            "DaQuan Jeffries",
+            "SG"
+          ],
+          [
+            96,
+            "Charlie Brown Jr.",
+            "SG"
+          ],
+          [
+            182,
+            "Mamadi Diakite",
+            "FC"
+          ],
+          [
+            732,
+            "Jacob Toppin",
+            "SF"
+          ]
+        ]
+      }
+    ],
+    "ORL-IND": [
+      {
+        "tid": 25,
+        "team": "ORL",
+        "players": [
+          [
+            755,
+            "Franz Wagner",
+            "SF"
+          ],
+          [
+            710,
+            "Jalen Suggs",
+            "G"
+          ],
+          [
+            34,
+            "Paolo Banchero",
+            "PF"
+          ],
+          [
+            123,
+            "Wendell Carter Jr.",
+            "FC"
+          ],
+          [
+            239,
+            "Markelle Fultz",
+            "G"
+          ],
+          [
+            301,
+            "Gary Harris",
+            "SG"
+          ],
+          [
+            18,
+            "Cole Anthony",
+            "PG"
+          ],
+          [
+            65,
+            "Goga Bitadze",
+            "C"
+          ],
+          [
+            356,
+            "Jonathan Isaac",
+            "PF"
+          ],
+          [
+            756,
+            "Moritz Wagner",
+            "C"
+          ],
+          [
+            68,
+            "Anthony Black",
+            "PG"
+          ],
+          [
+            353,
+            "Joe Ingles",
+            "F"
+          ],
+          [
+            614,
+            "Trevelin Queen",
+            "SG"
+          ],
+          [
+            560,
+            "Chuma Okeke",
+            "F"
+          ],
+          [
+            341,
+            "Caleb Houstan",
+            "SF"
+          ],
+          [
+            665,
+            "Admiral Schofield",
+            "F"
+          ],
+          [
+            303,
+            "Kevon Harris",
+            "SG"
+          ],
+          [
+            343,
+            "Jett Howard",
+            "SF"
+          ]
+        ]
+      },
+      {
+        "tid": 21,
+        "team": "IND",
+        "players": [
+          [
+            291,
+            "Tyrese Haliburton",
+            "G"
+          ],
+          [
+            678,
+            "Pascal Siakam",
+            "PF"
+          ],
+          [
+            739,
+            "Myles Turner",
+            "C"
+          ],
+          [
+            733,
+            "Obi Toppin",
+            "PF"
+          ],
+          [
+            475,
+            "Bennedict Mathurin",
+            "GF"
+          ],
+          [
+            483,
+            "T.J. McConnell",
+            "PG"
+          ],
+          [
+            362,
+            "Isaiah Jackson",
+            "C"
+          ],
+          [
+            547,
+            "Aaron Nesmith",
+            "SF"
+          ],
+          [
+            546,
+            "Andrew Nembhard",
+            "G"
+          ],
+          [
+            693,
+            "Jalen Smith",
+            "FC"
+          ],
+          [
+            486,
+            "Doug McDermott",
+            "F"
+          ],
+          [
+            677,
+            "Ben Sheppard",
+            "SG"
+          ],
+          [
+            760,
+            "Jarace Walker",
+            "PF"
+          ],
+          [
+            737,
+            "Oscar Tshiebwe",
+            "FC"
+          ],
+          [
+            379,
+            "James Johnson",
+            "FC"
+          ],
+          [
+            818,
+            "Isaiah Wong",
+            "SG"
+          ],
+          [
+            365,
+            "Quenton Jackson",
+            "PG"
+          ],
+          [
+            99,
+            "Kendall Brown",
+            "SG"
+          ]
+        ]
+      }
+    ],
+    "MIN-DEN": [
+      {
+        "tid": 26,
+        "team": "MIN",
+        "players": [
+          [
+            212,
+            "Anthony Edwards",
+            "SG"
+          ],
+          [
+            264,
+            "Rudy Gobert",
+            "C"
+          ],
+          [
+            735,
+            "Karl-Anthony Towns",
+            "FC"
+          ],
+          [
+            145,
+            "Mike Conley",
+            "PG"
+          ],
+          [
+            628,
+            "Naz Reid",
+            "FC"
+          ],
+          [
+            485,
+            "Jaden McDaniels",
+            "F"
+          ],
+          [
+            12,
+            "Kyle Anderson",
+            "F"
+          ],
+          [
+            6,
+            "Nickeil Alexander-Walker",
+            "SG"
+          ],
+          [
+            530,
+            "Monte Morris",
+            "PG"
+          ],
+          [
+            248,
+            "Luka Garza",
+            "C"
+          ],
+          [
+            549,
+            "Daishen Nix",
+            "G"
+          ],
+          [
+            495,
+            "Jordan McLaughlin",
+            "PG"
+          ],
+          [
+            514,
+            "Josh Minott",
+            "SF"
+          ],
+          [
+            526,
+            "Wendell Moore Jr.",
+            "SG"
+          ],
+          [
+            769,
+            "T.J. Warren",
+            "F"
+          ],
+          [
+            138,
+            "Jaylen Clark",
+            "SG"
+          ],
+          [
+            507,
+            "Leonard Miller",
+            "SF"
+          ]
+        ]
+      },
+      {
+        "tid": 20,
+        "team": "DEN",
+        "players": [
+          [
+            387,
+            "Nikola Jokić",
+            "C"
+          ],
+          [
+            268,
+            "Aaron Gordon",
+            "F"
+          ],
+          [
+            537,
+            "Jamal Murray",
+            "G"
+          ],
+          [
+            603,
+            "Michael Porter Jr.",
+            "SF"
+          ],
+          [
+            115,
+            "Kentavious Caldwell-Pope",
+            "SG"
+          ],
+          [
+            366,
+            "Reggie Jackson",
+            "G"
+          ],
+          [
+            87,
+            "Christian Braun",
+            "SG"
+          ],
+          [
+            777,
+            "Peyton Watson",
+            "GF"
+          ],
+          [
+            347,
+            "Jay Huff",
+            "C"
+          ],
+          [
+            117,
+            "Vlatko Čančar",
+            "PF"
+          ],
+          [
+            708,
+            "Julian Strawther",
+            "GF"
+          ],
+          [
+            333,
+            "Justin Holiday",
+            "GF"
+          ],
+          [
+            551,
+            "Zeke Nnaji",
+            "PF"
+          ],
+          [
+            399,
+            "DeAndre Jordan",
+            "C"
+          ],
+          [
+            408,
+            "Braxton Key",
+            "SF"
+          ],
+          [
+            260,
+            "Collin Gillespie",
+            "PG"
+          ],
+          [
+            589,
+            "Jalen Pickett",
+            "SG"
+          ],
+          [
+            741,
+            "Hunter Tyson",
+            "PF"
+          ]
+        ]
+      }
+    ]
+  },
+  "rowCount": 576,
+  "factorialRows": 432,
+  "crossPlayRows": 144,
+  "playerEncoding": "factorial players are pid,target centiminutes,mean actual centiminutes,minimum energy milli-units,low-energy minutes centiminutes,injuredFlag; rated rows have a parallel OVR array. NoRatings rows omit OVR. Cross-play players are pid,target centiminutes,actual centiminutes,points,injuredFlag.",
+  "parts": [
+    {
+      "path": "factorial-review-data-00.jsonl",
+      "rows": 96,
+      "bytes": 94033,
+      "sha256": "18c7d30655fac86960b4abd5ba9a8682d08fb07b7659d97d843e1699e08ea06b"
+    },
+    {
+      "path": "factorial-review-data-01.jsonl",
+      "rows": 96,
+      "bytes": 82176,
+      "sha256": "75ac40702988d4ccc194a6e6c7a0e3d6b3d06511c2e4276d46f798843ff3d5a2"
+    },
+    {
+      "path": "factorial-review-data-02.jsonl",
+      "rows": 96,
+      "bytes": 95781,
+      "sha256": "79b199e25c6930f5aad5fdf832e33a3bc229b104a0c334364accb46c16faf6b6"
+    },
+    {
+      "path": "factorial-review-data-03.jsonl",
+      "rows": 96,
+      "bytes": 83321,
+      "sha256": "6daf1f3ac98043eb6c1c36b78589e71e1d7b59050ee25cd8ff1ca138706dc62d"
+    },
+    {
+      "path": "factorial-review-data-04.jsonl",
+      "rows": 96,
+      "bytes": 93969,
+      "sha256": "2514d1d172d501a5a3dde89ee8aea5050343c9264401585ebf8b04de88cfa469"
+    },
+    {
+      "path": "factorial-review-data-05.jsonl",
+      "rows": 96,
+      "bytes": 82021,
+      "sha256": "dcbb0bf593f4285a3f2fa05692fabd7bb53c1ba8f5cb7285ca4577d7bc7b803b"
+    }
+  ]
+}
