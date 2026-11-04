@@ -124,7 +124,29 @@ PLAYWRIGHT_BROWSERS_PATH=/tmp/bbgm-playwright BBGM_PERF_OUTPUT=/tmp/profile.json
 - 本机 macOS 26.6.2 / Safari 26.6.2。没有可用的 Apple Safari MCP；`safaridriver --enable` 请求系统密码后停止，未输入密码。按验收要求使用 Playwright WebKit；**未验证原生 Safari**。
 - 使用单独的 WebKit browser context，通过真实 New League 页面上传隔离副本，并在应用界面点击 Play → One day。副本 SHA-256 为 `824eadc94e6d2e5120ab7d92185bf7c6b3e80780d5243dc7843a3494988cc696`，操作前后相同；用户原始存档未打开写入。
 - 一次完整单日样本：2019 赛季第 58 天的 14 场比赛。实际 Play Menu Worker 往返 **628 ms**；GameSim **94 ms / 14 场**；`runDay` 日末 `Cache.flush` 完成 **264 ms**。这些阶段计时由本地一次性测试探针测得；测后精确恢复源码，探针未进入提交。
-- 点击到比分条首次 DOM 更新并经过两帧绘制为 **7,284 ms**（单样本，WebKit headless）。Worker 已在 628 ms 返回，主要延迟位于 Worker 之后的 UI 更新；该结果不代表原生 Safari，也不外推稳定百分位。
+- 初始单样本记录了点击到比分条首次 DOM 更新并经过两帧 **7,284 ms**，当时 Play Menu Worker 往返为 628 ms。这是未拆解的一次 WebKit headless 观测；当时关于 Worker 后 UI 延迟的归因尚未证实。下文的分阶段复查未复现该结果。
 - 原生 IndexedDB：赛前赛程 **451**、已赛 **1,153**；赛后赛程 **437**、已赛 **1,167**。重载后赛程行哈希、全部已赛游戏主键与新增比赛分数一致。Game Log 页面显示用户队伍本场 `DEN / W / 127–103`；重载后 Daily Schedule 标题为 2019 第 59 天，显示 15 个比赛操作卡片，与 IndexedDB 下一天的 15 场相同。
 - 页面无应用级 page error、第一方 console error、第一方 HTTP 错误或失败请求。受运行环境网络限制，外部 `i.imgur.com` 头像返回 403，广告域名 `b.pub.network` 预连接 DNS 失败；不影响模拟、比分、数据库或页面路由。
-- 这次浏览器验收没有发现比赛结果、存档保存、重载、Game Log 或赛程一致性错误，因此未新增产品代码修复。比分条 UI 延迟已记录为单样本 WebKit 观察值，仍需原生 Safari 或独立 UI profiling 才能归因。
+- 这次浏览器验收没有发现比赛结果、存档保存、重载、Game Log 或赛程一致性错误，因此未新增产品代码修复。比分条的初始 UI 延迟观察值及后续分阶段复查记录在本文末；原生 Safari 仍未验证。
+
+## Play Day UI 延迟复查（2026-11-03）
+
+针对一次 WebKit headless 的 `click → Scorebar update` 7,284 ms 记录，按完整消息链复测。诊断构建基于当前提交 `5e9fe4f` 的临时 detached worktree，只在 UI API / `viewManager` 加时间标记，并用 React commit hook 标记包含 `.league-top-bar` 的 Fiber；当前工作树源码和正式构建未改。另在未加源码标记、未挂 React hook 的正式构建上做一个最小对照。样本均是隔离 League 10 副本的一日模拟；副本 SHA-256 前后相同。页面加载完成并稳定后才开始计时，热启动样本通过刷新已保存的联盟取得。点击后用浏览器内事件屏障等待，没有使用 Playwright 轮询。
+
+| 阶段                                       |        首次推进（导入后） |      持久化联盟热重载 | 正式构建最小对照 |
+| ------------------------------------------ | ------------------------: | --------------------: | ---------------: |
+| 点击事件至 Worker 请求发送                 |                      1 ms |                  0 ms |             0 ms |
+| Play Menu Worker 往返                      |                    678 ms |                634 ms |           771 ms |
+| `mergeGames` 请求 / `local.games` 写入     |              602 / 603 ms |          569 / 569 ms |     未加源码探针 |
+| `.league-top-bar` 的 React memo commit     | 605 ms（状态写入后 2 ms） | 572 ms（写入后 3 ms） |  未挂 React hook |
+| 比分条文本 DOM mutation                    |                    607 ms |                574 ms |           703 ms |
+| 文本变化至两帧回调                         |                10 + 13 ms |             0 + 20 ms |        1 + 10 ms |
+| Worker `realtimeUpdate` 总往返             |                     52 ms |                 38 ms |           未拆分 |
+| `viewManager` 入队等待                     |          0 ms，队列长度 0 |    0–1 ms，队列长度 0 |     未加源码探针 |
+| Worker `main.runBefore` 生成并返回页面数据 |                     29 ms |                 22 ms |           未拆分 |
+
+点击处理器从 capture 到 bubble 为 1–2 ms，Worker 响应分别在比分条文本变更后 72 ms、60 ms、68 ms 到达。也就是说，`local.games` 的合并先触发了 `LeagueTopBar` React commit 和 DOM 文本更新；接着 UI 执行 `realtimeUpdate`、`viewManager` 与 `runBefore`，最后 Play Menu Worker 才返回。viewManager 没有排队，页面数据请求也只占 22–29 ms。
+
+所有样本页面均 `visibilityState=visible` 且有焦点；DOM mutation 到首个 RAF 为 0–10 ms，后续 RAF 间隔 10–20 ms，没有观察到 headless RAF 长时间节流。最小对照未使用源码诊断标记或 React hook，结果仍是 Worker 771 ms、比分条 703 ms、第二帧 714 ms；诊断探针没有制造秒级延迟。第二帧只代表浏览器经历了绘制机会，不等同于物理显示器的 presentation timestamp。
+
+本次三次有效观测都没有复现 7,284 ms：比分条在 Worker 请求完成前更新约 60–72 ms。现有证据不能证明旧的单样本由某一具体代码路径造成；它不构成可复现的产品 UI 延迟，因此没有产品代码修复。Safari 原生未测，结论仅适用于本轮 WebKit headless。原始分阶段数据见 [`play-day-ui-trace-2026-11-03.json`](results/play-day-ui-trace-2026-11-03.json)。

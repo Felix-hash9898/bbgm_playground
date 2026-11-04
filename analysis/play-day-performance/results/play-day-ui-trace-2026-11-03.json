@@ -1,0 +1,500 @@
+{
+	"date": "2026-11-03",
+	"sourceCommit": "5e9fe4f42d15ff39ea7ba287972c44f8da3087f9",
+	"browser": "Playwright WebKit headless",
+	"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+	"diagnosticBuild": {
+		"base": "detached temporary worktree at sourceCommit",
+		"temporaryUiProbes": ["src/ui/api/index.ts", "src/ui/util/viewManager.tsx"],
+		"reactCommitHook": true,
+		"mainWorkspaceSourcesModified": false
+	},
+	"samples": [
+		{
+			"sampleId": "first-load-day",
+			"environment": {
+				"visibilityState": "visible",
+				"hasFocus": true,
+				"readyState": "complete",
+				"scorebarPresent": true,
+				"scorebarTextLength": 630
+			},
+			"clickToWorkerSendMs": 1,
+			"workerRoundTripMs": 678,
+			"clickToWorkerReplyMs": 679,
+			"clickToScorebarTextMutationMs": 607,
+			"clickToRaf1Ms": 617,
+			"clickToRaf2Ms": 630,
+			"mutationToRaf1Ms": 10,
+			"raf1ToRaf2Ms": 13,
+			"scorebarChanged": true,
+			"scorebarTextLengths": [630, 639],
+			"viewManagerQueueAtEntry": {
+				"traceId": 2,
+				"queueLength": 0,
+				"processingAction": false,
+				"idLoaded": "leagueDashboard",
+				"navigationEvent": false
+			},
+			"targetLeagueTopBarReactCommit": [
+				{
+					"atMs": 605,
+					"directMemoFiberTag": 15,
+					"directMemoFiberFlags": 8390657,
+					"fiberWalked": 571
+				},
+				{
+					"atMs": 606,
+					"directMemoFiberTag": 15,
+					"directMemoFiberFlags": 8650752,
+					"fiberWalked": 571
+				}
+			],
+			"scorebarReactCommitCountDuringSample": 13,
+			"querySpans": [
+				{
+					"direction": "ui_to_worker",
+					"query": "playMenu.day",
+					"sendAtMs": 1,
+					"responseAtMs": 679,
+					"durationMs": 678
+				},
+				{
+					"direction": "worker_to_ui",
+					"query": "mergeGames",
+					"sendAtMs": 602,
+					"responseAtMs": 603,
+					"durationMs": 1
+				},
+				{
+					"direction": "worker_to_ui",
+					"query": "realtimeUpdate",
+					"sendAtMs": 608,
+					"responseAtMs": 660,
+					"durationMs": 52
+				},
+				{
+					"direction": "ui_to_worker",
+					"query": "main.beforeView",
+					"sendAtMs": 608,
+					"responseAtMs": 619,
+					"durationMs": 11
+				},
+				{
+					"direction": "ui_to_worker",
+					"query": "main.runBefore",
+					"sendAtMs": 620,
+					"responseAtMs": 649,
+					"durationMs": 29
+				}
+			],
+			"marks": [
+				{
+					"name": "raf.preClick",
+					"atMs": -38,
+					"detail": {
+						"rafTimestamp": 8763
+					}
+				},
+				{
+					"name": "click.capture",
+					"atMs": 0,
+					"detail": {
+						"eventTimeStamp": 814589233323.0001
+					}
+				},
+				{
+					"name": "click.bubble",
+					"atMs": 2,
+					"detail": {
+						"eventTimeStamp": 814589233323.0001
+					}
+				},
+				{
+					"name": "local.games.merge.start",
+					"atMs": 603,
+					"detail": {
+						"previousGames": 54,
+						"incomingGames": 2
+					}
+				},
+				{
+					"name": "local.games.merge.end",
+					"atMs": 603,
+					"detail": {
+						"currentGames": 55
+					}
+				},
+				{
+					"name": "dom.scorebarTextChanged",
+					"atMs": 607,
+					"detail": {
+						"textLength": 639
+					}
+				},
+				{
+					"name": "ui.realtimeUpdate.handler.start",
+					"atMs": 608,
+					"detail": {
+						"updateEvents": ["gameSim", "playerMovement"]
+					}
+				},
+				{
+					"name": "view.fromRealtimeUpdate.enter",
+					"atMs": 608,
+					"detail": {
+						"traceId": 2,
+						"queueLength": 0,
+						"processingAction": false,
+						"idLoaded": "leagueDashboard",
+						"navigationEvent": false
+					}
+				},
+				{
+					"name": "view.action.dispatch",
+					"atMs": 608,
+					"detail": {
+						"traceId": 2
+					}
+				},
+				{
+					"name": "view.initAction.start",
+					"atMs": 608,
+					"detail": {
+						"traceId": 2,
+						"queueWaitMs": 0
+					}
+				},
+				{
+					"name": "view.beforeView.send",
+					"atMs": 608,
+					"detail": {
+						"traceId": 2
+					}
+				},
+				{
+					"name": "raf.afterScorebar.1",
+					"atMs": 617,
+					"detail": {
+						"rafTimestamp": 9416
+					}
+				},
+				{
+					"name": "view.beforeView.return",
+					"atMs": 620,
+					"detail": {
+						"traceId": 2
+					}
+				},
+				{
+					"name": "view.runBefore.send",
+					"atMs": 620,
+					"detail": {
+						"traceId": 2
+					}
+				},
+				{
+					"name": "raf.afterScorebar.2",
+					"atMs": 630,
+					"detail": {
+						"rafTimestamp": 9430
+					}
+				},
+				{
+					"name": "view.runBefore.return",
+					"atMs": 649,
+					"detail": {
+						"traceId": 2
+					}
+				},
+				{
+					"name": "view.zustand.reset.start",
+					"atMs": 649,
+					"detail": {
+						"traceId": 2
+					}
+				},
+				{
+					"name": "view.zustand.reset.end",
+					"atMs": 649,
+					"detail": {
+						"traceId": 2
+					}
+				},
+				{
+					"name": "view.initAction.end",
+					"atMs": 660,
+					"detail": {
+						"traceId": 2,
+						"totalMs": 52
+					}
+				},
+				{
+					"name": "ui.realtimeUpdate.handler.end",
+					"atMs": 660,
+					"detail": {
+						"updateEvents": ["gameSim", "playerMovement"]
+					}
+				}
+			]
+		},
+		{
+			"sampleId": "warm-reload-day",
+			"environment": {
+				"visibilityState": "visible",
+				"hasFocus": true,
+				"readyState": "complete",
+				"scorebarPresent": true,
+				"scorebarTextLength": 639
+			},
+			"clickToWorkerSendMs": 0,
+			"workerRoundTripMs": 634,
+			"clickToWorkerReplyMs": 634,
+			"clickToScorebarTextMutationMs": 574,
+			"clickToRaf1Ms": 574,
+			"clickToRaf2Ms": 594,
+			"mutationToRaf1Ms": 0,
+			"raf1ToRaf2Ms": 20,
+			"scorebarChanged": true,
+			"scorebarTextLengths": [639, 651],
+			"viewManagerQueueAtEntry": {
+				"traceId": 1,
+				"queueLength": 0,
+				"processingAction": false,
+				"idLoaded": "leagueDashboard",
+				"navigationEvent": false
+			},
+			"targetLeagueTopBarReactCommit": [
+				{
+					"atMs": 572,
+					"directMemoFiberTag": 15,
+					"directMemoFiberFlags": 8390657,
+					"fiberWalked": 571
+				},
+				{
+					"atMs": 573,
+					"directMemoFiberTag": 15,
+					"directMemoFiberFlags": 8650752,
+					"fiberWalked": 571
+				}
+			],
+			"scorebarReactCommitCountDuringSample": 12,
+			"querySpans": [
+				{
+					"direction": "ui_to_worker",
+					"query": "playMenu.day",
+					"sendAtMs": 0,
+					"responseAtMs": 634,
+					"durationMs": 634
+				},
+				{
+					"direction": "worker_to_ui",
+					"query": "mergeGames",
+					"sendAtMs": 569,
+					"responseAtMs": 570,
+					"durationMs": 1
+				},
+				{
+					"direction": "worker_to_ui",
+					"query": "realtimeUpdate",
+					"sendAtMs": 575,
+					"responseAtMs": 613,
+					"durationMs": 38
+				},
+				{
+					"direction": "ui_to_worker",
+					"query": "main.beforeView",
+					"sendAtMs": 575,
+					"responseAtMs": 580,
+					"durationMs": 5
+				},
+				{
+					"direction": "ui_to_worker",
+					"query": "main.runBefore",
+					"sendAtMs": 581,
+					"responseAtMs": 603,
+					"durationMs": 22
+				}
+			],
+			"marks": [
+				{
+					"name": "raf.preClick",
+					"atMs": -23,
+					"detail": {
+						"rafTimestamp": 2248
+					}
+				},
+				{
+					"name": "click.capture",
+					"atMs": 0,
+					"detail": {
+						"eventTimeStamp": 814589226792
+					}
+				},
+				{
+					"name": "click.bubble",
+					"atMs": 1,
+					"detail": {
+						"eventTimeStamp": 814589226792
+					}
+				},
+				{
+					"name": "local.games.merge.start",
+					"atMs": 569,
+					"detail": {
+						"previousGames": 55,
+						"incomingGames": 2
+					}
+				},
+				{
+					"name": "local.games.merge.end",
+					"atMs": 569,
+					"detail": {
+						"currentGames": 56
+					}
+				},
+				{
+					"name": "dom.scorebarTextChanged",
+					"atMs": 574,
+					"detail": {
+						"textLength": 651
+					}
+				},
+				{
+					"name": "raf.afterScorebar.1",
+					"atMs": 574,
+					"detail": {
+						"rafTimestamp": 2845
+					}
+				},
+				{
+					"name": "ui.realtimeUpdate.handler.start",
+					"atMs": 575,
+					"detail": {
+						"updateEvents": ["gameSim", "playerMovement"]
+					}
+				},
+				{
+					"name": "view.fromRealtimeUpdate.enter",
+					"atMs": 575,
+					"detail": {
+						"traceId": 1,
+						"queueLength": 0,
+						"processingAction": false,
+						"idLoaded": "leagueDashboard",
+						"navigationEvent": false
+					}
+				},
+				{
+					"name": "view.action.dispatch",
+					"atMs": 575,
+					"detail": {
+						"traceId": 1
+					}
+				},
+				{
+					"name": "view.initAction.start",
+					"atMs": 575,
+					"detail": {
+						"traceId": 1,
+						"queueWaitMs": 0
+					}
+				},
+				{
+					"name": "view.beforeView.send",
+					"atMs": 575,
+					"detail": {
+						"traceId": 1
+					}
+				},
+				{
+					"name": "view.beforeView.return",
+					"atMs": 581,
+					"detail": {
+						"traceId": 1
+					}
+				},
+				{
+					"name": "view.runBefore.send",
+					"atMs": 581,
+					"detail": {
+						"traceId": 1
+					}
+				},
+				{
+					"name": "raf.afterScorebar.2",
+					"atMs": 594,
+					"detail": {
+						"rafTimestamp": 2865
+					}
+				},
+				{
+					"name": "view.runBefore.return",
+					"atMs": 603,
+					"detail": {
+						"traceId": 1
+					}
+				},
+				{
+					"name": "view.zustand.reset.start",
+					"atMs": 603,
+					"detail": {
+						"traceId": 1
+					}
+				},
+				{
+					"name": "view.zustand.reset.end",
+					"atMs": 604,
+					"detail": {
+						"traceId": 1
+					}
+				},
+				{
+					"name": "view.initAction.end",
+					"atMs": 613,
+					"detail": {
+						"traceId": 1,
+						"totalMs": 38
+					}
+				},
+				{
+					"name": "ui.realtimeUpdate.handler.end",
+					"atMs": 613,
+					"detail": {
+						"updateEvents": ["gameSim", "playerMovement"]
+					}
+				}
+			]
+		}
+	],
+	"minimalControl": {
+		"browser": "Playwright WebKit headless, production build without diagnostic source hooks or React hook",
+		"env": {
+			"visibilityState": "visible",
+			"hasFocus": true,
+			"readyState": "complete"
+		},
+		"clickToWorkerSendMs": 0,
+		"workerRoundTripMs": 771,
+		"clickToWorkerReplyMs": 771,
+		"clickToScorebarTextMutationMs": 703,
+		"clickToRaf1Ms": 704,
+		"clickToRaf2Ms": 714,
+		"mutationToRaf1Ms": 1,
+		"raf1ToRaf2Ms": 10,
+		"scorebarChanged": true,
+		"pageErrors": [],
+		"archiveUnchanged": true,
+		"archiveSha256": "824eadc94e6d2e5120ab7d92185bf7c6b3e80780d5243dc7843a3494988cc696"
+	},
+	"archiveSha256": "824eadc94e6d2e5120ab7d92185bf7c6b3e80780d5243dc7843a3494988cc696",
+	"archiveUnchanged": true,
+	"pageErrors": [],
+	"firstPartyConsoleErrors": [],
+	"interpretation": {
+		"headlessState": "document.visibilityState=visible and document.hasFocus()=true for all measured samples",
+		"automationPolling": "No Playwright waitForFunction polling after the One day click; an in-page event barrier waited for Worker response and the second RAF.",
+		"paintProxy": "Two requestAnimationFrame callbacks after the text mutation; this measures frame opportunities in headless WebKit, not physical display presentation.",
+		"prior7284ms": "Not reproduced. In all three valid observations, scorebar text changed before the Play Menu Worker response. The measured gap between scorebar text and Worker response was 60\u201372 ms."
+	}
+}
