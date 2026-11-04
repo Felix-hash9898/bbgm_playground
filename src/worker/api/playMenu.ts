@@ -197,7 +197,7 @@ const playStop = async () => {
 		await updateStatus("Idle");
 	}
 
-	await lock.set("gameSim", false);
+	// The running request releases gameSim after saving the current day.
 	await updatePlayMenu();
 };
 
@@ -218,21 +218,21 @@ const playMenu = {
 		if (g.get("phase") < PHASE.PLAYOFFS) {
 			await updateStatus("Playing...");
 			const numDays = await season.getDaysLeftSchedule("allStarGame");
-			game.play(numDays, conditions);
+			await game.play(numDays, conditions);
 		}
 	},
 	untilTradeDeadline: async (param: unknown, conditions: Conditions) => {
 		if (g.get("phase") < PHASE.PLAYOFFS) {
 			await updateStatus("Playing...");
 			const numDays = await season.getDaysLeftSchedule("tradeDeadline");
-			game.play(numDays, conditions);
+			await game.play(numDays, conditions);
 		}
 	},
 	untilPlayoffs: async (param: unknown, conditions: Conditions) => {
 		if (g.get("phase") < PHASE.PLAYOFFS) {
 			await updateStatus("Playing...");
 			const numDays = await season.getDaysLeftSchedule();
-			game.play(numDays, conditions);
+			await game.play(numDays, conditions);
 		}
 	},
 	untilEndOfRound: async (param: unknown, conditions: Conditions) => {
@@ -243,7 +243,7 @@ const playMenu = {
 				throw new Error("playoffSeries not found");
 			}
 			local.playingUntilEndOfRound = true;
-			game.play(
+			await game.play(
 				getNumDaysThisRound(playoffSeries) +
 					(await getCurrentBasketballPlayoffGap()),
 				conditions,
@@ -257,7 +257,7 @@ const playMenu = {
 			const numDays = await getNumDaysPlayIn();
 
 			// local.playingUntilEndOfPlayIn is not needed because we always know how many games to play
-			game.play(numDays, conditions);
+			await game.play(numDays, conditions);
 		}
 	},
 	throughPlayoffs: async (param: unknown, conditions: Conditions) => {
@@ -265,7 +265,7 @@ const playMenu = {
 			await updateStatus("Playing..."); // For quick UI updating, before await
 
 			const numDays = await getNumDaysPlayoffs();
-			game.play(numDays, conditions);
+			await game.play(numDays, conditions);
 		}
 	},
 	untilDraft: async (param: unknown, conditions: Conditions) => {

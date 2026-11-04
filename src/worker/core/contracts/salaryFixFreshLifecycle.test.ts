@@ -697,6 +697,8 @@ test("updateNegotiation keeps user mood pricing before options and injury on eve
 	p!.ratings.at(-1)!.pot = 60;
 	p!.value = 60;
 	p!.injury = { type: "Knee Injury", gamesRemaining: 50 };
+	// Keep random mood multipliers from changing this negative-mood fixture.
+	p!.moodTraits = [];
 	p!.customMoodItems = [
 		{ tid: 0, amount: -10, text: "Deterministic negative mood test" },
 	];

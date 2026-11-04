@@ -269,7 +269,11 @@ const applySigningTransactionInQueue = async (
 			}
 			if (
 				contractToCommit.option === "player" &&
-				!isPlayerOptionInjuryHorizonSafe(currentPlayer, contractToCommit)
+				!isPlayerOptionInjuryHorizonSafe(
+					currentPlayer,
+					contractToCommit,
+					context,
+				)
 			) {
 				throw new Error("Player option is not legal for this injury horizon");
 			}

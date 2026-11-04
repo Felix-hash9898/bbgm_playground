@@ -115,12 +115,13 @@ type PlayerForAIOption = Pick<
 export const isPlayerOptionInjuryHorizonSafe = (
 	p: Pick<PlayerForAIOption, "injury">,
 	contract: Pick<PlayerContract, "exp">,
+	context?: ContractOptionContext,
 ) => {
 	const gamesRemaining = p.injury?.gamesRemaining ?? 0;
 	if (!isSport("basketball") || gamesRemaining <= 0) {
 		return true;
 	}
-	const years = getContractLength(contract);
+	const years = getContractLength(contract, context);
 	if (years < 2) {
 		return true;
 	}
@@ -136,6 +137,37 @@ export const isPlayerOptionInjuryHorizonSafe = (
 		full.availabilityFactor <=
 		guaranteed.availabilityFactor * (1 + OPTION_VALUE_RATE) + 1e-10
 	);
+};
+
+// Revalidate stored AI asks whenever the term, salary, or injury horizon changes.
+// This only removes invalid options; the signing transaction remains strict.
+export const normalizeAIContractOption = (
+	p: PlayerForAIOption,
+	contract: PlayerContract,
+	context?: ContractOptionContext,
+	teamTid = p.tid ?? p.priorContractTid ?? -1,
+): PlayerContract => {
+	if (contract.option === undefined || !isSport("basketball")) {
+		return contract;
+	}
+	if (
+		canContractHaveOption(contract, context) &&
+		contract.amount >= getMinContractForPlayer(p) &&
+		contract.amount <=
+			getMaxContractForPlayerAndTerm(
+				p,
+				teamTid,
+				getContractLength(contract, context),
+				contract.option,
+			) &&
+		(contract.option !== "player" ||
+			isPlayerOptionInjuryHorizonSafe(p, contract, context))
+	) {
+		return contract;
+	}
+	const normalized = { ...contract };
+	delete normalized.option;
+	return normalized;
 };
 
 const isHighValuePlayer = (p: PlayerForAIOption) =>
@@ -205,7 +237,7 @@ export const getAIContractOption = (
 
 	if (
 		(isHighValuePlayer(p) || isVeteranPlayer(p)) &&
-		isPlayerOptionInjuryHorizonSafe(p, contract) &&
+		isPlayerOptionInjuryHorizonSafe(p, contract, context) &&
 		isEligibleOptionAmount(p, contract, "player", context)
 	) {
 		return "player";

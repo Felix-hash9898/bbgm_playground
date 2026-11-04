@@ -1,3 +1,4 @@
+import initUILocalGames from "../../util/initUILocalGames.ts";
 import { PHASE } from "../../../common/index.ts";
 import { league, phase, trade } from "../index.ts";
 import autoSign from "./autoSign.ts";
@@ -10,6 +11,7 @@ import {
 	toUI,
 	recomputeLocalUITeamOvrs,
 	helpers,
+	local,
 } from "../../util/index.ts";
 import type { Conditions } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
@@ -20,23 +22,32 @@ type PlayRequestContext = {
 	releaseAutoFlush: () => void;
 	checkpoint: ReturnType<typeof idb.cache.beginMutationCheckpoint> | undefined;
 	finalFlushAttempted: boolean;
+	releasedSimulation: boolean;
 	batchUiRefresh: boolean;
 	finalUiRefreshSent: boolean;
 };
 
-const createPlayRequestContext = (
+const createPlayRequestContext = async (
 	batchUiRefresh = false,
-): PlayRequestContext => {
+): Promise<PlayRequestContext> => {
 	const cache = idb.cache;
-	return {
-		cache,
-		leagueDB: idb.league,
-		releaseAutoFlush: cache.pauseAutoFlush(),
-		checkpoint: cache.beginMutationCheckpoint(),
-		finalFlushAttempted: false,
-		batchUiRefresh,
-		finalUiRefreshSent: false,
-	};
+	const releaseAutoFlush = cache.pauseAutoFlush();
+	try {
+		await cache._flushPromise;
+		return {
+			cache,
+			leagueDB: idb.league,
+			releaseAutoFlush,
+			checkpoint: cache.beginMutationCheckpoint(),
+			finalFlushAttempted: false,
+			releasedSimulation: false,
+			batchUiRefresh,
+			finalUiRefreshSent: false,
+		};
+	} catch (error) {
+		releaseAutoFlush();
+		throw error;
+	}
 };
 
 const flushPlayRequest = async (context: PlayRequestContext) => {
@@ -62,6 +73,7 @@ async function play(
 ) {
 	let context = requestContext;
 	let ownsRequestContext = false;
+	let ownsSimulation = false;
 
 	const getContext = () => {
 		if (!context) {
@@ -73,14 +85,15 @@ async function play(
 	// This is called when there are no more days to play, either due to the user's request (e.g. 1 week) elapsing or at the end of free agency.
 	const cbNoDays = async () => {
 		const currentContext = getContext();
-		await lock.set("gameSim", false);
-		await updatePlayMenu(); // Check to see if free agency is over
 
 		if (g.get("daysLeft") <= 0) {
 			await updateStatus("Idle");
 			await flushPlayRequest(getContext());
 			currentContext.checkpoint?.commit();
 			currentContext.checkpoint = undefined;
+			currentContext.releasedSimulation = true;
+			await lock.set("gameSim", false);
+			await updatePlayMenu();
 			await phase.newPhase(PHASE.PRESEASON, conditions);
 			currentContext.finalUiRefreshSent = true;
 		}
@@ -142,8 +155,9 @@ async function play(
 			const canStartGames = await lock.canStartGames();
 
 			if (canStartGames) {
+				ownsSimulation = true;
 				if (!context) {
-					context = createPlayRequestContext(numDays > 1);
+					context = await createPlayRequestContext(numDays > 1);
 					ownsRequestContext = true;
 				}
 				await updatePlayMenu();
@@ -151,7 +165,7 @@ async function play(
 			}
 		} else {
 			if (!context) {
-				context = createPlayRequestContext(numDays > 1);
+				context = await createPlayRequestContext(numDays > 1);
 				ownsRequestContext = true;
 			}
 			await cbRunDay();
@@ -159,11 +173,11 @@ async function play(
 
 		if (ownsRequestContext) {
 			const currentContext = getContext();
-			currentContext.checkpoint?.commit();
-			currentContext.checkpoint = undefined;
 			if (!currentContext.finalFlushAttempted) {
 				await flushPlayRequest(currentContext);
 			}
+			currentContext.checkpoint?.commit();
+			currentContext.checkpoint = undefined;
 			if (currentContext.batchUiRefresh) {
 				await recomputeLocalUITeamOvrs();
 			}
@@ -177,8 +191,32 @@ async function play(
 			context.checkpoint.rollback();
 			context.checkpoint = undefined;
 		}
+		if (ownsRequestContext || ownsSimulation) {
+			local.autoPlayUntil = undefined;
+			try {
+				await initUILocalGames();
+				await toUI("realtimeUpdate", [["playerMovement"]]);
+				await updateStatus(helpers.daysLeft(true));
+			} catch (cleanupError) {
+				console.error(
+					"Failed to refresh after free agency error",
+					cleanupError,
+				);
+			}
+		}
 		throw error;
 	} finally {
+		if (
+			(ownsRequestContext || ownsSimulation) &&
+			!context?.releasedSimulation
+		) {
+			try {
+				await lock.set("gameSim", false);
+				await updatePlayMenu();
+			} catch (cleanupError) {
+				console.error("Failed to unlock free agency", cleanupError);
+			}
+		}
 		if (ownsRequestContext) {
 			getContext().releaseAutoFlush();
 		}

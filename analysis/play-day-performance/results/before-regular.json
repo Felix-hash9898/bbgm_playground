@@ -1,0 +1,119 @@
+{
+	"variant": "before-regular",
+	"archiveHash": "824eadc94e6d2e5120ab7d92185bf7c6b3e80780d5243dc7843a3494988cc696",
+	"samples": [
+		{
+			"iteration": 0,
+			"totalMs": 1548.3999999761581,
+			"finished": 14,
+			"beforeSchedule": 451,
+			"scheduleAfter": 437,
+			"stateHash": "489f07504153013507232f399f005da7e8c5b31ded887af2ac51f17162b29f77",
+			"timings": {
+				"cache.getAll": {
+					"ms": 2.3000000715255737,
+					"calls": 16
+				},
+				"checkpoint.capture": {
+					"ms": 131.70000040531158,
+					"calls": 40972
+				},
+				"cache.indexGetAll": {
+					"ms": 445.6000018119812,
+					"calls": 571
+				},
+				"rosterChecks": {
+					"ms": 120.89999985694885,
+					"calls": 2
+				},
+				"rotation.quantilesAndRead": {
+					"ms": 1.1999999284744263,
+					"calls": 1
+				},
+				"updateValues": {
+					"ms": 545.0000076293945,
+					"calls": 861
+				},
+				"preparation": {
+					"ms": 33.799999952316284,
+					"calls": 1
+				},
+				"GameSim": {
+					"ms": 130.40000021457672,
+					"calls": 14
+				},
+				"cache.write": {
+					"ms": 1508.799992799759,
+					"calls": 1471
+				},
+				"injuries": {
+					"ms": 1.100000023841858,
+					"calls": 4
+				},
+				"writePlayerStats": {
+					"ms": 10.899999976158142,
+					"calls": 1
+				},
+				"writeTeamStats": {
+					"ms": 3.7000001668930054,
+					"calls": 14
+				},
+				"deepCopy": {
+					"ms": 9.699999928474426,
+					"calls": 4689
+				},
+				"writeGameStats": {
+					"ms": 8.399999856948853,
+					"calls": 14
+				},
+				"decreaseDemands": {
+					"ms": 3.9000000953674316,
+					"calls": 1
+				},
+				"rosterSort": {
+					"ms": 1.7999999523162842,
+					"calls": 2
+				},
+				"autoSign": {
+					"ms": 11.5,
+					"calls": 1
+				},
+				"AITrades": {
+					"ms": 26.699999928474426,
+					"calls": 1
+				},
+				"dailySettlement": {
+					"ms": 43,
+					"calls": 1
+				},
+				"advStats": {
+					"ms": 23,
+					"calls": 1
+				},
+				"IDB.enqueue": {
+					"ms": 62.299999952316284,
+					"calls": 1
+				},
+				"IDB.wait": {
+					"ms": 1032.7999999523163,
+					"calls": 1
+				},
+				"checkpoint.rebase": {
+					"ms": 59.5,
+					"calls": 866
+				},
+				"flush": {
+					"ms": 1156.2000000476837,
+					"calls": 2
+				}
+			}
+		}
+	],
+	"measurement": {
+		"clock": "performance.now",
+		"environment": "Chromium, native IndexedDB",
+		"seed": 20261103,
+		"gamesPerDay": 14,
+		"hashStores": "all Cache.STORES"
+	}
+}

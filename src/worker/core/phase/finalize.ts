@@ -86,10 +86,6 @@ const finalize = async (
 			});
 		}
 	}
-
-	if (local.autoPlayUntil) {
-		await league.autoPlay(conditions);
-	}
 };
 
 export default finalize;

@@ -1,0 +1,28 @@
+
+ RUN  v4.1.2 /Users/felixhuang/Desktop/bbgm/zengm - playground
+
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ❯ |basketball| src/worker/core/contracts/salaryFixFreshLifecycle.test.ts (51 tests | 1 failed) 79ms
+   × updateNegotiation keeps user mood pricing before options and injury on every incumbent term 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |basketball| src/worker/core/contracts/salaryFixFreshLifecycle.test.ts > updateNegotiation keeps user mood pricing before options and injury on every incumbent term
+AssertionError: 5-year team row must be present: expected undefined to not equal undefined
+ ❯ src/worker/core/contracts/salaryFixFreshLifecycle.test.ts:801:11
+    799|     (row) => row.years === years && row.option === option,
+    800|    );
+    801|    assert.isDefined(
+       |           ^
+    802|     optionRow,
+    803|     `${years}-year ${option} row must be present`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 21 passed (22)
+      Tests  1 failed | 378 passed (379)
+   Start at  21:27:01
+   Duration  32.15s (transform 3.70s, setup 10.50s, import 526ms, tests 18.28s, environment 1ms)

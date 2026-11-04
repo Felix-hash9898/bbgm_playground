@@ -23,6 +23,8 @@ import {
 import { captureSigningContext } from "../capturedContext.ts";
 import { applySigningTransaction } from "../signingTransaction.ts";
 
+import { normalizeAIContractOption } from "../contracts/contractOption.ts";
+
 /**
  * AI teams sign free agents.
  *
@@ -241,7 +243,16 @@ const autoSign = async () => {
 		// and a qualifying prior team can use its rights even when already over cap.
 		const quotes =
 			isSport("basketball") && context.salaryCapType !== "none"
-				? playersSortedForTeam.flatMap((p) => {
+				? playersSortedForTeam.flatMap((original) => {
+						const p = {
+							...original,
+							contract: normalizeAIContractOption(
+								original,
+								original.contract,
+								context,
+								t.tid,
+							),
+						};
 						const birdException =
 							context.salaryCapType === "soft" &&
 							hasDesignatedVeteranContractRights(p, t.tid);
@@ -274,7 +285,34 @@ const autoSign = async () => {
 						});
 						return contract ? [{ ...p, contract }] : [];
 					})
-				: playersSortedForTeam;
+				: playersSortedForTeam.flatMap((p) => {
+						let contract = normalizeAIContractOption(
+							p,
+							p.contract,
+							context,
+							t.tid,
+						);
+						if (isSport("basketball")) {
+							const years = getContractYearsFromExpiration({
+								expiration: contract.exp,
+								context,
+							});
+							if (
+								years < context.minContractLength ||
+								years > context.maxContractLength
+							) {
+								const quote = getBasketballContractForMechanism(p, "none", {
+									context,
+									teamTid: t.tid,
+								});
+								if (!quote) {
+									return [];
+								}
+								contract = quote;
+							}
+						}
+						return [{ ...p, contract }];
+					});
 		const quote = getBest(
 			playersOnRoster,
 			quotes,

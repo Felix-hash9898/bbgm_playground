@@ -8,7 +8,7 @@ import {
 	expansionDraft,
 	team,
 } from "../index.ts";
-import { g, random } from "../../util/index.ts";
+import { g, random, local, logEvent } from "../../util/index.ts";
 import type { Conditions } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 
@@ -96,7 +96,19 @@ const autoPlay = async (conditions: Conditions = {}) => {
 		await phase.newPhase(PHASE.FREE_AGENCY, conditions);
 	} else if (currentPhase === PHASE.FREE_AGENCY) {
 		// Purposely call without await, to break up the promise chain. Otherwise (at least in Chrome 85) causes a memory leak after playing like 50 seasons.
-		freeAgents.play(g.get("daysLeft"), conditions);
+		void freeAgents.play(g.get("daysLeft"), conditions).catch((error) => {
+			local.autoPlayUntil = undefined;
+			console.error("Automatic free agency advance failed", error);
+			void logEvent(
+				{
+					type: "error",
+					text: error instanceof Error ? error.message : String(error),
+					saveToDb: false,
+					persistent: true,
+				},
+				conditions,
+			);
+		});
 	} else {
 		throw new Error(`Unknown phase: ${currentPhase}`);
 	}

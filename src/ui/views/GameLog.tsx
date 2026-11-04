@@ -7,7 +7,7 @@ import {
 import useTitleBar from "../hooks/useTitleBar.tsx";
 import { helpers } from "../util/index.ts";
 import useClickable from "../hooks/useClickable.tsx";
-import type { View, Game } from "../../common/types.ts";
+import type { View } from "../../common/types.ts";
 import { bySport, isSport } from "../../common/index.ts";
 import getWinner from "../../common/getWinner.ts";
 import formatScoreWithShootout from "../../common/formatScoreWithShootout.ts";
@@ -32,7 +32,10 @@ const StatsRow = ({
 	);
 };
 
-const findPrevNextGids = (games: Game[], currentGid: number) => {
+const findPrevNextGids = (
+	games: View<"gameLog">["gamesList"]["games"],
+	currentGid: number,
+) => {
 	let prevGid;
 	let nextGid;
 	let currentGidInList = false;

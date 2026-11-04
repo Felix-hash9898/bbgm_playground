@@ -21,6 +21,9 @@ export type ShotPriorityContext = {
 
 export const SHOT_PRIORITY_SHARE_EPSILON = 1e-12;
 
+export const isNeutralUsageBias = (usageBias: number) =>
+	usageBias === 1 || !Number.isFinite(usageBias) || usageBias <= 0;
+
 export const getUsageSelectionWeights = (players: ShotPriorityInput[]) => {
 	if (players.length === 0) {
 		return {
@@ -88,13 +91,15 @@ export const getShotPriorityContext = (
 		};
 	}
 
-	const baseline = getUsageSelectionWeights(
-		players.map((player) => ({
-			...player,
-			usageBias: 1,
-		})),
+	// Most lineups use the neutral bias. Reuse its identical calculation, while
+	// keeping the public weight arrays independent for callers.
+	const neutral = players.every(({ usageBias }) =>
+		isNeutralUsageBias(usageBias),
 	);
-	const adjusted = getUsageSelectionWeights(players);
+	const baseline = getUsageSelectionWeights(
+		neutral ? players : players.map((player) => ({ ...player, usageBias: 1 })),
+	);
+	const adjusted = neutral ? baseline : getUsageSelectionWeights(players);
 
 	const playerContexts = baseline.shares.map((baselineShare, index) => {
 		const rawAdjustedShare = adjusted.shares[index]!;
@@ -130,7 +135,7 @@ export const getShotPriorityContext = (
 	return {
 		players: playerContexts,
 		baselineWeights: baseline.weights,
-		adjustedWeights: adjusted.weights,
+		adjustedWeights: neutral ? [...adjusted.weights] : adjusted.weights,
 		teamDisplacement,
 	};
 };

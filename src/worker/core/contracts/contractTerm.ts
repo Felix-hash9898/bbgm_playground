@@ -317,7 +317,7 @@ export const getBasketballContractForMechanism = (
 				(quotedRealAmount > playerMaximum || quotedRealAmount > mleCap)) ||
 			(option === "team" && quotedRealAmount > playerMaximum) ||
 			(option === "player" &&
-				!isPlayerOptionInjuryHorizonSafe(p, contractForOption))
+				!isPlayerOptionInjuryHorizonSafe(p, contractForOption, context))
 		) {
 			option = undefined;
 		}

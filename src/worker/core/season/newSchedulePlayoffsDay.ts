@@ -144,7 +144,10 @@ const getTeamsForOrderTeams = async () => {
  * @memberOf core.season
  * @return {Promise.boolean} Resolves to true if the playoffs are over. Otherwise, false.
  */
-const newSchedulePlayoffsDay = async (firstDay?: number): Promise<boolean> => {
+const newSchedulePlayoffsDay = async (
+	firstDay?: number,
+	options?: { deferUiRefresh?: boolean },
+): Promise<boolean> => {
 	const playoffSeries = await idb.cache.playoffSeries.get(g.get("season"));
 	if (!playoffSeries) {
 		throw new Error("No playoff series");
@@ -193,7 +196,7 @@ const newSchedulePlayoffsDay = async (firstDay?: number): Promise<boolean> => {
 
 		if (tids.length > 0) {
 			await idb.cache.playoffSeries.put(playoffSeries);
-			await setSchedule(tids);
+			await setSchedule(tids, undefined, options);
 			return false;
 		} else {
 			// playIn is over, so proceed to next round
@@ -269,6 +272,7 @@ const newSchedulePlayoffsDay = async (firstDay?: number): Promise<boolean> => {
 		await setSchedule(
 			tids,
 			playoffsAllStarGame && firstDay !== undefined ? firstDay - 1 : firstDay,
+			options,
 		);
 		return false;
 	}
@@ -479,7 +483,7 @@ const newSchedulePlayoffsDay = async (firstDay?: number): Promise<boolean> => {
 	}
 
 	// Next time, the schedule for the first day of the next round will be set
-	return newSchedulePlayoffsDay(nextRoundFirstGameDay);
+	return newSchedulePlayoffsDay(nextRoundFirstGameDay, options);
 };
 
 export default newSchedulePlayoffsDay;

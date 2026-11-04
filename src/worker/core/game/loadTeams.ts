@@ -640,7 +640,7 @@ const loadTeams = async (tids: number[], conditions: Conditions) => {
 				},
 			);
 		}
-		await Promise.all(
+		const prepared = await Promise.allSettled(
 			tids.map(async (tid) => {
 				const [players, team, teamSeason] = await Promise.all([
 					idb.cache.players.indexGetAll("playersByTid", tid),
@@ -674,6 +674,11 @@ const loadTeams = async (tids: number[], conditions: Conditions) => {
 				);
 			}),
 		);
+		for (const result of prepared) {
+			if (result.status === "rejected") {
+				throw result.reason;
+			}
+		}
 	}
 
 	return teams;

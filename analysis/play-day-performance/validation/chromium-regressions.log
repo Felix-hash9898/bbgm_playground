@@ -1,0 +1,49 @@
+
+ RUN  v4.1.2 /Users/felixhuang/Desktop/bbgm/zengm - playground
+
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[BABEL] Note: The code generator has deoptimised the styling of undefined as it exceeds the max of 500KB.
+[BABEL] Note: The code generator has deoptimised the styling of undefined as it exceeds the max of 500KB.
+9:17:40 PM [vite] (client) [console.error] Play request failed Error: Contract option is not legal for this term
+    at http://localhost:63315/Users/felixhuang/Desktop/bbgm/zengm%20-%20playground/src/ui/components/playAdvance.test.browser.ts?import&browserv=1793758656766:95:38
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:294:14
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:1941:28
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2385:24
+    at new Promise (<anonymous>)
+    at runWithCancel (http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2382:12)
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2364:24
+    at new Promise (<anonymous>)
+    at runWithTimeout (http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2331:12)
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:3016:70
+9:17:40 PM [vite] (client) [console.error] Play request failed Error: daily settlement failed
+    at http://localhost:63315/Users/felixhuang/Desktop/bbgm/zengm%20-%20playground/src/ui/components/playAdvance.test.browser.ts?import&browserv=1793758656766:123:38
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:294:14
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:1941:28
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2385:24
+    at new Promise (<anonymous>)
+    at runWithCancel (http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2382:12)
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2364:24
+    at new Promise (<anonymous>)
+    at runWithTimeout (http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2331:12)
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:3016:70
+9:17:40 PM [vite] (client) [console.error] Play request failed Error: write failed
+    at http://localhost:63315/Users/felixhuang/Desktop/bbgm/zengm%20-%20playground/src/ui/components/playAdvance.test.browser.ts?import&browserv=1793758656766:154:10
+    at async http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:1941:22
+9:17:40 PM [vite] (client) [console.error] Play request failed Error: save failed
+    at http://localhost:63315/Users/felixhuang/Desktop/bbgm/zengm%20-%20playground/src/ui/components/playAdvance.test.browser.ts?import&browserv=1793758656766:163:38
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:294:14
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:1941:28
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2385:24
+    at new Promise (<anonymous>)
+    at runWithCancel (http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2382:12)
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2364:24
+    at new Promise (<anonymous>)
+    at runWithTimeout (http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:2331:12)
+    at http://localhost:63315/node_modules/.pnpm/@vitest+runner@4.1.2/node_modules/@vitest/runner/dist/chunk-artifact.js?v=09bc0de6:3016:70
+
+ Test Files  3 passed (3)
+      Tests  9 passed (9)
+   Start at  21:17:34
+   Duration  8.65s (transform 0ms, setup 17ms, import 5.61s, tests 406ms, environment 0ms)

@@ -1,3 +1,4 @@
+import { league } from "../index.ts";
 import { PHASE, WEBSITE_ROOT } from "../../../common/index.ts";
 import finalize from "./finalize.ts";
 import newPhasePreseason from "./newPhasePreseason.ts";
@@ -92,6 +93,7 @@ const newPhase = async (phase: Phase, conditions: Conditions, extra?: any) => {
 		const cache = idb.cache;
 		const releaseAutoFlush = cache.pauseAutoFlush();
 		const checkpoint = cache.beginMutationCheckpoint();
+		let continueAutoPlay = false;
 		try {
 			await lock.set("newPhase", true);
 
@@ -137,6 +139,7 @@ const newPhase = async (phase: Phase, conditions: Conditions, extra?: any) => {
 					await finalize(phase, conditions, result);
 				}
 				checkpoint.commit();
+				continueAutoPlay = !result.abort && !!local.autoPlayUntil;
 			} else {
 				throw new Error(`Unknown phase number ${phase}`);
 			}
@@ -156,6 +159,11 @@ const newPhase = async (phase: Phase, conditions: Conditions, extra?: any) => {
 			throw error;
 		} finally {
 			releaseAutoFlush();
+		}
+		// The next simulation owns its own journal. Finish this phase before
+		// entering it, including when autoplay crosses several phase boundaries.
+		if (continueAutoPlay) {
+			await league.autoPlay(conditions);
 		}
 	}
 };

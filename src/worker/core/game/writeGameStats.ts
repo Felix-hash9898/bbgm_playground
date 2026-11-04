@@ -528,7 +528,7 @@ const writeGameStats = async (
 			type = "gameTied";
 		}
 
-		logEvent(
+		await logEvent(
 			{
 				type,
 				text,
@@ -548,7 +548,7 @@ const writeGameStats = async (
 				results.gid,
 			])}">${formatScoreWithShootout(results.team[tw].stat, results.team[tl].stat)} in the All-Star Game</a>.`;
 			const type = tied ? "gameTied" : "gameWon";
-			logEvent(
+			await logEvent(
 				{
 					type,
 					text,
@@ -753,7 +753,7 @@ const writeGameStats = async (
 
 		const eventScore = won ? (playoffs ? 20 : 10) : 0;
 
-		logEvent(
+		await logEvent(
 			{
 				type: "playerFeat",
 				...clutchPlay,

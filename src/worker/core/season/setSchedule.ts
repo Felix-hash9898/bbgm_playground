@@ -18,7 +18,11 @@ const makePlayoffsKey = (game: ScheduleGameWithoutKey) =>
         away teams, respectively, for every game in the season, respectively.
  * @return {Promise}
  */
-const setSchedule = async (tids: [number, number][], firstDay?: number) => {
+const setSchedule = async (
+	tids: [number, number][],
+	firstDay?: number,
+	options?: { deferUiRefresh?: boolean },
+) => {
 	const playoffs = g.get("phase") === PHASE.PLAYOFFS;
 
 	const oldPlayoffGames: Record<string, ScheduleGame> = {};
@@ -62,7 +66,9 @@ const setSchedule = async (tids: [number, number][], firstDay?: number) => {
 		await idb.cache.schedule.add(game);
 	}
 
-	await recomputeLocalUITeamOvrs();
+	if (!options?.deferUiRefresh) {
+		await recomputeLocalUITeamOvrs();
+	}
 };
 
 export default setSchedule;

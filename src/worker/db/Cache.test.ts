@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { deleteDB, openDB, unwrap } from "@dumbmatter/idb";
 import {
 	afterEach,
+	expect,
 	assert,
 	beforeAll,
 	beforeEach,
@@ -229,6 +230,42 @@ describe("mutation checkpoint", () => {
 		);
 	});
 
+	test("rollback restores a row mutated through get even when put was never reached", async () => {
+		await harness.cache.players.put(testPlayer(1, "durable-old"));
+		await harness.cache.flush(["players"]);
+		const checkpoint = harness.cache.beginMutationCheckpoint();
+		const p = (await harness.cache.players.get(1))!;
+		(p as any).value = "changed before throwing";
+		checkpoint.rollback();
+		assert.deepStrictEqual(
+			await harness.cache.players.get(1),
+			testPlayer(1, "durable-old"),
+		);
+		assert.isFalse(harness.cache._dirty);
+	});
+
+	test("rollback of a first attribute write preserves an unstored global default", async () => {
+		g.setWithoutSavingToDB("basketballPlayoffDaysProcessedThrough", undefined);
+		const checkpoint = harness.cache.beginMutationCheckpoint();
+		await harness.cache.gameAttributes.put({
+			key: "basketballPlayoffDaysProcessedThrough",
+			value: { season: 2016, day: 104 },
+		});
+		g.setWithoutSavingToDB("basketballPlayoffDaysProcessedThrough", {
+			season: 2016,
+			day: 104,
+		});
+		checkpoint.rollback();
+		assert.isTrue(Object.hasOwn(g, "basketballPlayoffDaysProcessedThrough"));
+		assert.isUndefined(g.get("basketballPlayoffDaysProcessedThrough"));
+		assert.isUndefined(
+			await harness.cache.gameAttributes.get(
+				"basketballPlayoffDaysProcessedThrough",
+			),
+		);
+		assert.isFalse(harness.cache._dirty);
+	});
+
 	test("scalar indexGetAll snapshots rows before in-place mutation", async () => {
 		const row = player.generate(-1, 30, 2017, true, DEFAULT_LEVEL);
 		row.pid = 1;
@@ -281,6 +318,62 @@ describe("mutation checkpoint", () => {
 		);
 	});
 
+	test("final full flush finishes the journal without rebase snapshots", async () => {
+		await harness.cache.players.put(testPlayer(1, "old"));
+		await harness.cache.flush();
+		const checkpoint = harness.cache.beginMutationCheckpoint();
+		await harness.cache.players.put(testPlayer(1, "saved"));
+		const original = harness.cache._rebaseCheckpointRecord;
+		const rebase = vi
+			.spyOn(harness.cache, "_rebaseCheckpointRecord")
+			.mockImplementation(function (this: Cache, ...args) {
+				assert.isUndefined((this as any)._mutationCheckpoint);
+				return original.apply(this, args);
+			});
+		await harness.cache.flush(undefined, { checkpointToCommit: checkpoint });
+		checkpoint.rollback();
+		assert.deepStrictEqual(
+			await harness.cache.players.get(1),
+			testPlayer(1, "saved"),
+		);
+		assert.deepStrictEqual(
+			await readDurableRecord(harness.db, "players", 1),
+			testPlayer(1, "saved"),
+		);
+		rebase.mockRestore();
+	});
+
+	test("a failed final save leaves rollback active and restores in-place edits", async () => {
+		await harness.cache.players.put(testPlayer(1, "old"));
+		await harness.cache.flush();
+		const checkpoint = harness.cache.beginMutationCheckpoint();
+		const row = (await harness.cache.players.get(1))!;
+		(row as any).badValue = () => {};
+		await harness.cache.players.put(row);
+		await expect(
+			harness.cache.flush(undefined, { checkpointToCommit: checkpoint }),
+		).rejects.toThrow();
+		checkpoint.rollback();
+		assert.deepStrictEqual(
+			await harness.cache.players.get(1),
+			testPlayer(1, "old"),
+		);
+		assert.deepStrictEqual(
+			await readDurableRecord(harness.db, "players", 1),
+			testPlayer(1, "old"),
+		);
+	});
+
+	test("partial saves cannot finish a full-day journal", async () => {
+		const checkpoint = harness.cache.beginMutationCheckpoint();
+		await harness.cache.players.put(testPlayer(1, "unsaved"));
+		await expect(
+			harness.cache.flush(["players"], { checkpointToCommit: checkpoint }),
+		).rejects.toThrow("full-cache flush");
+		checkpoint.rollback();
+		assert.isUndefined(await harness.cache.players.get(1));
+	});
+
 	test("re-bases an active checkpoint after a durable flush", async () => {
 		await harness.cache.players.put(testPlayer(1, "A"));
 		await harness.cache.flush(["players"]);
@@ -314,6 +407,29 @@ describe("flush durability and retry", () => {
 
 	afterEach(async () => {
 		await harness.dispose();
+	});
+
+	test("a synchronous IDB clone error aborts earlier queued writes and remains retryable", async () => {
+		await harness.cache.players.put(testPlayer(1, "good"));
+		await harness.cache.players.put({
+			...testPlayer(2, "bad"),
+			uncloneable: () => {},
+		} as any);
+		await assertPromiseRejects(harness.cache.flush(["players"]));
+		assert.isUndefined(await readDurableRecord(harness.db, "players", 1));
+		assert.isUndefined(await readDurableRecord(harness.db, "players", 2));
+		assert.isTrue(harness.cache._dirtyRecords.players.has(1));
+		assert.isTrue(harness.cache._dirtyRecords.players.has(2));
+		await harness.cache.players.put(testPlayer(2, "repaired"));
+		await harness.cache.flush(["players"]);
+		assert.deepStrictEqual(
+			await readDurableRecord(harness.db, "players", 1),
+			testPlayer(1, "good"),
+		);
+		assert.deepStrictEqual(
+			await readDurableRecord(harness.db, "players", 2),
+			testPlayer(2, "repaired"),
+		);
 	});
 
 	test("put-only transaction reject preserves dirty state for retry and reopen", async () => {
@@ -828,6 +944,24 @@ describe("auto-flush lifecycle", () => {
 		resolveFlush();
 		await autoFlush;
 		assert.equal(vi.getTimerCount(), 1);
+	});
+
+	test("an auto-flush waiting behind a transaction rechecks a newly acquired pause", async () => {
+		harness.cache.startAutoFlush();
+		await harness.cache.players.put(testPlayer(1, "first"));
+		harness.holdNextTransaction();
+		const first = harness.cache.flush(["players"]);
+		await harness.waitForHeldTransaction();
+		await harness.cache.players.put(testPlayer(2, "uncommitted"));
+		const background = harness.cache._autoFlush();
+		const release = harness.cache.pauseAutoFlush();
+		harness.releaseHeldTransaction();
+		await first;
+		await background;
+		assert.equal(harness.getTransactionCount(), 1);
+		assert.isUndefined(await readDurableRecord(harness.db, "players", 2));
+		assert.isTrue(harness.cache._dirtyRecords.players.has(2));
+		release();
 	});
 
 	test("auto-flush rejection keeps a retry timer and never schedules two", async () => {

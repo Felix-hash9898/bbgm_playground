@@ -1,3 +1,4 @@
+import { normalizeAIContractOption } from "../contracts/contractOption.ts";
 import {
 	bySport,
 	isSport,
@@ -370,7 +371,7 @@ const newPhaseResignPlayers = async (
 						const signingTid = p.tid;
 						// Hard-cap AI: enforce cap-space max 4-year term (Defect F fix).
 						// Bird (5-year) is only valid under soft cap. Hard cap uses cap space max.
-						const signingContract: typeof contract = { ...contract };
+						let signingContract: typeof contract = { ...contract };
 						if (
 							isSport("basketball") &&
 							signingContext.salaryCapType === "hard" &&
@@ -393,6 +394,12 @@ const newPhaseResignPlayers = async (
 								}
 							}
 						}
+						signingContract = normalizeAIContractOption(
+							p,
+							signingContract,
+							signingContext,
+							signingTid,
+						);
 						let expectedContractException: "bird" | "capSpace" | undefined;
 						if (signingContext.salaryCapType === "soft") {
 							const currentTeam =

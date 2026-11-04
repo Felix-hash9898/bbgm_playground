@@ -322,7 +322,7 @@ const updateClinchedPlayoffs = async (
 				action = "have been eliminated from playoff contention";
 			}
 
-			logEvent(
+			await logEvent(
 				{
 					type: "playoffs",
 					text: `The <a href="${helpers.leagueUrl([

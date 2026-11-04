@@ -179,9 +179,9 @@ test("multi-day request rolls back the whole request on a controlled failure", a
 		([name, args]) =>
 			name === "realtimeUpdate" &&
 			Array.isArray(args[0]) &&
-			args[0].includes("playerMovement"),
+			(args[0] as string[]).includes("playerMovement"),
 	).length;
-	assert.strictEqual(playerMovementUpdates, 0);
+	assert.strictEqual(playerMovementUpdates, 1);
 	assert.strictEqual(g.get("daysLeft"), 4);
 	assert.strictEqual(
 		(await idb.cache.gameAttributes.get("daysLeft"))?.value,
@@ -241,7 +241,7 @@ test("one-day refresh remains immediate and multi-day refresh is batched", async
 			([name, args]) =>
 				name === "realtimeUpdate" &&
 				Array.isArray(args[0]) &&
-				args[0].includes("playerMovement"),
+				(args[0] as string[]).includes("playerMovement"),
 		).length,
 		1,
 	);
@@ -263,7 +263,7 @@ test("one-day refresh remains immediate and multi-day refresh is batched", async
 			([name, args]) =>
 				name === "realtimeUpdate" &&
 				Array.isArray(args[0]) &&
-				args[0].includes("playerMovement"),
+				(args[0] as string[]).includes("playerMovement"),
 		).length,
 		1,
 	);
@@ -295,7 +295,7 @@ test("stopGameSim flushes completed days before an early return", async () => {
 			([name, args]) =>
 				name === "realtimeUpdate" &&
 				Array.isArray(args[0]) &&
-				args[0].includes("playerMovement"),
+				(args[0] as string[]).includes("playerMovement"),
 		).length,
 		1,
 	);
@@ -331,13 +331,13 @@ test("PRESEASON transition is included in the final durable boundary", async () 
 			([name, args]) =>
 				name === "realtimeUpdate" &&
 				Array.isArray(args[0]) &&
-				args[0].includes("playerMovement"),
+				(args[0] as string[]).includes("playerMovement"),
 		).length,
 		1,
 	);
 });
 
-test("final flush failure keeps the committed day dirty for retry", async () => {
+test("final flush failure rolls back the free agency request before retry", async () => {
 	const flushError = new Error("final Free Agency flush failed");
 	vi.spyOn(Math, "random").mockReturnValue(0.99);
 	const flushSpy = vi
@@ -353,14 +353,33 @@ test("final flush failure keeps the committed day dirty for retry", async () => 
 
 	assert.strictEqual(caught, flushError);
 	assert.strictEqual(flushSpy.mock.calls.length, 1);
-	assert.strictEqual(g.get("daysLeft"), 1);
+	assert.strictEqual(g.get("daysLeft"), 2);
 	assert.strictEqual(await readGameAttribute("daysLeft"), 2);
-	assert.strictEqual(idb.cache._dirty, true);
+	assert.strictEqual(idb.cache._dirty, false);
 
 	flushSpy.mockRestore();
-	await idb.cache.flush(undefined, {
-		league: idb.league,
-		updateLastPlayed: false,
-	});
+	await play(1, {} as any, false);
+	assert.strictEqual(await readGameAttribute("daysLeft"), 1);
+});
+
+test("a user-started free agency failure clears the simulation lock and is retryable", async () => {
+	vi.spyOn(Math, "random").mockReturnValue(0.99);
+	vi.spyOn(trade, "betweenAiTeams").mockRejectedValueOnce(
+		new Error("free agency settlement failed"),
+	);
+	let caught: unknown;
+	try {
+		await play(1, {});
+	} catch (error) {
+		caught = error;
+	}
+	assert.strictEqual(
+		(caught as Error).message,
+		"free agency settlement failed",
+	);
+	assert.isFalse(lock.get("gameSim"));
+	assert.strictEqual(g.get("daysLeft"), 2);
+	await play(1, {});
+	assert.isFalse(lock.get("gameSim"));
 	assert.strictEqual(await readGameAttribute("daysLeft"), 1);
 });

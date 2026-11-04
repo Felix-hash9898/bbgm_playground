@@ -27,6 +27,7 @@ type Action = {
 
 type ActionWithResolve = Action & {
 	resolve: () => void;
+	reject: (error: unknown) => void;
 };
 
 type State = {
@@ -86,6 +87,7 @@ class ViewManager {
 	viewData: Record<string, unknown>;
 	idLoaded: string | undefined;
 	processingAction: boolean;
+	activeActionSymbol?: symbol;
 	routes: {
 		id: string;
 		regex: RegExp;
@@ -132,12 +134,26 @@ class ViewManager {
 			this.clearQueue();
 		}
 
-		await this.processUpdate(viewInfo, this.lastNavigationSymbol);
+		const actionSymbol = this.activeActionSymbol;
+		const navigationSymbol = this.lastNavigationSymbol;
+		try {
+			await this.processUpdate(viewInfo, navigationSymbol);
+		} finally {
+			if (
+				navigationSymbol === this.lastNavigationSymbol &&
+				useViewData.getState().loading
+			) {
+				actions.doneLoading(viewInfo.id);
+			}
+			if (actionSymbol === this.activeActionSymbol) {
+				this.initNextAction();
+			}
+		}
 	}
 
 	fromRealtimeUpdate(action: Action) {
 		// Return a promise because sometimes we want to wait for an update to process before continuing. For example, when simming multiple games, we want to update the UI between each day.
-		return new Promise<void>((resolve) => {
+		return new Promise<void>((resolve, reject) => {
 			let navigationEvent = false;
 			if (action.url) {
 				// It's a "navigation event" if it is moving to a new page, rather than just changing some parameter of a page (like abbrev or season). So we need to get the id of this url and compare it to idLoaded.
@@ -160,6 +176,7 @@ class ViewManager {
 			const actionWithResolve: ActionWithResolve = {
 				...action,
 				resolve,
+				reject,
 			};
 
 			if (navigationEvent) {
@@ -179,10 +196,13 @@ class ViewManager {
 		refresh,
 		replace,
 		resolve,
+		reject,
 		updateEvents,
 		raw,
 	}: ActionWithResolve) {
 		this.processingAction = true;
+		const actionSymbol = Symbol();
+		this.activeActionSymbol = actionSymbol;
 
 		const state: any = {
 			noTrack: refresh || replace,
@@ -193,19 +213,29 @@ class ViewManager {
 
 		const actualURL = url ?? window.location.pathname + window.location.search;
 
-		await router.navigate(actualURL, {
-			state,
-			refresh,
+		try {
+			await router.navigate(actualURL, {
+				state,
+				refresh,
 
-			// Would like to make this `replace: replace || url === undefined,` so it doesn't add a history entry on refreshes, but then Safari errors "Attempt to use history.replaceState() more than 100 times per 30 seconds"
-			replace,
-		});
+				// Would like to make this `replace: replace || url === undefined,` so it doesn't add a history entry on refreshes, but then Safari errors "Attempt to use history.replaceState() more than 100 times per 30 seconds"
+				replace,
+			});
 
-		// router.navigate runs fromRouter, which waits until the content is displayed, so we can resolve the action here
-		resolve();
+			resolve();
+		} catch (error) {
+			reject(error);
+		} finally {
+			// A blocked/failed navigation may never call fromRouter. A previous
+			// action must also never release a newer action already being loaded.
+			if (this.activeActionSymbol === actionSymbol) {
+				this.initNextAction();
+			}
+		}
 	}
 
 	initNextAction() {
+		this.activeActionSymbol = undefined;
 		this.processingAction = false;
 
 		const nextAction = this.queue.shift();
@@ -259,7 +289,6 @@ class ViewManager {
 		}
 
 		if (navigationSymbol !== this.lastNavigationSymbol) {
-			this.initNextAction();
 			return;
 		}
 
@@ -278,14 +307,12 @@ class ViewManager {
 		});
 
 		if (navigationSymbol !== this.lastNavigationSymbol) {
-			this.initNextAction();
 			return;
 		}
 
 		// If results is undefined, it means the league wasn't loaded yet at the time of the request, likely because another league was opening in another tab at the same time. So stop now and wait until we get a signal that there is a new league.
 		if (results === undefined) {
 			actions.doneLoading(id);
-			this.initNextAction();
 			return;
 		}
 
@@ -330,15 +357,12 @@ class ViewManager {
 				true,
 			);
 
-			this.initNextAction();
 			return;
 		}
 
 		actions.reset(vars);
 		this.idLoaded = id;
 		this.viewData = vars.data;
-
-		this.initNextAction();
 	}
 }
 

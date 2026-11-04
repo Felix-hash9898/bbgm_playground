@@ -1,12 +1,11 @@
+import runPlayMenuAction, {
+	reportPlayError,
+} from "../util/runPlayMenuAction.ts";
 import { useCallback, type MouseEvent } from "react";
 import { Dropdown, Nav } from "react-bootstrap";
-import {
-	confirm,
-	local,
-	realtimeUpdate,
-	toWorker,
-	useLocal,
-} from "../util/index.ts";
+import confirm from "../util/confirm.tsx";
+import { local, useLocal } from "../util/local.ts";
+import realtimeUpdate from "../util/realtimeUpdate.ts";
 import type { Option } from "../../common/types.ts";
 import clsx from "clsx";
 import {
@@ -93,7 +92,7 @@ const removeDuplicateShortcutLabels = (
 const handleOptionClick = (option: Option, event: MouseEvent) => {
 	if (!option.url) {
 		event.preventDefault();
-		toWorker("playMenu", option.id as any, undefined);
+		void runPlayMenuAction(option.id as any);
 	}
 };
 
@@ -138,9 +137,9 @@ const PlayMenu = ({
 				}
 
 				if (option.url) {
-					realtimeUpdate([], option.url);
+					await realtimeUpdate([], option.url).catch(reportPlayError);
 				} else {
-					toWorker("playMenu", option.id as any, undefined);
+					void runPlayMenuAction(option.id as any);
 				}
 			},
 			[options],

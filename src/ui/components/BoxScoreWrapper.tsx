@@ -1,3 +1,4 @@
+import NextButton from "./BoxScoreNextButton.tsx";
 import clsx from "clsx";
 import {
 	useCallback,
@@ -6,13 +7,12 @@ import {
 	useRef,
 	type CSSProperties,
 } from "react";
-import { isSport, PHASE, STARTING_NUM_TIMEOUTS } from "../../common/index.ts";
+import { isSport, STARTING_NUM_TIMEOUTS } from "../../common/index.ts";
 import {
 	gradientStyleFactory,
 	helpers,
 	realtimeUpdate,
 	toWorker,
-	useLocalPartial,
 } from "../util/index.ts";
 import BoxScore from "./BoxScore.tsx";
 import { range } from "../../common/utils.ts";
@@ -624,104 +624,6 @@ const FourFactorsHockey = ({ teams }: { teams: any[] }) => {
 				})}
 			</tbody>
 		</table>
-	);
-};
-
-const NextButton = ({
-	abbrev,
-	boxScore,
-	currentGidInList,
-	nextGid,
-	tid,
-}: {
-	abbrev?: string;
-	boxScore: any;
-	currentGidInList?: boolean;
-	nextGid?: number;
-	tid?: number;
-}) => {
-	const [autoGoToNext, setAutoGoToNext] = useState(false);
-	const [clickedGoToNext, setClickedGoToNext] = useState(false);
-
-	const simNext = useCallback(async () => {
-		setAutoGoToNext(true);
-		setClickedGoToNext(true);
-		await toWorker("playMenu", "day", undefined);
-	}, []);
-
-	useEffect(() => {
-		let mounted = true;
-		const whatever = async () => {
-			if (autoGoToNext && nextGid !== undefined) {
-				setAutoGoToNext(false);
-				// Hack, because otherwise the updateEvent with "gameSim" comes before this one, but doesn't finish yet, so in updatePage this update gets canceled even though it's a new URL (because it's the same page)
-				setTimeout(() => {
-					realtimeUpdate(
-						[],
-						helpers.leagueUrl([
-							"game_log",
-							`${abbrev}_${tid}`,
-							boxScore.season,
-							nextGid,
-						]),
-					);
-
-					if (mounted) {
-						setClickedGoToNext(false);
-					}
-				}, 10);
-			}
-		};
-
-		whatever();
-
-		return () => {
-			mounted = false;
-		};
-	}, [abbrev, autoGoToNext, boxScore.season, nextGid, tid]);
-
-	const { phase, playMenuOptions, season } = useLocalPartial([
-		"phase",
-		"playMenuOptions",
-		"season",
-	]);
-
-	const canPlay = playMenuOptions.some(
-		(option) => option.id === "day" || option.id === "week",
-	);
-
-	return (
-		<div className="ms-4">
-			{boxScore.season === season &&
-			currentGidInList &&
-			(nextGid === undefined || clickedGoToNext || autoGoToNext) &&
-			phase >= PHASE.REGULAR_SEASON &&
-			phase <= PHASE.PLAYOFFS ? (
-				<button
-					className="btn btn-light-bordered"
-					disabled={!canPlay}
-					onClick={simNext}
-				>
-					Sim
-					<br />
-					Next
-				</button>
-			) : (
-				<a
-					className={clsx("btn", "btn-light-bordered", {
-						disabled: nextGid === undefined,
-					})}
-					href={helpers.leagueUrl([
-						"game_log",
-						abbrev === "special" ? abbrev : `${abbrev}_${tid}`,
-						boxScore.season,
-						nextGid,
-					])}
-				>
-					Next
-				</a>
-			)}
-		</div>
 	);
 };
 

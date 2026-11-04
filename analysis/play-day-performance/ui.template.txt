@@ -1,0 +1,63 @@
+import { createElement, Fragment } from "react";
+import { createRoot } from "react-dom/client";
+import { flushSync } from "react-dom";
+import { vi } from "vitest";
+vi.mock("@bugsnag/browser", () => {
+ const getPlugin=()=>({createErrorBoundary:()=>({children}:any)=>children});
+ return {default:{getPlugin,notify:()=>{}},getPlugin};
+});
+import gameLog from "../worker/views/gameLog.ts";
+import "../ui/api/index.ts";
+import GameLog from "../ui/views/GameLog.tsx";
+import LeagueTopBar from "../ui/components/LeagueTopBar.tsx";
+import { localActions } from "../ui/util/local.ts";
+import { promiseWorker } from "../ui/util/index.ts";
+import { idb } from "../worker/db/index.ts";
+import { g } from "../worker/util/index.ts";
+
+export async function measureUI(calls:any[]) {
+ const output:any={calls:calls.length};
+ const bridgeURL=URL.createObjectURL(new Blob(["onmessage=e=>postMessage(e.data)"],{type:"text/javascript"}));
+ const bridge=new Worker(bridgeURL);
+ const roundtrip=(value:any)=>new Promise<any>(resolve=>{bridge.onmessage=e=>resolve(e.data);bridge.postMessage(value);});
+ await roundtrip(null); // Worker startup excluded; normal app worker is already running.
+ let start=performance.now();
+ await roundtrip(["playMenu","day",{}]);
+ output.requestRoundTripMs=performance.now()-start;
+ start=performance.now();
+ const delivered=await roundtrip(calls);
+ output.publishRoundTripMs=performance.now()-start;
+ output.publishBytes=new TextEncoder().encode(JSON.stringify(calls)).length;
+ const games=await idb.cache.games.getAll();
+ const game=games.at(-1)!;
+ const tid=game.teams[0].tid;
+ const inputs={gid:game.gid,tid,abbrev:g.get("teamInfoCache")[tid]!.abbrev,season:g.get("season")};
+ start=performance.now();
+ const props=await gameLog(inputs,["firstRun"],{});
+ output.gameLogDataMs=performance.now()-start;
+ output.gameLogBytes=new TextEncoder().encode(JSON.stringify(props)).length;
+ start=performance.now();
+ const uiProps=await roundtrip(props);
+ output.gameLogRoundTripMs=performance.now()-start;
+ bridge.terminate(); URL.revokeObjectURL(bridgeURL);
+ vi.spyOn(promiseWorker,"postMessage").mockResolvedValue(undefined);
+ localActions.update({lid:g.get("lid"),season:g.get("season"),phase:g.get("phase"),teamInfoCache:g.get("teamInfoCache"),showLeagueTopBar:true,games:[],liveGameInProgress:false});
+ const container=document.createElement("div");document.body.append(container);
+ const root=createRoot(container);
+ start=performance.now();
+ flushSync(()=>{
+  for(const [name,args] of delivered) {
+   if(name==="mergeGames") localActions.mergeGames(args[0]);
+   if(name==="updateLocal") localActions.update(args[0]);
+  }
+  root.render(createElement(Fragment,null,createElement(LeagueTopBar),createElement(GameLog,uiProps)));
+ });
+ // Include effects and a browser paint opportunity, not stylesheet/network fetch.
+ await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
+ output.renderAndPaintMs=performance.now()-start;
+ output.renderedRows=container.querySelectorAll("tr").length;
+ if(output.renderedRows<10) throw new Error("Game Log did not render real box score");
+ output.textHash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(container.textContent??"")))).map(x=>x.toString(16).padStart(2,"0")).join("");
+ root.unmount();container.remove();
+ return output;
+}

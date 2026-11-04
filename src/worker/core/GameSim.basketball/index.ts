@@ -25,6 +25,7 @@ import PlayByPlayLogger from "./PlayByPlayLogger.ts";
 import {
 	getShotPriorityContext,
 	getUsageSelectionWeights,
+	isNeutralUsageBias,
 	SHOT_PRIORITY_SHARE_EPSILON,
 	type ShotPriorityContext,
 	type ShotPriorityPlayerContext,
@@ -182,7 +183,7 @@ export const possessionContinues = (outcome: PossessionOutcome | undefined) =>
 // The set is to handle ties.
 // The descending sort and reverse is so ties are handled with the later entry in ovrs getting the lower index, like:
 // [0, 0, 0, 0, 0] => [4, 3, 2, 1, 0]
-const getSortedIndexes = (ovrs: number[]) => {
+export const getSortedIndexes = (ovrs: number[]) => {
 	const ovrsSortedDesc = [...ovrs].sort((a, b) => b - a);
 	const usedIndexes = new Set();
 	const sortedIndexes = ovrsSortedDesc
@@ -247,6 +248,51 @@ class GameSim extends GameSimBase {
 	team: [TeamGameSim, TeamGameSim];
 
 	playersOnCourt: [PlayerGameSim[], PlayerGameSim[]];
+
+	private substitutionOrders = new Map<
+		TeamNum,
+		{
+			roster: PlayerGameSim[];
+			ids: number[];
+			minutes: number[];
+			values: number[];
+			sorted: PlayerGameSim[];
+		}
+	>();
+
+	// Only ordering inputs are cached. Injuries, energy, fouls, and controller
+	// state remain live; edits/replacements of the roster or plan invalidate it.
+	private getSubstitutionOrder(t: TeamNum) {
+		const roster = this.team[t].player;
+		const previous = this.substitutionOrders.get(t);
+		if (
+			previous &&
+			previous.roster.length === roster.length &&
+			roster.every(
+				(p, i) =>
+					p === previous.roster[i] &&
+					p.id === previous.ids[i] &&
+					p.plannedMinutes === previous.minutes[i] &&
+					p.valueNoPot === previous.values[i],
+			)
+		) {
+			return previous.sorted;
+		}
+		const sorted = [...roster].sort(
+			(a, b) =>
+				b.plannedMinutes - a.plannedMinutes ||
+				b.valueNoPot - a.valueNoPot ||
+				a.id - b.id,
+		);
+		this.substitutionOrders.set(t, {
+			roster: [...roster],
+			ids: roster.map((p) => p.id),
+			minutes: roster.map((p) => p.plannedMinutes),
+			values: roster.map((p) => p.valueNoPot),
+			sorted,
+		});
+		return sorted;
+	}
 
 	t: number;
 
@@ -1020,7 +1066,16 @@ class GameSim extends GameSimBase {
 		);
 	}
 
+	hasNeutralShotPriority() {
+		return this.playersOnCourt[this.o].every((p) =>
+			isNeutralUsageBias(p.usageBias ?? 1),
+		);
+	}
+
 	getTeamDisplacement() {
+		if (this.hasNeutralShotPriority()) {
+			return 0;
+		}
 		return this.getShotPriorityContext().teamDisplacement;
 	}
 
@@ -1138,17 +1193,12 @@ class GameSim extends GameSimBase {
 
 			const before = new Set(this.playersOnCourt[t].map((p) => p.id));
 			const controllerActive = this.overtimes === 0 && !state.abandonedPlan;
-			const savedPlayerOrder = [...this.team[t].player];
-			if (controllerActive && !recordStarters) {
-				this.team[t].player.sort(
-					(a, b) =>
-						b.plannedMinutes - a.plannedMinutes ||
-						b.valueNoPot - a.valueNoPot ||
-						a.id - b.id,
-				);
-			}
+			const players =
+				controllerActive && !recordStarters
+					? this.getSubstitutionOrder(t)
+					: this.team[t].player;
 
-			const availablePositive = this.team[t].player.filter(
+			const availablePositive = players.filter(
 				(p) =>
 					!p.injured &&
 					(foulsNeededToFoulOut <= 0 || p.stat.pf < foulsNeededToFoulOut) &&
@@ -1183,7 +1233,7 @@ class GameSim extends GameSimBase {
 				let passSubstitutions = false;
 				const getOvrs = (includeFouledOut: boolean) => {
 					const ovrs: Record<number, number> = {};
-					for (const [i, p] of this.team[t].player.entries()) {
+					for (const [i, p] of players.entries()) {
 						if (
 							p.injured ||
 							(!includeFouledOut &&
@@ -1265,7 +1315,7 @@ class GameSim extends GameSimBase {
 						continue;
 					}
 
-					for (const b of this.team[t].player) {
+					for (const b of players) {
 						if (this.playersOnCourt[t].includes(b)) {
 							continue;
 						}
@@ -1361,18 +1411,9 @@ class GameSim extends GameSimBase {
 				return passSubstitutions;
 			};
 
-			let teamSubstitutions = false;
-			try {
-				teamSubstitutions = runPass(false);
-				if (!teamSubstitutions && !recordStarters && controllerActive) {
-					teamSubstitutions = runPass(true);
-				}
-			} finally {
-				this.team[t].player.splice(
-					0,
-					this.team[t].player.length,
-					...savedPlayerOrder,
-				);
+			let teamSubstitutions = runPass(false);
+			if (!teamSubstitutions && !recordStarters && controllerActive) {
+				teamSubstitutions = runPass(true);
 			}
 			if (teamSubstitutions) {
 				substitutions = true;
@@ -2056,6 +2097,9 @@ class GameSim extends GameSimBase {
 	}
 
 	probTov() {
+		if (this.hasNeutralShotPriority()) {
+			return this.getBaseTurnoverProbability();
+		}
 		return this.getTurnoverProbabilities().adjusted;
 	}
 
@@ -2089,6 +2133,9 @@ class GameSim extends GameSimBase {
 	}
 
 	pickTurnoverPlayer() {
+		if (this.hasNeutralShotPriority()) {
+			return this.pickPlayer("turnovers", this.o, 2);
+		}
 		const shotPriorityContext = this.getShotPriorityContext();
 		const displacement = shotPriorityContext.teamDisplacement;
 		if (

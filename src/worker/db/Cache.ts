@@ -76,6 +76,17 @@ export type Store =
 export type FlushRecordScope = Partial<
 	Record<Store, readonly (number | string)[]>
 >;
+// Checkpoints contain IDB-compatible records. Native cloning avoids traversing
+// every historical stats/ratings object in JS; keep the legacy fallback for
+// non-persistable staging records so validation/rollback semantics stay intact.
+const cloneCheckpointRecord = <T>(value: T): T => {
+	try {
+		return structuredClone(value);
+	} catch {
+		return helpers.deepCopy(value);
+	}
+};
+
 type MutationCheckpointRecord = {
 	deleted: boolean;
 	dirty: boolean;
@@ -83,6 +94,7 @@ type MutationCheckpointRecord = {
 	ownedToken?: number;
 	token?: number;
 	value?: any;
+	globalDefault?: { existed: boolean; value: any };
 };
 type MutationCheckpointState = {
 	active: boolean;
@@ -851,6 +863,7 @@ class Cache {
 		leagueDB = idb.league,
 		updateLastPlayed = true,
 		recordScope?: FlushRecordScope,
+		checkpointToCommit?: CacheMutationCheckpoint,
 	) {
 		if (!local.autoSave) {
 			return;
@@ -891,53 +904,65 @@ class Cache {
 				tokens: Map<number | string, number>;
 			}
 		>();
-		for (const store of stores) {
-			const allowed = allowedKeys(store);
-			const deletes = new Set(
-				[...this._deletes[store]].filter(
-					(id) => allowed === undefined || allowed.has(id),
-				),
-			);
-			const records = new Set(
-				[...this._dirtyRecords[store]].filter(
-					(id) => allowed === undefined || allowed.has(id),
-				),
-			);
-			const tokens = new Map<number | string, number>();
-			for (const id of [...deletes, ...records]) {
-				tokens.set(id, this._getDirtyTokenMap(store).get(id) ?? 0);
-			}
-			captured.set(store, { deletes, records, tokens });
-			for (const id of deletes) {
-				// This is synchronous to prevent any race condition
-				void transaction
-					.objectStore(store)
-					.delete(id)
-					.catch(() => {});
-			}
-
-			for (const id of records) {
-				const record = this._data[store][id];
-
-				// If record was deleted after being marked as dirty, it will be undefined here
-				if (record !== undefined) {
+		try {
+			for (const store of stores) {
+				const allowed = allowedKeys(store);
+				const deletes = new Set(
+					[...this._deletes[store]].filter(
+						(id) => allowed === undefined || allowed.has(id),
+					),
+				);
+				const records = new Set(
+					[...this._dirtyRecords[store]].filter(
+						(id) => allowed === undefined || allowed.has(id),
+					),
+				);
+				const tokens = new Map<number | string, number>();
+				for (const id of [...deletes, ...records]) {
+					tokens.set(id, this._getDirtyTokenMap(store).get(id) ?? 0);
+				}
+				captured.set(store, { deletes, records, tokens });
+				for (const id of deletes) {
 					// This is synchronous to prevent any race condition
 					void transaction
 						.objectStore(store)
-						.put(record)
+						.delete(id)
 						.catch(() => {});
 				}
-			}
-		}
 
-		try {
+				for (const id of records) {
+					const record = this._data[store][id];
+
+					// If record was deleted after being marked as dirty, it will be undefined here
+					if (record !== undefined) {
+						// This is synchronous to prevent any race condition
+						void transaction
+							.objectStore(store)
+							.put(record)
+							.catch(() => {});
+					}
+				}
+			}
+
 			await transaction.done;
 		} catch (error) {
+			// IDB put/delete may throw synchronously (for example DataCloneError).
+			// Abort earlier queued writes too, and observe done on that path.
+			try {
+				transaction.abort();
+			} catch {
+				// Already completed/aborted.
+			}
+			await transaction.done.catch(() => {});
 			// Keep all captured dirty state so the next flush can retry the failed transaction.
 			this._recomputeDirty();
 			throw error;
 		}
 
+		// Final day saves finish their journal at the durable boundary. Do this
+		// before dirty cleanup, avoiding snapshots that would be discarded right
+		// afterward. Ordinary/scoped saves still rebase active phase journals.
+		checkpointToCommit?.commit();
 		for (const store of stores) {
 			const state = captured.get(store)!;
 			for (const id of new Set([...state.deletes, ...state.records])) {
@@ -967,6 +992,8 @@ class Cache {
 			league?: typeof idb.league;
 			updateLastPlayed?: boolean;
 			records?: FlushRecordScope;
+			autoFlushGeneration?: number;
+			checkpointToCommit?: CacheMutationCheckpoint;
 		},
 	) {
 		// A flush scoped to a captured league database must never use the global
@@ -979,7 +1006,24 @@ class Cache {
 		const leagueDB = options?.league ?? idb.league;
 		const updateLastPlayed = options?.updateLastPlayed ?? true;
 		const recordScope = options?.records;
+		if (
+			options?.checkpointToCommit &&
+			(recordScope || !STORES.every((store) => storesToCheck.includes(store)))
+		) {
+			throw new Error("Finishing a checkpoint requires a full-cache flush");
+		}
 		while (true) {
+			if (
+				options?.autoFlushGeneration !== undefined &&
+				(options.autoFlushGeneration !== this._autoFlushGeneration ||
+					this._stopAutoFlush ||
+					this._autoFlushPauseCount > 0 ||
+					lock.get("gameSim") ||
+					lock.get("newPhase") ||
+					local.autoPlayUntil)
+			) {
+				return;
+			}
 			if (this._flushPromise) {
 				await this._flushPromise;
 				continue;
@@ -990,6 +1034,7 @@ class Cache {
 				leagueDB,
 				updateLastPlayed,
 				recordScope,
+				options?.checkpointToCommit,
 			);
 			this._flushPromise = promise;
 			try {
@@ -1036,7 +1081,7 @@ class Cache {
 					lock.get("gameSim") || lock.get("newPhase") || !!local.autoPlayUntil;
 
 				if (!skipFlush) {
-					await this.flush();
+					await this.flush(undefined, { autoFlushGeneration: generation });
 				}
 			}
 		} catch (error) {
@@ -1130,7 +1175,7 @@ class Cache {
 		checkpointRecord.token = this._getDirtyTokenMap(store).get(id);
 		checkpointRecord.ownedToken = undefined;
 		checkpointRecord.value = existed
-			? helpers.deepCopy(this._data[store][id])
+			? cloneCheckpointRecord(this._data[store][id])
 			: undefined;
 	}
 
@@ -1170,8 +1215,8 @@ class Cache {
 				for (const [store, records] of checkpoint.records) {
 					for (const [id, old] of records) {
 						if (
-							old.ownedToken === undefined ||
-							this._getDirtyTokenMap(store).get(id) !== old.ownedToken
+							this._getDirtyTokenMap(store).get(id) !==
+							(old.ownedToken ?? old.token)
 						) {
 							// A newer mutation owns this key, so rollback must not overwrite it.
 							continue;
@@ -1208,6 +1253,11 @@ class Cache {
 									id as any,
 									helpers.deepCopy(old.value.value),
 								);
+							} else if (old.globalDefault?.existed) {
+								g.setWithoutSavingToDB(
+									id as any,
+									helpers.deepCopy(old.globalDefault.value),
+								);
 							} else {
 								delete (g as any)[id];
 							}
@@ -1238,7 +1288,16 @@ class Cache {
 			dirty: this._dirtyRecords[store].has(id),
 			existed,
 			token: this._getDirtyTokenMap(store).get(id),
-			value: existed ? helpers.deepCopy(this._data[store][id]) : undefined,
+			value: existed ? cloneCheckpointRecord(this._data[store][id]) : undefined,
+			// Older leagues can have a default in g without a stored row. A
+			// failed first write must preserve that default (including undefined).
+			globalDefault:
+				store === "gameAttributes" && !existed
+					? {
+							existed: Object.hasOwn(g, id),
+							value: helpers.deepCopy((g as any)[id]),
+						}
+					: undefined,
 		});
 	}
 

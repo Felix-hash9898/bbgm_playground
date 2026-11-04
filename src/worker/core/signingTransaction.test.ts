@@ -1369,3 +1369,23 @@ test.each([PHASE.REGULAR_SEASON, PHASE.FREE_AGENCY])(
 		);
 	},
 );
+
+test.each(["player", "team"] as const)(
+	"final validation still rejects an unnormalized one-year %s option",
+	async (option) => {
+		g.setWithoutSavingToDB("phase", PHASE.REGULAR_SEASON);
+		let caught: unknown;
+		try {
+			await runSigning({
+				contract: { amount: 5000, exp: g.get("season"), option },
+			});
+		} catch (error) {
+			caught = error;
+		}
+		assert.strictEqual(
+			(caught as Error).message,
+			"Contract option is not legal for this term",
+		);
+		await assertOriginalDurableState();
+	},
+);

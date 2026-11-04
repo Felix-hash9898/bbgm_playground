@@ -20,7 +20,7 @@ const getProcessedGames = async ({
 }: {
 	tid: number;
 	season: number;
-	loadedGames?: Game[];
+	loadedGames?: Pick<Game, "gid">[];
 	includeAllStarGame?: boolean;
 }) => {
 	let maxGid;

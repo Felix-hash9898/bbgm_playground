@@ -1,0 +1,105 @@
+import "fake-indexeddb/auto";
+import { readFile, writeFile } from "node:fs/promises";
+import { gunzipSync } from "node:zlib";
+import { createHash } from "node:crypto";
+import { deleteDB } from "@dumbmatter/idb";
+import { test, vi, expect } from "vitest";
+import { resetG } from "./helpers.ts";
+import Cache, { STORES } from "../worker/db/Cache.ts";
+import { connectLeague, idb } from "../worker/db/index.ts";
+import { g, local, lock, helpers } from "../worker/util/index.ts";
+import { GameSim, team, freeAgents, trade, player } from "../worker/core/index.ts";
+import * as load from "../worker/core/game/loadTeams.ts";
+import * as wp from "../worker/core/game/writePlayerStats.ts";
+import * as wt from "../worker/core/game/writeTeamStats.ts";
+import * as wg from "../worker/core/game/writeGameStats.ts";
+import * as adv from "../worker/util/advStats.ts";
+import play from "../worker/core/game/play.ts";
+
+const samples: any[] = [];
+let active = false;
+let timings: Record<string, { ms: number; calls: number }> = {};
+function record(name: string, ms: number) {
+ const t = timings[name] ??= { ms: 0, calls: 0 }; t.ms += ms; t.calls++;
+}
+function wrap(obj: any, key: string, name: string) {
+ if (typeof obj[key] !== "function") return;
+ const original = vi.isMockFunction(obj[key]) ? obj[key].getMockImplementation()! : obj[key];
+ vi.spyOn(obj, key).mockImplementation(function(this: any, ...args: any[]) {
+  if (!active) return original.apply(this,args);
+  const start = performance.now();
+  try {
+   const result = original.apply(this,args);
+   if (result && typeof result.then === "function") return result.finally(() => record(name, performance.now()-start));
+   record(name, performance.now()-start); return result;
+  } catch(error) { record(name, performance.now()-start); throw error; }
+ });
+}
+const seedRandom = (seed: number) => () => {
+ let t = seed += 0x6d2b79f5;
+ t = Math.imul(t ^ t >>> 15, t | 1);
+ t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+ return ((t ^ t >>> 14) >>> 0) / 4294967296;
+};
+
+test("isolated real League 10 Play Day profile", { timeout: 120000 }, async () => {
+ const source = await readFile(process.env.BBGM_PERF_LEAGUE!);
+ const data0 = JSON.parse(gunzipSync(source).toString());
+ wrap(load,"default","preparation"); wrap(wp,"default","writePlayerStats"); wrap(wt,"default","writeTeamStats"); wrap(wg,"default","writeGameStats");
+ wrap(adv, "default" in adv ? "default" : "advStats", "advStats");
+ wrap(GameSim.prototype,"run","GameSim"); wrap(team,"checkRosterSizes","rosterChecks");
+ wrap(freeAgents,"decreaseDemands","decreaseDemands"); wrap(freeAgents,"autoSign","autoSign"); wrap(trade,"betweenAiTeams","AITrades");
+ wrap(team,"rosterAutoSort","rosterSort"); wrap(player,"updateValues","updateValues");
+ wrap(helpers,"deepCopy","deepCopy");
+ const repeats = Number(process.env.BBGM_PERF_REPEATS ?? 1);
+ try {
+ for(let iteration=0;iteration<repeats;iteration++) {
+  const data=structuredClone(data0); resetG(); lock.reset(); local.autoSave=true; local.playerOvrMeanStdStale=true;
+  const lid=970001+iteration;
+  for(const [key,value] of Object.entries(data.gameAttributes)) {
+   if(Array.isArray(value)) for(const row of value) if(row && typeof row==="object" && "start" in row && row.start===null) row.start=-Infinity;
+   g.setWithoutSavingToDB(key as any,value as any);
+  }
+  g.setWithoutSavingToDB("lid",lid);
+  g.setWithoutSavingToDB("teamInfoCache",data.teams.map(({seasons,stats,...t}:any)=>t));
+  for(const p of data.players) {
+   if(p.retiredYear===null) p.retiredYear=Infinity;
+   if(p.diedYear===null) p.diedYear=Infinity;
+   if(p.tid===-1 && p.contract?.option && p.contract.exp===data.gameAttributes.season) delete p.contract.option;
+  }
+  const rows:any={...data, gameAttributes:Object.entries(data.gameAttributes).map(([key,value])=>({key,value})),
+   teamSeasons:data.teams.flatMap((t:any)=>t.seasons.map((r:any)=>({...r,tid:t.tid}))),
+   teamStats:data.teams.flatMap((t:any)=>t.stats.map((r:any)=>({...r,tid:t.tid}))), teams:data.teams.map(({stats,seasons,...t}:any)=>t)};
+  idb.league=await connectLeague(lid);
+  const tx=idb.league.transaction(STORES,"readwrite");
+  const requests:Promise<any>[]=[];
+  for(const store of STORES) for(const row of rows[store]??[]) requests.push(tx.objectStore(store).put(row));
+  await Promise.all([...requests,tx.done]);
+  idb.cache=new Cache(); await idb.cache.fill(); idb.cache.stopAutoFlush();
+  const cache:any=idb.cache;
+  for(const [method,label] of [["_captureCheckpointRecord","checkpoint.capture"],["_rebaseCheckpointRecord","checkpoint.rebase"],["flush","flush"],["_getAll","cache.getAll"],["_indexGetAll","cache.indexGetAll"],["_storeObj","cache.write"]]) wrap(cache,method,label);
+  const beforeGames=(await cache.games.getAll()).length;
+  const beforeSchedule=(await cache.schedule.getAll()).length;
+  const random=vi.spyOn(Math,"random").mockImplementation(seedRandom(20261103));
+  timings={}; active=true; const start=performance.now();
+  let error:string|undefined;
+  try { await play(1,{}); } catch(e) { error=String(e); }
+  const totalMs=performance.now()-start; active=false; random.mockRestore();
+  const finished=(await cache.games.getAll()).length-beforeGames;
+  const durable:any={};
+  for(const store of STORES) durable[store]=await (idb.league as any).getAll(store);
+  const hashState=async(value:any)=>Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(value))))).map(x=>x.toString(16).padStart(2,"0")).join("");
+  const stateHash=await hashState(durable);
+  const coreStateHash=await hashState(Object.fromEntries(["players","games","teams","teamSeasons","teamStats","schedule","events","headToHeads"].map(k=>[k,durable[k]])));
+  const sample={iteration,totalMs,finished,beforeSchedule,scheduleAfter:(await cache.schedule.getAll()).length,error,stateHash,coreStateHash,hashStores:STORES,timings};
+  samples.push(sample);
+  cache.stopAutoFlush(); idb.league.close(); await deleteDB(`league${lid}`);
+  if(error) throw new Error(error);
+  expect(finished).toBeGreaterThan(0);
+ }
+ } finally {
+  active=false;
+  await writeFile(process.env.BBGM_PERF_OUTPUT!,JSON.stringify({variant:process.env.BBGM_PERF_VARIANT,archiveHash:createHash("sha256").update(source).digest("hex"),samples},null,2));
+  vi.restoreAllMocks();
+ }
+});

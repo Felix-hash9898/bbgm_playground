@@ -8,6 +8,31 @@ import type {
 } from "../../common/types.ts";
 import { DEFAULT_TEAM_COLORS, PHASE } from "../../common/index.ts";
 
+export type GameLogSummary = Pick<
+	Game,
+	"gid" | "overtimes" | "numPeriods" | "neutralSite" | "forceWin"
+> & {
+	teams: [
+		Pick<Game["teams"][number], "tid" | "pts" | "sPts">,
+		Pick<Game["teams"][number], "tid" | "pts" | "sPts">,
+	];
+};
+
+// The sidebar needs scores and links, not every player's box score for the
+// whole season. The selected game's complete box score is loaded separately.
+export const toGameLogSummary = (game: Game): GameLogSummary => ({
+	gid: game.gid,
+	overtimes: game.overtimes,
+	numPeriods: game.numPeriods,
+	neutralSite: game.neutralSite,
+	forceWin: game.forceWin,
+	teams: game.teams.map(({ tid, pts, sPts }) => ({
+		tid,
+		pts,
+		sPts,
+	})) as GameLogSummary["teams"],
+});
+
 export type TeamSeasonOverride = {
 	region?: string;
 	name?: string;
@@ -321,7 +346,7 @@ const updateGamesList = async (
 	}: {
 		gamesList?: {
 			abbrevs: Record<number, string>;
-			games: Game[];
+			games: GameLogSummary[];
 			tid: number;
 			season: number;
 		};
@@ -334,7 +359,7 @@ const updateGamesList = async (
 		season !== gamesList.season ||
 		(updateEvents.includes("gameSim") && season === g.get("season"))
 	) {
-		let games: Game[];
+		let games: GameLogSummary[];
 		let abbrevs: Record<number, string>;
 
 		if (gamesList && (tid !== gamesList.tid || season !== gamesList.season)) {
@@ -358,10 +383,10 @@ const updateGamesList = async (
 		});
 
 		if (games.length === 0) {
-			games = newGames;
+			games = newGames.map(toGameLogSummary);
 		} else {
 			for (let i = newGames.length - 1; i >= 0; i--) {
-				games.unshift(newGames[i]!);
+				games.unshift(toGameLogSummary(newGames[i]!));
 			}
 		}
 

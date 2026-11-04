@@ -1,3 +1,5 @@
+import initUILocalGames from "../../util/initUILocalGames.ts";
+import runDay from "./runDay.ts";
 import { ALL_STAR_GAME_ONLY, isSport, PHASE } from "../../../common/index.ts";
 import {
 	GameSim,
@@ -114,7 +116,7 @@ export const processDayOver = async (
 				healedTexts.push(healedText);
 			}
 
-			logEvent(
+			await logEvent(
 				{
 					type: "healed",
 					text: `${healedText} has recovered from ${helpers.pronoun(
@@ -146,7 +148,7 @@ export const processDayOver = async (
 	}
 
 	if (healedTexts.length > 0) {
-		logEvent(
+		await logEvent(
 			{
 				type: "healedList",
 				text: healedTexts.join("<br>"),
@@ -183,7 +185,7 @@ export const processDayOver = async (
 		await freeAgents.autoSign();
 	}
 	if (currentPhase === PHASE.REGULAR_SEASON) {
-		await trade.betweenAiTeams();
+		await trade.betweenAiTeams({ deferUiRefresh: true });
 	}
 };
 
@@ -211,24 +213,22 @@ export const processDaysOffBeforeGame = async (
 	const numDaysOffToProcess = Math.min(numDaysOff, maxDays);
 	const firstDayToProcess = nextGameDay - numDaysOff;
 	for (let i = 0; i < numDaysOffToProcess; i++) {
-		await processDayOver(conditions, new Set(), []);
+		await runDay(async () => {
+			await processDayOver(conditions, new Set(), []);
 
-		const daysProcessedThrough = {
-			day: firstDayToProcess + i,
-			season,
-		};
-		await idb.cache.gameAttributes.put({
-			key: "basketballPlayoffDaysProcessedThrough",
-			value: daysProcessedThrough,
+			const daysProcessedThrough = {
+				day: firstDayToProcess + i,
+				season,
+			};
+			await idb.cache.gameAttributes.put({
+				key: "basketballPlayoffDaysProcessedThrough",
+				value: daysProcessedThrough,
+			});
+			g.setWithoutSavingToDB(
+				"basketballPlayoffDaysProcessedThrough",
+				daysProcessedThrough,
+			);
 		});
-		g.setWithoutSavingToDB(
-			"basketballPlayoffDaysProcessedThrough",
-			daysProcessedThrough,
-		);
-
-		// Persist the player countdowns and the cursor in one transaction. If
-		// the next game later fails, a retry starts after this completed day.
-		await idb.cache.flush();
 	}
 
 	return numDaysOffToProcess;
@@ -257,31 +257,42 @@ const play = async (
 		await updateStatus("Saving...");
 		await idb.cache.flush();
 		await updateStatus("Idle");
-		await lock.set("gameSim", false);
+
+		let handedOff = false;
+		const transitionTo = async (
+			nextPhase: typeof PHASE.PLAYOFFS | typeof PHASE.DRAFT_LOTTERY,
+		) => {
+			handedOff = true;
+			// newPhase acquires its lock synchronously before its first await.
+			const transition = phase.newPhase(
+				nextPhase,
+				conditions,
+				gidOneGame !== undefined,
+			);
+			const release = lock.set("gameSim", false);
+			const settled = await Promise.allSettled([transition, release]);
+			for (const result of settled) {
+				if (result.status === "rejected") {
+					throw result.reason;
+				}
+			}
+		};
 
 		// Check to see if the season is over
 		const schedule = await season.getSchedule();
 		if (g.get("phase") < PHASE.PLAYOFFS) {
 			if (schedule.length === 0) {
-				await phase.newPhase(
-					PHASE.PLAYOFFS,
-					conditions,
-					gidOneGame !== undefined,
-				);
+				await transitionTo(PHASE.PLAYOFFS);
 			}
 		} else if (playoffsOver) {
-			await phase.newPhase(
-				PHASE.DRAFT_LOTTERY,
-				conditions,
-				gidOneGame !== undefined,
-			);
+			await transitionTo(PHASE.DRAFT_LOTTERY);
 		}
 
 		if (schedule.length > 0 && !playoffsOver) {
 			const allStarNext = await allStar.nextGameIsAllStar(schedule);
 
 			if (allStarNext && gidOneGame === undefined) {
-				toUI(
+				await toUI(
 					"realtimeUpdate",
 					[
 						[],
@@ -294,6 +305,9 @@ const play = async (
 			}
 		}
 
+		if (!handedOff) {
+			await lock.set("gameSim", false);
+		}
 		await updatePlayMenu();
 	};
 
@@ -315,18 +329,15 @@ const play = async (
 			await writePlayerStats(results, conditions);
 
 		let gameToUi: LocalStateUI["games"][number] | undefined;
-		const gidsFinished = await Promise.all(
-			results.map(async (result) => {
-				const att = await writeTeamStats(result);
-
-				const maybeGameToUi = await writeGameStats(result, att, conditions);
-				if (maybeGameToUi) {
-					gameToUi = maybeGameToUi;
-				}
-
-				return result.gid;
-			}),
-		);
+		const gidsFinished: number[] = [];
+		for (const result of results) {
+			const att = await writeTeamStats(result);
+			const maybeGameToUi = await writeGameStats(result, att, conditions);
+			if (maybeGameToUi) {
+				gameToUi = maybeGameToUi;
+			}
+			gidsFinished.push(result.gid);
+		}
 
 		// Delete finished games from schedule
 		for (const gid of gidsFinished) {
@@ -350,7 +361,7 @@ const play = async (
 		}
 
 		if (injuryTexts.length > 0) {
-			logEvent(
+			await logEvent(
 				{
 					type: "injuredList",
 					text: injuryTexts.join("<br>"),
@@ -363,62 +374,67 @@ const play = async (
 			);
 		}
 
-		const updateEvents: UpdateEvents = ["gameSim"];
+		// AI trades/signings defer their own refresh until this day is durable.
+		const updateEvents: UpdateEvents = ["gameSim", "playerMovement"];
 
 		if (dayOver) {
 			await processDayOver(conditions, pidsInjuredOneGameOrLess, updateEvents);
-		}
-
-		// More stuff for LeagueTopBar - update ovrs based on injuries, and (if user just played a game) update the score of the user's last game and add their next game
-		// This is safe to do down here because injuries have been processed (if necessay) and games have been deleted from the schedule
-		if (gameToUi) {
-			const gamesToUi = [gameToUi];
-
-			// Also show next game
-			const upcomingGame = await getOneUpcomingGame();
-			if (upcomingGame) {
-				gamesToUi.push(upcomingGame);
-			}
-
-			await toUI("mergeGames", [gamesToUi]);
-		} else {
-			// This loads next game and calls mergeGames internally
-			await recomputeLocalUITeamOvrs();
 		}
 
 		await advStats();
 
 		const playoffsOver =
 			g.get("phase") === PHASE.PLAYOFFS &&
-			(await season.newSchedulePlayoffsDay());
+			(await season.newSchedulePlayoffsDay(undefined, {
+				deferUiRefresh: true,
+			}));
 
-		let raw;
-		let url;
+		return async () => {
+			// More stuff for LeagueTopBar - update ovrs based on injuries, and (if user just played a game) update the score of the user's last game and add their next game
+			// This is safe to do down here because injuries have been processed (if necessay) and games have been deleted from the schedule
+			if (gameToUi) {
+				const gamesToUi = [gameToUi];
 
-		// If there was a play by play done for one of these games, get it
-		if (gidOneGame !== undefined && playByPlay) {
-			for (const result of results) {
-				if (result.playByPlay !== undefined) {
-					raw = {
-						gidOneGame,
-						playByPlay: result.playByPlay,
-					};
-					url = helpers.leagueUrl(["live_game"]);
+				// Also show next game
+				const upcomingGame = await getOneUpcomingGame();
+				if (upcomingGame) {
+					gamesToUi.push(upcomingGame);
 				}
+
+				await toUI("mergeGames", [gamesToUi]);
+			} else {
+				// This loads next game and calls mergeGames internally
+				await recomputeLocalUITeamOvrs();
 			}
 
-			// This is not ideal... it means no event will be sent to other open tabs. But I don't have a way of saying "send this update to all tabs except X" currently
-			await toUI("realtimeUpdate", [updateEvents, url, raw], conditions);
-		} else {
-			url = undefined;
-			await toUI("realtimeUpdate", [updateEvents]);
-		}
+			let raw;
+			let url;
 
-		if (numDays - 1 <= 0 || playoffsOver) {
-			await cbNoGames(playoffsOver);
-		} else {
-			await play(numDays - 1, conditions, false);
-		}
+			// If there was a play by play done for one of these games, get it
+			if (gidOneGame !== undefined && playByPlay) {
+				for (const result of results) {
+					if (result.playByPlay !== undefined) {
+						raw = {
+							gidOneGame,
+							playByPlay: result.playByPlay,
+						};
+						url = helpers.leagueUrl(["live_game"]);
+					}
+				}
+
+				// This is not ideal... it means no event will be sent to other open tabs. But I don't have a way of saying "send this update to all tabs except X" currently
+				await toUI("realtimeUpdate", [updateEvents, url, raw], conditions);
+			} else {
+				url = undefined;
+				await toUI("realtimeUpdate", [updateEvents]);
+			}
+
+			if (numDays - 1 <= 0 || playoffsOver) {
+				await cbNoGames(playoffsOver);
+			} else {
+				await play(numDays - 1, conditions, false);
+			}
+		};
 	};
 
 	const getResult = ({
@@ -595,7 +611,7 @@ const play = async (
 						}`;
 					}
 
-					logEvent(
+					await logEvent(
 						{
 							type: "error",
 							text: `Could not find a simulation in ${helpers.numberWithCommas(
@@ -627,7 +643,7 @@ const play = async (
 			}
 		}
 
-		await cbSaveResults(results, dayOver);
+		return cbSaveResults(results, dayOver);
 	};
 
 	// Simulates a day of games. If there are no games left, it calls cbNoGames.
@@ -643,6 +659,11 @@ const play = async (
 			const lengthBefore = schedule.length;
 			schedule = schedule.filter((game) => game.gid === gidOneGame);
 			const lengthAfter = schedule.length;
+			if (lengthAfter === 0) {
+				// A retry can name a game already committed by an earlier request.
+				// Never fall through to the playoff schedule bootstrap in that case.
+				return cbNoGames();
+			}
 
 			if (lengthBefore - lengthAfter > 0) {
 				dayOver = false;
@@ -650,8 +671,11 @@ const play = async (
 		}
 
 		if (schedule[0]?.homeTid === -3 && schedule[0].awayTid === -3) {
-			await idb.cache.schedule.delete(schedule[0].gid);
-			await phase.newPhase(PHASE.AFTER_TRADE_DEADLINE, conditions);
+			// The phase journal owns the marker removal too, so a failed phase
+			// change remains retryable at the same schedule position.
+			await phase.newPhase(PHASE.AFTER_TRADE_DEADLINE, conditions, {
+				tradeDeadlineGid: schedule[0].gid,
+			});
 			await toUI("deleteGames", [[schedule[0].gid]]);
 			await play(numDays - 1, conditions, false);
 		} else {
@@ -666,7 +690,9 @@ const play = async (
 			if (schedule.length === 0 && g.get("phase") === PHASE.PLAYOFFS) {
 				// Sometimes the playoff schedule isn't made the day before, so make it now
 				// This works because there should always be games in the playoffs phase. The next phase will start before reaching this point when the playoffs are over.
-				await season.newSchedulePlayoffsDay();
+				await runDay(() =>
+					season.newSchedulePlayoffsDay(undefined, { deferUiRefresh: true }),
+				);
 				schedule = await season.getSchedule(true);
 			}
 
@@ -705,9 +731,14 @@ const play = async (
 				tids.add(matchup.awayTid);
 			}
 
-			const teams = await loadTeams(Array.from(tids), conditions); // Play games
-
-			await cbSimGames(schedule, teams, dayOver);
+			const publishResults = await runDay(async () => {
+				if (g.get("phase") !== PHASE.PLAYOFFS) {
+					await team.checkRosterSizes("other");
+				}
+				const teams = await loadTeams(Array.from(tids), conditions);
+				return cbSimGames(schedule, teams, dayOver);
+			});
+			await publishResults();
 		}
 	};
 
@@ -729,10 +760,6 @@ const play = async (
 						await lock.set("stopGameSim", false);
 					}
 
-					if (g.get("phase") !== PHASE.PLAYOFFS) {
-						await team.checkRosterSizes("other");
-					}
-
 					await cbPlayGames();
 				} else {
 					// Update UI if stopped
@@ -742,14 +769,16 @@ const play = async (
 				// Not sure why we get here sometimes, but we do
 				const playoffsOver =
 					g.get("phase") === PHASE.PLAYOFFS &&
-					(await season.newSchedulePlayoffsDay());
+					(await runDay(() =>
+						season.newSchedulePlayoffsDay(undefined, { deferUiRefresh: true }),
+					));
 				await cbNoGames(playoffsOver);
 			}
 		} else {
 			await lock.set("gameSim", false); // Counteract auto-start in lock.canStartGames
 			await updatePlayMenu();
 			await updateStatus("Idle");
-			logEvent(
+			await logEvent(
 				{
 					type: "error",
 					text: userTeamSizeError,
@@ -765,6 +794,16 @@ const play = async (
 		// at the outer user-request boundary so recursive days do not repeat UI
 		// cleanup. Cleanup failures must not replace the original error.
 		const cleanupErrors: unknown[] = [];
+		local.autoPlayUntil = undefined;
+		local.liveSimRatingsStatsPopoverPlayers = undefined;
+		local.playingUntilEndOfRound = false;
+		try {
+			await toUI("updateLocal", [{ liveGameInProgress: false }]);
+			await initUILocalGames();
+			await toUI("realtimeUpdate", [["gameSim", "playerMovement"]]);
+		} catch (cleanupError) {
+			cleanupErrors.push(cleanupError);
+		}
 		try {
 			await lock.set("gameSim", false);
 		} catch (cleanupError) {
@@ -793,6 +832,7 @@ const play = async (
 
 		if (canStartGames) {
 			try {
+				await idb.cache._flushPromise;
 				await cbRunDay();
 			} catch (error) {
 				await cleanupAfterError(error);

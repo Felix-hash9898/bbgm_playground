@@ -115,7 +115,7 @@ const killOne = async (conditions: Conditions, player?: Player) => {
 
 	p.diedYear = g.get("season");
 	await idb.cache.players.put(p);
-	logEvent(
+	await logEvent(
 		{
 			type: "tragedy",
 			text,

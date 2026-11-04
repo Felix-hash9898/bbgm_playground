@@ -12,6 +12,8 @@ import {
 	withContractCapHitForPlayer,
 } from "../contracts/contractMinimum.ts";
 
+import { normalizeAIContractOption } from "../contracts/contractOption.ts";
+
 /**
  * Decrease contract demands for all free agents.
  *
@@ -85,6 +87,7 @@ const decreaseDemands = async () => {
 			}
 		}
 
+		p.contract = normalizeAIContractOption(p, p.contract);
 		await idb.cache.players.put(p);
 	}
 };

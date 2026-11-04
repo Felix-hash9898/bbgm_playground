@@ -1,0 +1,322 @@
+{
+	"variant": "before",
+	"archiveHash": "824eadc94e6d2e5120ab7d92185bf7c6b3e80780d5243dc7843a3494988cc696",
+	"samples": [
+		{
+			"iteration": 0,
+			"totalMs": 1323,
+			"finished": 14,
+			"beforeSchedule": 451,
+			"scheduleAfter": 437,
+			"stateHash": "df5c8f76c5ad3f829e088c4de94e5b8ceb6f30bcbadfd581fa2b77b56e616d04",
+			"timings": {
+				"cache.getAll": {
+					"ms": 2.800000309944153,
+					"calls": 14
+				},
+				"checkpoint.capture": {
+					"ms": 105.50000035762787,
+					"calls": 31958
+				},
+				"cache.indexGetAll": {
+					"ms": 433.70000076293945,
+					"calls": 277
+				},
+				"rosterChecks": {
+					"ms": 106.89999985694885,
+					"calls": 2
+				},
+				"updateValues": {
+					"ms": 557.6999983787537,
+					"calls": 861
+				},
+				"preparation": {
+					"ms": 36.39999997615814,
+					"calls": 1
+				},
+				"GameSim": {
+					"ms": 137.10000038146973,
+					"calls": 14
+				},
+				"cache.write": {
+					"ms": 1660.0999965667725,
+					"calls": 1471
+				},
+				"writePlayerStats": {
+					"ms": 12.399999976158142,
+					"calls": 1
+				},
+				"writeTeamStats": {
+					"ms": 3.9000000953674316,
+					"calls": 14
+				},
+				"deepCopy": {
+					"ms": 12.999999761581421,
+					"calls": 4456
+				},
+				"writeGameStats": {
+					"ms": 9.49999988079071,
+					"calls": 14
+				},
+				"decreaseDemands": {
+					"ms": 4.399999976158142,
+					"calls": 1
+				},
+				"rosterSort": {
+					"ms": 2.100000023841858,
+					"calls": 2
+				},
+				"autoSign": {
+					"ms": 12.900000095367432,
+					"calls": 1
+				},
+				"advStats": {
+					"ms": 28.699999928474426,
+					"calls": 1
+				},
+				"IDB.enqueue": {
+					"ms": 68.39999997615814,
+					"calls": 1
+				},
+				"IDB.wait": {
+					"ms": 834.3999999761581,
+					"calls": 1
+				},
+				"checkpoint.rebase": {
+					"ms": 50.69999980926514,
+					"calls": 866
+				},
+				"flush": {
+					"ms": 954.8000000715256,
+					"calls": 2
+				}
+			},
+			"ui": {
+				"calls": 8,
+				"requestRoundTripMs": 0.10000002384185791,
+				"publishRoundTripMs": 0.09999990463256836,
+				"publishBytes": 1368,
+				"gameLogDataMs": 0.8999999761581421,
+				"gameLogRoundTripMs": 12.200000047683716,
+				"renderAndPaintMs": 110.80000007152557,
+				"renderedRows": 107
+			}
+		},
+		{
+			"iteration": 1,
+			"totalMs": 2555.399999976158,
+			"finished": 14,
+			"beforeSchedule": 451,
+			"scheduleAfter": 437,
+			"stateHash": "a0a38c809f1dd4db5e9bd4c46217bea0f53e6e7ee3312a4e569e5e771f993a68",
+			"timings": {
+				"cache.getAll": {
+					"ms": 1.9000000953674316,
+					"calls": 14
+				},
+				"checkpoint.capture": {
+					"ms": 65.80000030994415,
+					"calls": 31958
+				},
+				"cache.indexGetAll": {
+					"ms": 355.40000236034393,
+					"calls": 277
+				},
+				"rosterChecks": {
+					"ms": 64.30000007152557,
+					"calls": 2
+				},
+				"updateValues": {
+					"ms": 435.29999828338623,
+					"calls": 861
+				},
+				"preparation": {
+					"ms": 28.399999976158142,
+					"calls": 1
+				},
+				"GameSim": {
+					"ms": 129.79999995231628,
+					"calls": 14
+				},
+				"cache.write": {
+					"ms": 1555.0999896526337,
+					"calls": 1471
+				},
+				"writePlayerStats": {
+					"ms": 7.199999928474426,
+					"calls": 1
+				},
+				"writeTeamStats": {
+					"ms": 1.8999998569488525,
+					"calls": 14
+				},
+				"deepCopy": {
+					"ms": 8.100000262260437,
+					"calls": 4456
+				},
+				"writeGameStats": {
+					"ms": 5.6000001430511475,
+					"calls": 14
+				},
+				"decreaseDemands": {
+					"ms": 1.600000023841858,
+					"calls": 1
+				},
+				"rosterSort": {
+					"ms": 1.3999998569488525,
+					"calls": 2
+				},
+				"autoSign": {
+					"ms": 7.200000047683716,
+					"calls": 1
+				},
+				"advStats": {
+					"ms": 16.699999928474426,
+					"calls": 1
+				},
+				"IDB.enqueue": {
+					"ms": 63.799999952316284,
+					"calls": 1
+				},
+				"IDB.wait": {
+					"ms": 2146.100000023842,
+					"calls": 1
+				},
+				"checkpoint.rebase": {
+					"ms": 72.89999997615814,
+					"calls": 866
+				},
+				"flush": {
+					"ms": 2283.2999999523163,
+					"calls": 2
+				}
+			},
+			"ui": {
+				"calls": 8,
+				"requestRoundTripMs": 0.10000002384185791,
+				"publishRoundTripMs": 0.19999992847442627,
+				"publishBytes": 1368,
+				"gameLogDataMs": 0.5,
+				"gameLogRoundTripMs": 14.699999928474426,
+				"renderAndPaintMs": 59.299999952316284,
+				"renderedRows": 107
+			}
+		},
+		{
+			"iteration": 2,
+			"totalMs": 2389.600000023842,
+			"finished": 14,
+			"beforeSchedule": 451,
+			"scheduleAfter": 437,
+			"stateHash": "6691d088928129a7bcf4fb5a581edb5f4153fa66b212422174ddf609b85e4a90",
+			"timings": {
+				"cache.getAll": {
+					"ms": 1.5999997854232788,
+					"calls": 14
+				},
+				"checkpoint.capture": {
+					"ms": 62.69999945163727,
+					"calls": 31958
+				},
+				"cache.indexGetAll": {
+					"ms": 311.09999907016754,
+					"calls": 277
+				},
+				"rosterChecks": {
+					"ms": 59.60000002384186,
+					"calls": 2
+				},
+				"updateValues": {
+					"ms": 341.29999577999115,
+					"calls": 861
+				},
+				"preparation": {
+					"ms": 19.899999976158142,
+					"calls": 1
+				},
+				"GameSim": {
+					"ms": 135.69999980926514,
+					"calls": 14
+				},
+				"cache.write": {
+					"ms": 1469.5000205039978,
+					"calls": 1471
+				},
+				"writePlayerStats": {
+					"ms": 6.799999952316284,
+					"calls": 1
+				},
+				"writeTeamStats": {
+					"ms": 2.5999999046325684,
+					"calls": 14
+				},
+				"deepCopy": {
+					"ms": 6.599999785423279,
+					"calls": 4456
+				},
+				"writeGameStats": {
+					"ms": 4.0000001192092896,
+					"calls": 14
+				},
+				"decreaseDemands": {
+					"ms": 1.5,
+					"calls": 1
+				},
+				"rosterSort": {
+					"ms": 1.7999999523162842,
+					"calls": 2
+				},
+				"autoSign": {
+					"ms": 8.399999976158142,
+					"calls": 1
+				},
+				"advStats": {
+					"ms": 14.699999928474426,
+					"calls": 1
+				},
+				"IDB.enqueue": {
+					"ms": 65.60000002384186,
+					"calls": 1
+				},
+				"IDB.wait": {
+					"ms": 2007.2000000476837,
+					"calls": 1
+				},
+				"checkpoint.rebase": {
+					"ms": 49.799999952316284,
+					"calls": 866
+				},
+				"flush": {
+					"ms": 2123.2000000476837,
+					"calls": 2
+				}
+			},
+			"ui": {
+				"calls": 8,
+				"requestRoundTripMs": 0.09999990463256836,
+				"publishRoundTripMs": 0.10000002384185791,
+				"publishBytes": 1368,
+				"gameLogDataMs": 0.3999999761581421,
+				"gameLogRoundTripMs": 16.399999976158142,
+				"renderAndPaintMs": 59.800000071525574,
+				"renderedRows": 107
+			}
+		}
+	],
+	"measurement": {
+		"clock": "performance.now",
+		"environment": "Chromium, native IndexedDB",
+		"seed": 20261103,
+		"gamesPerDay": 14,
+		"hashStores": [
+			"players",
+			"games",
+			"teams",
+			"teamSeasons",
+			"teamStats",
+			"schedule",
+			"events",
+			"headToHeads"
+		]
+	}
+}

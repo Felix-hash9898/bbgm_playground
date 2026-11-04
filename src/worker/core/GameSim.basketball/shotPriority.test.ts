@@ -17,6 +17,18 @@ const makeContext = (biases: number[]) =>
 	);
 
 describe("Shot Priority", () => {
+	test("neutral and invalid biases preserve weights without sharing mutable arrays", () => {
+		for (const bias of [1, 0, -1, Number.NaN, Infinity]) {
+			const context = makeContext(Array(5).fill(bias));
+			expect(context.baselineWeights).toEqual(context.adjustedWeights);
+			expect(context.baselineWeights).not.toBe(context.adjustedWeights);
+			expect(context.players.every((p) => p.shareRatio === 1)).toBe(true);
+			const original = [...context.baselineWeights];
+			context.adjustedWeights[0] = -1;
+			expect(context.baselineWeights).toEqual(original);
+		}
+	});
+
 	test("common scaling leaves floored shares and downstream inputs unchanged", () => {
 		const contexts = [0.85, 1, 1.1, 1.25].map((bias) =>
 			makeContext(Array(5).fill(bias)),

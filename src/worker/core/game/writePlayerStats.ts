@@ -241,7 +241,7 @@ const doInjury = async (
 
 	p2.injury.score = score;
 
-	logEvent(
+	await logEvent(
 		{
 			type: "injured",
 			text:

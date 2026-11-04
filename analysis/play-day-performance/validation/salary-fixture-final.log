@@ -1,0 +1,11 @@
+
+ RUN  v4.1.2 /Users/felixhuang/Desktop/bbgm/zengm - playground
+
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+ Test Files  1 passed (1)
+      Tests  51 passed (51)
+   Start at  21:28:55
+   Duration  3.92s (transform 3.21s, setup 3.64s, import 57ms, tests 79ms, environment 0ms)

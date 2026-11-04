@@ -1,0 +1,7 @@
+Command: node_modules/.bin/tsc --noEmit --incremental false
+Exit code: 2
+Baseline diagnostic count: 339
+Final diagnostic count: 339
+New diagnostic lines: []
+Removed diagnostic lines: []
+Comparison: multiset of complete lines containing error TS, including file paths and line numbers.
