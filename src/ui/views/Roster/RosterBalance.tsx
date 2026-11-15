@@ -218,7 +218,7 @@ const RosterBalance = ({
 					<PositionCounts label="Coverage" values={summary.detailedPositions} />
 				</div>
 				<div className="text-body-secondary mt-1">
-					Healthy position minutes:{" "}
+					Healthy eligibility minutes (overlapping):{" "}
 					{DETAILED_POSITION_BUCKETS.map((position, i) => (
 						<span key={position} className="text-nowrap">
 							{i > 0 ? " · " : null}

@@ -18,6 +18,7 @@ import {
 	getGameEffectiveBasketballMinutesWithStatus,
 	getLeagueRotationOvrPercentiles,
 } from "../core/team/basketballMinutes.ts";
+import { getReadonlyRosterPositionPreview } from "./rosterPositionPreview.ts";
 import reconcileBasketballRotation from "../core/team/reconcileBasketballRotation.ts";
 
 const sortByPos = (p: {
@@ -225,6 +226,8 @@ const updateRoster = async (
 			"stre",
 			"spd",
 			"jmp",
+			"dnk",
+			"ins",
 			"tp",
 		];
 		const stats2 = [...stats, "yearsWithTeam", "jerseyNumber", "min", "gp"];
@@ -488,6 +491,29 @@ const updateRoster = async (
 					})()
 				: undefined;
 
+		// Separate read-only preview: do not feed this into the editable plan or
+		// autosave. Non-user AI teams use a visible-information auto estimate.
+		const basketballPositionPreview =
+			isSport("basketball") &&
+			inputs.season === g.get("season") &&
+			!basketballMinutes
+				? getReadonlyRosterPositionPreview({
+						players,
+						challengeNoRatings: g.get("challengeNoRatings"),
+						numPlayersOnCourt: g.get("numPlayersOnCourt"),
+						regulationMinutes: g.get("quarterLength") * g.get("numPeriods"),
+						playoffs: g.get("phase") === PHASE.PLAYOFFS,
+						playThroughInjuries:
+							getActualPlayThroughInjuries(t)[
+								g.get("phase") === PHASE.PLAYOFFS ? 1 : 0
+							],
+						rotation:
+							g.get("userTids").includes(inputs.tid) && !g.get("spectator")
+								? t.basketballRotation
+								: undefined,
+					})
+				: undefined;
+
 		for (const p of players) {
 			p.awards = p.awards.filter(
 				(award: Player["awards"][number]) => award.season === inputs.season,
@@ -498,6 +524,7 @@ const updateRoster = async (
 			abbrev: inputs.abbrev,
 			budget: g.get("budget"),
 			basketballMinutes,
+			basketballPositionPreview,
 			challengeNoRatings: g.get("challengeNoRatings"),
 			currentSeason: g.get("season"),
 			editable,

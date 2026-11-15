@@ -47,6 +47,7 @@ import { rosterCompactControlStyle } from "./compactControlStyle.ts";
 import { useBasketballMinutesAutosave } from "./useBasketballMinutesAutosave.ts";
 import BasketballMinutesPopover from "./BasketballMinutesPopover.tsx";
 import RosterBalance from "./RosterBalance.tsx";
+import RosterPositionMinutes from "./RosterPositionMinutes.tsx";
 
 const saveBasketballMinutesPlan = (
 	tid: number,
@@ -160,6 +161,7 @@ const handleRelease = async (
 const Roster = ({
 	abbrev,
 	basketballMinutes,
+	basketballPositionPreview,
 	budget,
 	challengeNoRatings,
 	currentSeason,
@@ -235,6 +237,30 @@ const Roster = ({
 			];
 		}),
 	) as Record<number, number>;
+	// Healthy plan for the position minutes table: the live draft while unsaved
+	// edits exist, otherwise the saved healthy plan. Auto-filled players have no draft
+	// value of their own. NaN marks an invalid input, so that nothing is drawn
+	// from a guess. Undefined while an Auto Minutes reset is in flight.
+	const positionMinutesHealthyMinutesByPid = autoResetPending
+		? undefined
+		: (Object.fromEntries(
+				players.map((p) => {
+					const savedHealthyMinutes =
+						basketballMinutes?.healthyMinutesByPid?.[p.pid] ??
+						basketballMinutes?.minutesByPid[p.pid] ??
+						0;
+					if (!plannedMinutesChanged || autoFilledPids.has(p.pid)) {
+						return [p.pid, savedHealthyMinutes];
+					}
+					const draftValue = minutesDraft[p.pid];
+					return [
+						p.pid,
+						draftValue === undefined || draftValue.trim() === ""
+							? Number.NaN
+							: Number(draftValue),
+					];
+				}),
+			) as Record<number, number>);
 	const rotationDepth = basketballMinutes?.rotationDepth ?? "normal";
 	const coreReliance = basketballMinutes?.coreReliance ?? "balanced";
 	const currentMinutesOverrideByPid =
@@ -856,6 +882,31 @@ const Roster = ({
 				<RosterBalance
 					players={players}
 					minutesByPid={healthyPlanMinutesByPid}
+				/>
+			) : null}
+
+			{isSport("basketball") &&
+			(basketballMinutes || basketballPositionPreview) ? (
+				<RosterPositionMinutes
+					players={playersSorted}
+					healthyMinutesByPid={
+						basketballMinutes
+							? positionMinutesHealthyMinutesByPid
+							: basketballPositionPreview?.healthyMinutesByPid
+					}
+					currentMinutesByPid={
+						basketballMinutes?.effectiveMinutesByPid ??
+						basketballPositionPreview?.effectiveMinutesByPid
+					}
+					ratingsVisible={challengeNoRatings === false}
+					readonlyPreview={!basketballMinutes}
+					currentPending={
+						!!basketballMinutes &&
+						(plannedMinutesChanged ||
+							autoResetPending ||
+							minutesSaveStatus === "saving")
+					}
+					numPlayersOnCourt={numPlayersOnCourt}
 				/>
 			) : null}
 
