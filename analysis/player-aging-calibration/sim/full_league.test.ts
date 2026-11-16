@@ -48,6 +48,7 @@ import realRosters from "../../../src/worker/core/realRosters/index.ts";
 import createStreamFromLeagueObject from "../../../src/worker/core/league/create/createStreamFromLeagueObject.ts";
 import { getDefaultSettings } from "../../../src/worker/views/newLeague.ts";
 import unwrapGameAttribute from "../../../src/common/unwrapGameAttribute.ts";
+import { installRealStatsFetch } from "./fetchRealStats.ts";
 
 const ARM = process.env.FULL_ARM ?? "playground";
 const SEED = Number(process.env.FULL_SEED ?? 1);
@@ -106,7 +107,10 @@ async function createLeague(lid: number) {
 	await league.createStream(createStreamFromLeagueObject(realLeague), {
 		conditions: {}, confs: realLeague.gameAttributes.confs, divs: realLeague.gameAttributes.divs,
 		fromFile: { gameAttributes: realLeague.gameAttributes, hasRookieContracts: true, maxGid: undefined,
-			startingSeason: realLeague.startingSeason, teams: realLeague.teams, version: undefined },
+			startingSeason: realLeague.startingSeason, teams: realLeague.teams,
+			// the league object's own version (as the UI passes it): version undefined takes augmentPartialPlayer's
+			// legacy path, which moved every future real draft prospect into the current (2005) draft class
+			version: realLeague.version },
 		getLeagueOptions, keptKeys, lid, name: `aging ${ARM} ${SEED}`, setLeagueCreationStatus: () => {},
 		settings, shuffleRosters: false, startingSeasonFromInput: undefined, teamsFromInput: realLeague.teams, tid: 0,
 	} as any);
@@ -155,6 +159,7 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		if (existsSync(path.join(OUT, `${name}.gz`))) {
 			throw new Error(`refusing to overwrite ${name}`);
 		}
+		installRealStatsFetch();
 		const lid = 700000 + (Math.abs(hash(`${ARM}|${SEED}|${START}`)) % 90000);
 		seedRandom(1000 + SEED);
 		const t0 = Date.now();

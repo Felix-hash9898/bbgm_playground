@@ -36,10 +36,13 @@ BANDS = ["19-22", "23-25", "26-28", "29-31", "32-34", "35+"]
 rng = np.random.default_rng(5)
 
 # ---------------- load sim leagues
-seasons_rows, players_meta, ratings_rows = [], [], []
+seasons_rows, players_meta, ratings_rows, dev_rows = [], [], [], []
+RKEYS = ["hgt", "stre", "spd", "jmp", "endu", "ins", "dnk", "ft", "fg", "tp", "oiq", "diq", "drb", "pss", "reb"]
+START = None
 for f in sorted(FULL.glob("full__*.json.gz")):
     d = json.load(gzip.open(f))
     arm, seed = d["arm"], d["seed"]
+    START = d["start"]
     for p in d["players"]:
         players_meta.append({"arm": arm, "seed": seed, "pid": p["pid"], "srID": p["srID"], "real": p["real"], "born": p["born"],
                              "retiredYear": p["retiredYear"], "draft_year": p["draft"]["year"], "draft_pick": p["draft"]["pick"]})
@@ -54,11 +57,20 @@ for f in sorted(FULL.glob("full__*.json.gz")):
                                  "age": season - p["born"], **a})
         for r in p["ratings"]:
             ratings_rows.append({"arm": arm, "seed": seed, "pid": p["pid"], "season": r["season"], "ovr": r["ovr"], "age": r["season"] - p["born"]})
+        # preseason development only: last row of season s -> first row of season s+1 (excludes in-season injury rows)
+        by = {}
+        for r in p["ratings"]:
+            by.setdefault(r["season"], []).append(r)
+        for s1, rows1 in by.items():
+            if s1 > START and s1 - 1 in by and not rows1[0].get("locked"):  # simulated preseasons only
+                r0, r1 = by[s1 - 1][-1], rows1[0]
+                dev_rows.append({"arm": arm, "seed": seed, "age": s1 - p["born"], **{f"p_{k}": r0[k] for k in RKEYS}, **{k: r1[k] for k in RKEYS}})
 S = pd.DataFrame(seasons_rows)
-S = S[S["min"] > 0]
+S = S[(S["min"] > 0) & (S["season"] >= START)]  # exports include real pre-league history (realStats=allActiveHOF)
 S = pd.concat([box_metrics(g) for _, g in S.groupby(["arm", "seed", "season"])], ignore_index=True)
 PM = pd.DataFrame(players_meta)
-RT = pd.DataFrame(ratings_rows).groupby(["arm", "seed", "pid", "season"]).last().reset_index()
+RT = pd.DataFrame(ratings_rows)
+RT = RT[RT["season"] >= START].groupby(["arm", "seed", "pid", "season"]).last().reset_index()
 arms = sorted(S["arm"].unique())
 last_sim_season = int(S["season"].max())
 first_season = int(S["season"].min())
@@ -222,7 +234,7 @@ for w, m in worlds.items():
                        "sd": float(d["d_pbpm"].std())})
     mm = m.copy()
     mm["sid"] = mm["srID"].astype(str).str.split(":").str[0]
-    mm = mm.merge(bios.rename(columns={"srID": "sid"}), on="sid", how="left")
+    mm = mm.drop(columns=[c for c in mm.columns if c.startswith("pos_group")]).merge(bios.rename(columns={"srID": "sid"}), on="sid", how="left")
     for (pg, b), d in mm.dropna(subset=["pos_group"]).groupby(["pos_group", "band1"]):
         G_rows.append({"world": w, "pos_group": pg, "band": b, "n": len(d), "d_pbpm": wmean(d["d_pbpm"], d["hm_min"]),
                        "d_mpg": wmean(d["d_mpg"], d["hm_min"])})
@@ -238,6 +250,35 @@ for (arm, seed, season), g in S.groupby(["arm", "seed", "season"]):
                 "ovr_sd_rostered": float(rr["ovr"].std()) if len(rr) else np.nan,
                 "share_min_nonreal": float(g.loc[g["srID"].isna(), "min"].sum() / g["min"].sum())})
 pd.DataFrame(eco).to_csv(RESULTS / "full_F_ecology.csv", index=False)
+
+# ---------------- G: verify the vi.mock formula swap (observed preseason changes vs the arm's own formula)
+from cand_specs import OFFICIAL, PLAYGROUND, develop_spec
+from bbgm_dev import KEYS as DKEYS
+from common import HERE as _HERE
+SPECS = {"official": OFFICIAL, "playground": PLAYGROUND, **json.loads((_HERE / "sim/formulas/candidate_specs.json").read_text())}
+DV = pd.DataFrame(dev_rows)
+ver = []
+grng = np.random.default_rng(11)
+for arm, d in DV.groupby("arm"):
+    d = d[d["age"].between(20, 36)]
+    R0 = {k: np.repeat(d[f"p_{k}"].to_numpy(float), 20) for k in RKEYS}
+    ages = np.repeat(d["age"].to_numpy(), 20)
+    for form in sorted({arm, "official", "playground"}):
+        R1 = develop_spec(R0, ages, grng, SPECS[form])
+        for lo, hi in [(20, 23), (24, 28), (29, 32), (33, 36)]:
+            m = (d["age"] >= lo) & (d["age"] <= hi)
+            mm = np.repeat(m.to_numpy(), 20)
+            for k in ["stre", "spd", "tp", "oiq"]:
+                obs = (d.loc[m, k] - d.loc[m, f"p_{k}"]).to_numpy(float)
+                ver.append({"arm": arm, "formula": form, "ages": f"{lo}-{hi}", "rating": k, "obs": obs.mean(),
+                            "pred": float((R1[k] - R0[k])[mm].mean()), "se": obs.std() / np.sqrt(len(obs))})
+VER = pd.DataFrame(ver)
+VER["z"] = (VER["obs"] - VER["pred"]) / VER["se"]
+VER.to_csv(RESULTS / "full_G_formula_swap_check.csv", index=False)
+fit = VER.groupby(["arm", "formula"])["z"].apply(lambda z: float(np.sqrt(np.mean(z ** 2)))).unstack()
+fit.to_csv(RESULTS / "full_G_formula_swap_rms_z.csv")
+print("formula swap check (RMS z; the arm's own formula should fit best; coaching levels not modelled):")
+print(fit.round(2))
 
 summary = {"arms": arms, "seeds": sorted(map(int, S["seed"].unique())), "seasons": [first_season, last_sim_season],
            "same_player_arc_rows": int(len(B)),
