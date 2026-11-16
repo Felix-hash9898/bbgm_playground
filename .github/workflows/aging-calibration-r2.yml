@@ -1,0 +1,120 @@
+# Research-only workflow (player aging calibration, round 2). Runs on free GitHub-hosted runners of this
+# public repo. Product code is the unmodified bbgm_playground 363bcbc6; only analysis/player-aging-calibration/
+# is added. Order: 2-season smoke test (memory + Auto Play correctness) -> GameSim probes and the 9 full-league
+# jobs (Playground / Official / A2r x seeds 1-3 x 8 seasons). Every output is uploaded as an artifact.
+name: aging-calibration-r2
+
+on:
+  push:
+    branches: [aging-calibration-cloud-r2]
+    paths: [".github/workflows/aging-calibration-r2.yml", "analysis/player-aging-calibration/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: aging-calibration-r2
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash # -eo pipefail, so `vitest | tee` fails when vitest fails
+
+env:
+  NODE_OPTIONS: --max-old-space-size=6144
+  VT: --project basketball --maxWorkers=1 --no-file-parallelism
+  R: analysis/player-aging-calibration
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Full league smoke (playground, seed 1, 2 seasons)
+        run: |
+          FULL_RUN=1 FULL_ARM=playground FULL_SEED=1 FULL_YEARS=2 FULL_OUT=$R/sim/output_smoke \
+            npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/smoke.log
+      - name: Validate memory and Auto Play
+        run: node $R/sim/validate_full_output.mjs $R/sim/output_smoke/full__2005__playground__1.json.gz $R/sim/output_smoke/progress.jsonl 2 6144
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke
+          path: |
+            ${{ env.R }}/sim/output_smoke
+            ${{ env.R }}/sim/smoke.log
+          if-no-files-found: warn
+
+  probes:
+    needs: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: GameSim probes young21sorted / old33sorted (+ paired base)
+        run: |
+          AGING_RUN=1 AGING_MODE=jacobian AGING_PERTURB=base,young21sorted,old33sorted \
+            AGING_SAVES=BBGM_League_9_2024_preseason.json.gz,BBGM_League_8_2025_preseason.json.gz AGING_SEEDS=1001,2002 \
+            AGING_OUT=$R/sim/output_probes npx vitest run $R/sim/aging_arms.test.ts $VT 2>&1 | tee $R/sim/probes.log
+      - run: ls -la $R/sim/output_probes && test "$(ls $R/sim/output_probes | wc -l)" -eq 12
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: probes
+          path: |
+            ${{ env.R }}/sim/output_probes
+            ${{ env.R }}/sim/probes.log
+          if-no-files-found: warn
+
+  full:
+    needs: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        arm: [playground, official, A2r]
+        seed: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Full league ${{ matrix.arm }} seed ${{ matrix.seed }} (8 seasons)
+        run: |
+          FULL_RUN=1 FULL_ARM=${{ matrix.arm }} FULL_SEED=${{ matrix.seed }} FULL_YEARS=8 FULL_OUT=$R/sim/output_full \
+            npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/full_${{ matrix.arm }}_${{ matrix.seed }}.log
+      - name: Validate
+        run: node $R/sim/validate_full_output.mjs $R/sim/output_full/full__2005__${{ matrix.arm }}__${{ matrix.seed }}.json.gz $R/sim/output_full/progress.jsonl 8 6144
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-${{ matrix.arm }}-${{ matrix.seed }}
+          path: |
+            ${{ env.R }}/sim/output_full
+            ${{ env.R }}/sim/full_${{ matrix.arm }}_${{ matrix.seed }}.log
+          if-no-files-found: warn
