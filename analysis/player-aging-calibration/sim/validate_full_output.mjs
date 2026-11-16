@@ -50,6 +50,20 @@ for (const p of d.players) {
 	}
 }
 check("offseason team changes (FA/trades) >= 8% of continuing players", years < 2 || moved >= 0.08 * cont, `${moved}/${cont}`);
+// rotation players left unsigned: 1000+ min in season s, 0 min in s+1, not retired (user saves: 0.7-1.3%)
+let rot = 0;
+let idle = 0;
+for (const p of d.players) {
+	for (let s = start; s < start + years - 1; s++) {
+		const m0 = p.stats.filter((x) => x.season === s).reduce((a, x) => a + x.min, 0);
+		const m1 = p.stats.filter((x) => x.season === s + 1).reduce((a, x) => a + x.min, 0);
+		if (m0 >= 1000) {
+			rot++;
+			idle += m1 === 0 && !(p.retiredYear !== null && p.retiredYear <= s + 1) ? 1 : 0;
+		}
+	}
+}
+check("rotation players not left unsigned (< 5%)", years < 2 || idle < 0.05 * rot, `${idle}/${rot}`);
 const inj = d.players.reduce((a, p) => a + p.injuries.filter((i) => i.season >= start).length, 0);
 check("injuries recorded", inj > 100, `${inj} injuries`);
 const lossRows = d.players.reduce((a, p) => a + p.injuries.filter((i) => i.season >= start && i.ovrDrop > 0).length, 0);

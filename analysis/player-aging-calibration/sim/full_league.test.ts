@@ -81,13 +81,16 @@ const waitFor = async (cond: () => boolean, timeoutMs: number) => {
 async function createLeague(lid: number) {
 	const getLeagueOptions = {
 		type: "real", season: START, phase: PHASE.PRESEASON, randomDebuts: false, randomDebutsKeepCurrent: false,
-		realDraftRatings: "rookie", realStats: "none", includePlayers: true,
+		realDraftRatings: "rookie", realStats: "allActiveHOF", includePlayers: true,
 	} as const;
 	const realLeague: any = await realRosters.getLeague(getLeagueOptions);
 	// Same as the New League UI (ui/views/NewLeague getSettingsFromGameAttributes): the real season's own
 	// gameAttributes (historical salary cap, contract limits, roster rules, ...) override the defaults.
 	// Round-2 smoke runs 1-2 passed plain defaults, which replaced the 2005 salary environment with modern
 	// values and left ~100 real rotation players unsigned for a whole season.
+	// realStats = "allActiveHOF" (the New League UI default): Playground's contract rules derive years of
+	// service, Bird rights and max tiers from stats/salary/transaction history; with "none" (smoke run 3) every
+	// player looked like a first-year player and 14.5% of 1000+ minute players went unsigned (user saves: ~1%).
 	const settings: any = structuredClone(getDefaultSettings());
 	for (const key of Object.keys(settings)) {
 		if (["noStartingInjuries", "randomization", "realStats", "giveMeWorstRoster"].includes(key)) {
@@ -98,7 +101,7 @@ async function createLeague(lid: number) {
 			settings[key] = key === "repeatSeason" ? (value as any)?.type : value;
 		}
 	}
-	Object.assign(settings, { realStats: "none", realPlayerDeterminism: 0, realDraftRatings: "rookie", spectator: true });
+	Object.assign(settings, { realStats: "allActiveHOF", realPlayerDeterminism: 0, realDraftRatings: "rookie", spectator: true });
 	const keptKeys = new Set([...Object.keys(realLeague).filter((k) => k !== "version" && k !== "meta"), "startingSeason", "version"]);
 	await league.createStream(createStreamFromLeagueObject(realLeague), {
 		conditions: {}, confs: realLeague.gameAttributes.confs, divs: realLeague.gameAttributes.divs,
