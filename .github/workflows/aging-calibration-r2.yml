@@ -20,12 +20,13 @@ defaults:
 
 env:
   NODE_OPTIONS: --max-old-space-size=6144
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1" # browsers are not needed (node test project only)
   VT: --project basketball --maxWorkers=1 --no-file-parallelism
   R: analysis/player-aging-calibration
 
 jobs:
   smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +56,7 @@ jobs:
 
   probes:
     needs: smoke
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -85,7 +86,7 @@ jobs:
 
   full:
     needs: smoke
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 330
     strategy:
       fail-fast: false
