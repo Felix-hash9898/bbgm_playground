@@ -41,7 +41,8 @@ jobs:
       - run: node --run pre-test
       - name: Full league smoke (playground, seed 1, 2 seasons)
         run: |
-          FULL_RUN=1 FULL_ARM=playground FULL_SEED=1 FULL_YEARS=2 FULL_OUT=$R/sim/output_smoke \
+          FULL_RUN=1 FULL_DIAG=1 FULL_ARM=playground FULL_SEED=1 FULL_YEARS=2 FULL_OUT=$R/sim/output_smoke \
+            NODE_OPTIONS="$NODE_OPTIONS --expose-gc" \
             npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/smoke.log
       - name: Validate memory and Auto Play
         run: node $R/sim/validate_full_output.mjs $R/sim/output_smoke/full__2005__playground__1.json.gz $R/sim/output_smoke/progress.jsonl 2 6144

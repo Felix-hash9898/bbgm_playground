@@ -124,6 +124,7 @@ async function exportPlayers() {
 		stats: p.stats.filter((s: any) => !s.playoffs).map((s: any) => ({ season: s.season, tid: s.tid, ...Object.fromEntries(STAT.map((k) => [k, s[k] ?? 0])) })),
 		injuries: (p.injuries ?? []).map((i: any) => ({ season: i.season, type: i.type, games: i.games, ovrDrop: i.ovrDrop ?? 0 })),
 		contract: p.contract, salaries: (p.salaries ?? []).length,
+		transactions: (p.transactions ?? []).map((t: any) => ({ season: t.season, phase: t.phase, tid: t.tid, type: t.type })),
 	}));
 }
 
@@ -165,7 +166,44 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 				}
 				await tx.done;
 			}
-			timings.push({ season: target, seconds: (Date.now() - t1) / 1000, heapMB: Math.round(process.memoryUsage().heapUsed / 1048576) });
+			const heapBeforeGc = Math.round(process.memoryUsage().heapUsed / 1048576);
+			(globalThis as any).gc?.();
+			timings.push({ season: target, seconds: (Date.now() - t1) / 1000, heapMB: Math.round(process.memoryUsage().heapUsed / 1048576),
+				heapBeforeGcMB: heapBeforeGc, gcExposed: typeof (globalThis as any).gc === "function" });
+			if (process.env.FULL_DIAG === "1") {
+				// Memory diagnosis: record counts and serialized size of every IndexedDB store, and the size of every
+				// collection held by the Cache object, to locate what grows season over season.
+				const names = Array.from(idb.league.objectStoreNames) as string[];
+				const stores: Record<string, { n: number; mb: number }> = {};
+				for (const n of names) {
+					const tx = idb.league.transaction([n] as any, "readonly");
+					const all = await tx.objectStore(n as any).getAll();
+					await tx.done;
+					let bytes = 0;
+					for (const rec of all) {
+						bytes += JSON.stringify(rec)?.length ?? 0;
+					}
+					stores[n] = { n: all.length, mb: Math.round(bytes / 1048576 * 10) / 10 };
+				}
+				const sizeOf = (v: any): number => v instanceof Map || v instanceof Set ? v.size : Array.isArray(v) ? v.length
+					: v && typeof v === "object" ? Object.keys(v).length : 0;
+				const cache: Record<string, number | Record<string, number>> = {};
+				for (const [k, v] of Object.entries(idb.cache as any)) {
+					if (v && typeof v === "object" && !(v instanceof Map) && !(v instanceof Set) && !Array.isArray(v)
+						&& Object.values(v).some((x) => x && typeof x === "object")) {
+						cache[k] = Object.fromEntries(Object.entries(v).map(([kk, vv]) => [kk, sizeOf(vv)]).filter(([, s]) => (s as number) > 0));
+					} else {
+						cache[k] = sizeOf(v);
+					}
+				}
+				const localSizes = Object.fromEntries(Object.entries(local as any).map(([k, v]) => [k, sizeOf(v)]).filter(([, s]) => (s as number) > 0));
+				const tids: Record<string, number> = {};
+				for (const p of await idb.cache.players.getAll()) {
+					const k = p.tid >= 0 ? "team" : String(p.tid);
+					tids[k] = (tids[k] ?? 0) + 1;
+				}
+				appendFileSync(path.join(OUT, "diag.jsonl"), `${JSON.stringify({ arm: ARM, seed: SEED, season: target, memory: process.memoryUsage(), stores, cache, local: localSizes, tids })}\n`);
+			}
 			appendFileSync(path.join(OUT, "progress.jsonl"), `${JSON.stringify({ arm: ARM, seed: SEED, ...timings.at(-1) })}\n`);
 		}
 		const players = await exportPlayers();

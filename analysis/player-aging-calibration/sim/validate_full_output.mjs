@@ -17,11 +17,9 @@ check("timing seasons", d.timings.every((t, i) => t.season === start + 1 + i), d
 const maxHeap = Math.max(...prog.map((p) => p.heapMB ?? 0));
 check("heap below limit with margin", maxHeap < 0.75 * heapLimit, `max heapUsed ${maxHeap} MB (limit ${heapLimit})`);
 const gpBySeason = {};
-const tidBySeason = {};
 for (const p of d.players) {
 	for (const s of p.stats) {
 		gpBySeason[s.season] = (gpBySeason[s.season] ?? 0) + s.gp;
-		(tidBySeason[p.pid] ??= {})[s.season] = s.tid;
 	}
 }
 for (let s = start; s < start + years; s++) {
@@ -34,15 +32,20 @@ const rookies = d.players.filter((p) => p.draft.year >= start && p.draft.year < 
 check("draft classes entered and played", rookies > 30, `${rookies} drafted players with games the next season`);
 const retired = d.players.filter((p) => p.retiredYear !== null && p.retiredYear >= start && p.retiredYear < start + years).length;
 check("retirements happened", retired > 10, `${retired} retirements in window`);
+// offseason team changes: last stats row of season s vs first row of season s+1 (user saves: 16-28% per offseason)
 let moved = 0;
-for (const seasons of Object.values(tidBySeason)) {
+let cont = 0;
+for (const p of d.players) {
 	for (let s = start; s < start + years - 1; s++) {
-		if (seasons[s] !== undefined && seasons[s + 1] !== undefined && seasons[s] !== seasons[s + 1]) {
-			moved++;
+		const a = p.stats.filter((x) => x.season === s);
+		const b = p.stats.filter((x) => x.season === s + 1);
+		if (a.length && b.length) {
+			cont++;
+			moved += a.at(-1).tid !== b[0].tid ? 1 : 0;
 		}
 	}
 }
-check("team changes (FA/trades)", years < 2 || moved > 30, `${moved} player team changes between seasons`);
+check("offseason team changes (FA/trades) >= 8% of continuing players", years < 2 || moved >= 0.08 * cont, `${moved}/${cont}`);
 const inj = d.players.reduce((a, p) => a + p.injuries.filter((i) => i.season >= start).length, 0);
 check("injuries recorded", inj > 100, `${inj} injuries`);
 const lossRows = d.players.reduce((a, p) => a + p.injuries.filter((i) => i.season >= start && i.ovrDrop > 0).length, 0);
