@@ -16,6 +16,10 @@ check("years in file", d.years === years && d.timings.length === years, `years=$
 check("timing seasons", d.timings.every((t, i) => t.season === start + 1 + i), d.timings.map((t) => t.season).join(","));
 const maxHeap = Math.max(...prog.map((p) => p.heapMB ?? 0));
 check("heap below limit with margin", maxHeap < 0.75 * heapLimit, `max heapUsed ${maxHeap} MB (limit ${heapLimit})`);
+const heaps = prog.map((p) => p.heapMB);
+check("post-GC heap not growing season over season", heaps.length < 2 || heaps.at(-1) < 1.5 * heaps[0] + 300, `post-GC heap by season: ${heaps.join(", ")} MB; transactions before prune: ${prog.map((p) => p.maxTransactionsBeforePrune).join(", ")}`);
+check("historical salary environment (real season gameAttributes applied)", d.settingsUsed && d.settingsUsed.salaryCap < 80000,
+	`salaryCap=${d.settingsUsed?.salaryCap} minContract=${d.settingsUsed?.minContract} maxContract=${d.settingsUsed?.maxContract}`);
 const gpBySeason = {};
 for (const p of d.players) {
 	for (const s of p.stats) {

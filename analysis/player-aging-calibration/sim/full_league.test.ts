@@ -22,6 +22,7 @@ import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, it, vi } from "vitest";
+import { unwrap } from "@dumbmatter/idb";
 
 vi.mock("../../../src/worker/core/player/developSeason.basketball.ts", async () => {
 	const arm = process.env.FULL_ARM ?? "playground";
@@ -46,6 +47,7 @@ import { league } from "../../../src/worker/core/index.ts";
 import realRosters from "../../../src/worker/core/realRosters/index.ts";
 import createStreamFromLeagueObject from "../../../src/worker/core/league/create/createStreamFromLeagueObject.ts";
 import { getDefaultSettings } from "../../../src/worker/views/newLeague.ts";
+import unwrapGameAttribute from "../../../src/common/unwrapGameAttribute.ts";
 
 const ARM = process.env.FULL_ARM ?? "playground";
 const SEED = Number(process.env.FULL_SEED ?? 1);
@@ -82,8 +84,21 @@ async function createLeague(lid: number) {
 		realDraftRatings: "rookie", realStats: "none", includePlayers: true,
 	} as const;
 	const realLeague: any = await realRosters.getLeague(getLeagueOptions);
-	const settings: any = { ...getDefaultSettings(), realStats: "none", realPlayerDeterminism: 0, realDraftRatings: "rookie",
-		spectator: true, numSeasonsFutureDraftPicks: 4 };
+	// Same as the New League UI (ui/views/NewLeague getSettingsFromGameAttributes): the real season's own
+	// gameAttributes (historical salary cap, contract limits, roster rules, ...) override the defaults.
+	// Round-2 smoke runs 1-2 passed plain defaults, which replaced the 2005 salary environment with modern
+	// values and left ~100 real rotation players unsigned for a whole season.
+	const settings: any = structuredClone(getDefaultSettings());
+	for (const key of Object.keys(settings)) {
+		if (["noStartingInjuries", "randomization", "realStats", "giveMeWorstRoster"].includes(key)) {
+			continue;
+		}
+		const value = unwrapGameAttribute(realLeague.gameAttributes, key as any);
+		if (value !== undefined) {
+			settings[key] = key === "repeatSeason" ? (value as any)?.type : value;
+		}
+	}
+	Object.assign(settings, { realStats: "none", realPlayerDeterminism: 0, realDraftRatings: "rookie", spectator: true });
 	const keptKeys = new Set([...Object.keys(realLeague).filter((k) => k !== "version" && k !== "meta"), "startingSeason", "version"]);
 	await league.createStream(createStreamFromLeagueObject(realLeague), {
 		conditions: {}, confs: realLeague.gameAttributes.confs, divs: realLeague.gameAttributes.divs,
@@ -143,6 +158,18 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		await createLeague(lid);
 		await loadLeague(lid);
 		const tCreate = (Date.now() - t0) / 1000;
+		// Test-library leak (not product code): fake-indexeddb 6.2.5 never removes finished transactions from
+		// Database.transactions, so every transaction with its requests/results stays in memory (round-2 smoke:
+		// post-GC heap 0.6 -> 2.2 GB after 2 seasons with ~10 MB of data) and every scheduling step scans the
+		// whole array (season 2 four times slower). Only non-finished transactions (and an active versionchange
+		// one, never finished while running) are ever read by the library, so pruning finished ones is safe.
+		const rawDb = (unwrap(idb.league as any) as any)._rawDatabase;
+		let maxTxBeforePrune = 0;
+		const prune = () => {
+			maxTxBeforePrune = Math.max(maxTxBeforePrune, rawDb.transactions.length);
+			rawDb.transactions = rawDb.transactions.filter((t: any) => t._state !== "finished");
+		};
+		const pruneTimer = setInterval(prune, 2000);
 		seedRandom(2000 + SEED);
 		const timings: any[] = [];
 		for (let y = 0; y < YEARS; y++) {
@@ -166,10 +193,13 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 				}
 				await tx.done;
 			}
+			prune();
+			const txStats = { maxTransactionsBeforePrune: maxTxBeforePrune, transactionsAfterPrune: rawDb.transactions.length };
+			maxTxBeforePrune = 0;
 			const heapBeforeGc = Math.round(process.memoryUsage().heapUsed / 1048576);
 			(globalThis as any).gc?.();
 			timings.push({ season: target, seconds: (Date.now() - t1) / 1000, heapMB: Math.round(process.memoryUsage().heapUsed / 1048576),
-				heapBeforeGcMB: heapBeforeGc, gcExposed: typeof (globalThis as any).gc === "function" });
+				heapBeforeGcMB: heapBeforeGc, gcExposed: typeof (globalThis as any).gc === "function", ...txStats });
 			if (process.env.FULL_DIAG === "1") {
 				// Memory diagnosis: record counts and serialized size of every IndexedDB store, and the size of every
 				// collection held by the Cache object, to locate what grows season over season.
@@ -206,8 +236,11 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 			}
 			appendFileSync(path.join(OUT, "progress.jsonl"), `${JSON.stringify({ arm: ARM, seed: SEED, ...timings.at(-1) })}\n`);
 		}
+		clearInterval(pruneTimer);
 		const players = await exportPlayers();
-		writeFileSync(path.join(OUT, `${name}.gz`), gzipSync(JSON.stringify({ arm: ARM, seed: SEED, start: START, years: YEARS, tCreate, timings, players })), { flag: "wx" });
+		const settingsUsed = Object.fromEntries(["salaryCap", "minContract", "maxContract", "luxuryPayroll", "minPayroll", "salaryCapType",
+			"maxRosterSize", "minRosterSize", "numGames", "spectator", "realPlayerDeterminism"].map((k) => [k, (g as any).get(k)]));
+		writeFileSync(path.join(OUT, `${name}.gz`), gzipSync(JSON.stringify({ arm: ARM, seed: SEED, start: START, years: YEARS, tCreate, timings, settingsUsed, players })), { flag: "wx" });
 		idb.cache.stopAutoFlush();
 		idb.league.close();
 	}, 6 * 3_600_000);
