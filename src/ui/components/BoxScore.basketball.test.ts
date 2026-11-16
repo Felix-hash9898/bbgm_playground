@@ -35,10 +35,11 @@ describe("BPMI Box Score sorting", () => {
 			"pts",
 			"gmsc",
 			"bpmImpact",
-			"form",
-			"gameForm",
-			"formTot",
 		]);
 		expect(BOX_SCORE_STATS).not.toContain("pm");
+		// The Form / GForm system was removed; its columns must not come back.
+		for (const removed of ["form", "gameForm", "formTot"]) {
+			expect(BOX_SCORE_STATS).not.toContain(removed);
+		}
 	});
 });

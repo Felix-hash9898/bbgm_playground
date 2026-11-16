@@ -71,6 +71,8 @@ const makePlayer = (pid: number, min: number, bpmImpact?: number) => ({
 	pf: 2,
 	pts: 11,
 	bpmImpact,
+	// Legacy fields stored in box scores by the removed Form system (old saves).
+	// They must be ignored by the renderer.
 	form: 1.2,
 	gameForm: -0.4,
 });
@@ -332,23 +334,16 @@ describe("BPMI Box Score column visibility", () => {
 				const headerCells = getCells(table.querySelector("thead tr")!);
 				const headerLabels = headerCells.map((cell) => cell.textContent);
 				expect(headerLabels).not.toContain("BPMI");
-				expect(headerLabels.slice(-4)).toEqual([
-					"GmSc",
-					"Form",
-					"GForm",
-					"FormTot",
-				]);
+				expect(headerLabels.at(-1)).toBe("GmSc");
+				for (const removed of ["Form", "GForm", "FormTot"]) {
+					expect(headerLabels).not.toContain(removed);
+				}
 
 				const expectedColumnCount = headerCells.length;
 				const bodyRows = table.querySelectorAll("tbody tr");
 				expect(bodyRows).toHaveLength(3);
 				const firstPlayerCells = getCells(bodyRows[0]!);
-				for (const [label, expectedValue] of [
-					["GmSc", "13.0"],
-					["Form", "1.2"],
-					["GForm", "-0.4"],
-					["FormTot", "0.8"],
-				] as const) {
+				for (const [label, expectedValue] of [["GmSc", "13.0"]] as const) {
 					const index = headerLabels.indexOf(label);
 					expect(index).toBeGreaterThan(-1);
 					expect(firstPlayerCells[index]!.textContent).toBe(expectedValue);
@@ -378,13 +373,10 @@ describe("BPMI Box Score column visibility", () => {
 		for (const table of container.querySelectorAll("table")) {
 			const headerCells = getCells(table.querySelector("thead tr")!);
 			const headerLabels = headerCells.map((cell) => cell.textContent);
-			expect(headerLabels.slice(-5)).toEqual([
-				"GmSc",
-				"BPMI",
-				"Form",
-				"GForm",
-				"FormTot",
-			]);
+			expect(headerLabels.slice(-2)).toEqual(["GmSc", "BPMI"]);
+			for (const removed of ["Form", "GForm", "FormTot"]) {
+				expect(headerLabels).not.toContain(removed);
+			}
 
 			const bpmiIndex = headerLabels.indexOf("BPMI");
 			expect(bpmiIndex).toBeGreaterThan(-1);

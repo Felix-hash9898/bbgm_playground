@@ -629,36 +629,6 @@ const writePlayerStats = async (
 					}
 				}
 
-				// Update cross-game form streak (basketball only)
-				// Compare this game's efficiency to the player's own season average,
-				// so stars are judged against their own baseline, not a fixed formula.
-				if (isSport("basketball") && p.stat.min > 5 && ps.min > 0) {
-					const gameEff =
-						((p.stat.pts +
-							p.stat.ast * 1.5 +
-							(p.stat.orb + p.stat.drb) * 0.8 -
-							p.stat.tov * 2) *
-							36) /
-						p.stat.min;
-					// Season average including this game (self-calibrating baseline)
-					const seasonEff =
-						((ps.pts + ps.ast * 1.5 + (ps.orb + ps.drb) * 0.8 - ps.tov * 2) *
-							36) /
-						ps.min;
-					const delta = (gameEff - seasonEff) * 0.15;
-					const noise = random.uniform(-0.5, 0.5);
-					p2.form = helpers.bound(
-						(p2.form ?? 0) * 0.85 + delta + noise,
-						-10,
-						10,
-					);
-				}
-
-				if (isSport("basketball")) {
-					(p as any).form = p2.form ?? 0;
-					p2.gameForm = (p as any).gameForm ?? 0;
-				}
-
 				// Player value depends on ratings and regular season stats, neither of which can change in the playoffs (except for severe injuries)
 				if (
 					p.stat.min > 0 &&

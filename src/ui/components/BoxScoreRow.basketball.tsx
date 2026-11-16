@@ -33,13 +33,6 @@ const BoxScoreRow = ({
 	season: number;
 	stats?: readonly BasketballBoxScoreStat[];
 }) => {
-	const formColor = (val: number, threshold: number) =>
-		val >= threshold
-			? "text-success"
-			: val <= -threshold
-				? "text-danger"
-				: undefined;
-
 	const showDNP =
 		p.min === 0 &&
 		(!liveGameInProgress ||
@@ -88,13 +81,6 @@ const BoxScoreRow = ({
 					)}
 				</td>
 			) : null}
-			<td className={formColor(p.form ?? 0, 1)}>{(p.form ?? 0).toFixed(1)}</td>
-			<td className={formColor(p.gameForm ?? 0, 1)}>
-				{(p.gameForm ?? 0).toFixed(1)}
-			</td>
-			<td className={formColor((p.form ?? 0) + (p.gameForm ?? 0), 2)}>
-				{((p.form ?? 0) + (p.gameForm ?? 0)).toFixed(1)}
-			</td>
 		</>
 	);
 

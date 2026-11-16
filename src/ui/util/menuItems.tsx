@@ -60,17 +60,6 @@ const scheduledEvents: MenuItemLink = {
 	text: "Scheduled Events",
 };
 
-const formVisualization: MenuItemLink | undefined = isSport("basketball")
-	? {
-			type: "link",
-			active: (pageID) => pageID === "formVisualization",
-			league: true,
-			commandPalette: true,
-			path: ["form_visualization"],
-			text: "Form Visualization",
-		}
-	: undefined;
-
 const statsVisualization: MenuItemLink | undefined = isSport("basketball")
 	? {
 			type: "link",
@@ -770,7 +759,6 @@ const menuItems: (MenuItemLink | MenuItemHeader)[] = [
 				path: ["frivolities"],
 				text: "Frivolities",
 			},
-			...(formVisualization ? [formVisualization] : []),
 			...(statsVisualization ? [statsVisualization] : []),
 			{
 				type: "link",

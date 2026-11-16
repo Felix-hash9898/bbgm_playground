@@ -1362,12 +1362,6 @@ export type PlayerWithoutKey<PlayerRatings = any> = {
 
 	// Only for baseball pitchers
 	pFatigue?: number;
-
-	// Hot streak system (basketball)
-	// Cross-game streak: -10 (cold) to +10 (hot), decays each game
-	form?: number;
-	// Within-game random factor from last game played: -5 to +5
-	gameForm?: number;
 };
 
 export type Player<PlayerRatings = any> = {

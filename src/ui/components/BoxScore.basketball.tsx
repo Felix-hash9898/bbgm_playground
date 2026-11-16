@@ -195,10 +195,6 @@ const StatsTable = ({
 					);
 				}
 
-				if (stat === "formTot") {
-					return (p.form ?? 0) + (p.gameForm ?? 0);
-				}
-
 				return p[stat];
 			}),
 		);

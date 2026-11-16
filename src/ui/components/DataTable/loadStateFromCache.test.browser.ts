@@ -116,3 +116,87 @@ describe("DataTable sorting across column changes", () => {
 		}
 	});
 });
+
+describe("DataTable column layout across column removal", () => {
+	const name = "Removed col layout test";
+	const layoutRecords = [
+		{ Name: "A", Age: 25, Form: 3, Contract: "$5M", Exp: 2027 },
+		{ Name: "B", Age: 31, Form: -1, Contract: "$9M", Exp: 2026 },
+	];
+	const oldCols: Col[] = [
+		{ title: "Name" },
+		{ title: "Age", sortType: "number" },
+		{ title: "Form", sortType: "number" },
+		{ title: "Contract", sortType: "number" },
+		{ title: "Exp", sortType: "number" },
+	];
+	const newCols = oldCols.filter((col) => col.title !== "Form");
+
+	const render = (cols: Col[]) => {
+		flushSync(() => {
+			root!.render(
+				createElement(DataTable, {
+					cols,
+					defaultSort: [0, "asc"],
+					hideAllControls: true,
+					hideMenuToo: true,
+					name,
+					rows: layoutRecords.map((record, i) => ({
+						data: cols.map(
+							(col) => record[col.title as keyof typeof record],
+						),
+						key: i,
+					})),
+				}),
+			);
+		});
+	};
+
+	const headerTitles = () =>
+		Array.from(container!.querySelectorAll("thead th")).map(
+			(element) => element.textContent,
+		);
+
+	afterEach(() => {
+		for (const key of [
+			"DataTableColOrder",
+			"DataTableFilters",
+			"DataTableSort",
+			"DataTableSortCols",
+			"DataTableStickyCols",
+		]) {
+			localStorage.removeItem(`${key}:${name}`);
+		}
+	});
+
+	test("hidden and reordered columns keep their identity after an old column is removed", () => {
+		container = document.createElement("div");
+		document.body.append(container);
+		root = createRoot(container);
+
+		// Saved by a previous version of the table that still had a Form column: Exp moved first, Form hidden
+		localStorage.setItem(`DataTableSortCols:${name}`, JSON.stringify(oldCols));
+		localStorage.setItem(
+			`DataTableColOrder:${name}`,
+			JSON.stringify([
+				{ colIndex: 4 },
+				{ colIndex: 0 },
+				{ colIndex: 1 },
+				{ colIndex: 2, hidden: true },
+				{ colIndex: 3 },
+			]),
+		);
+
+		render(newCols);
+
+		// Contract moved into Form's old index, but must not be hidden
+		expect(headerTitles()).toEqual(["Exp", "Name", "Age", "Contract"]);
+		expect(container.querySelector("tbody tr")!.textContent).toContain("$5M");
+
+		// Remounting with the same cols keeps the migrated layout
+		root.unmount();
+		root = createRoot(container);
+		render(newCols);
+		expect(headerTitles()).toEqual(["Exp", "Name", "Age", "Contract"]);
+	});
+});

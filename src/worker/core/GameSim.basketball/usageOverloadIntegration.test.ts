@@ -35,7 +35,6 @@ const makeFixture = async (biases: number[]) => {
 			p.pid = tid * 100 + index;
 			p.rosterOrder = index;
 			p.usageBias = tid === 0 ? biases[index]! : 1;
-			p.form = 0;
 			p.ratings.at(-1)!.endu = 82;
 			return p;
 		}),

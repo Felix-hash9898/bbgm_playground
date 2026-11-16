@@ -182,15 +182,6 @@ const boxScore = async (gid: number, tid: number) => {
 		// Floating point errors make this off a bit
 		t.min = Math.round(t.min);
 
-		// Attach form/gameForm from player cache (accurate for most recently simulated game)
-		for (const p of t.players) {
-			const playerFromCache = await idb.cache.players.get(p.pid);
-			if (playerFromCache) {
-				p.form = playerFromCache.form ?? 0;
-				p.gameForm = playerFromCache.gameForm ?? 0;
-			}
-		}
-
 		// Put injured players at the bottom, then sort by GS and roster position
 		t.players.sort((a: any, b: any) => {
 			// This sorts by starters first and minutes second, since .min is always far less than 1000 and gs is either 1 or 0. Then injured players are listed at the end, if they didn't play.

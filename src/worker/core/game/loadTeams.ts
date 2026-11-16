@@ -1,6 +1,6 @@
 import { allStar, player, season, team } from "../index.ts";
 import { idb } from "../../db/index.ts";
-import { g, helpers, random, toUI } from "../../util/index.ts";
+import { g, helpers, toUI } from "../../util/index.ts";
 import type {
 	BasketballRotation,
 	Player,
@@ -95,39 +95,6 @@ export const getBasketballCompositeInjuryFactor = (
 	composite: string,
 	injuryFactor: number,
 ) => (composite === "turnovers" ? 1 : injuryFactor);
-
-export const applyBasketballForm = (
-	compositeRatings: Record<string, number>,
-	formFactor: number,
-) => {
-	const FORM_FULL = [
-		"usage",
-		"passing",
-		"shootingMidRange",
-		"shootingThreePointer",
-		"shootingFT",
-		"shootingLowPost",
-		"drawingFouls",
-	];
-	const FORM_WEAK = [
-		"shootingAtRim",
-		"rebounding",
-		"stealing",
-		"defense",
-		"defenseInterior",
-		"defensePerimeter",
-	];
-	for (const k of FORM_FULL) {
-		if (compositeRatings[k] !== undefined) {
-			compositeRatings[k] *= 1 + formFactor * 0.08;
-		}
-	}
-	for (const k of FORM_WEAK) {
-		if (compositeRatings[k] !== undefined) {
-			compositeRatings[k] *= 1 + formFactor * 0.04;
-		}
-	}
-};
 
 let playerStats: Record<string, number | number[]>;
 let teamStats: Record<string, number>;
@@ -287,7 +254,6 @@ export const processTeam = async (
 			targetMinutes: p.targetMinutes,
 			usageBias: p.usageBias ?? 1,
 			ovrs: rating.ovrs,
-			gameForm: 0,
 		};
 
 		// Reset ptModifier for AI teams. This should not be necessary since it should always be 1, but let's be safe.
@@ -337,17 +303,6 @@ export const processTeam = async (
 
 		if (isSport("basketball")) {
 			p2.compositeRating.usage = p2.compositeRating.usage ** 1.9;
-
-			// Hot streak form multiplier
-			const crossGameForm = (p as any).form ?? 0; // -10 to +10
-			// Most results cluster around -3 to +3, with occasional bigger swings.
-			const withinGameForm = random.truncGauss(0, 2.25, -5, 5);
-			p2.gameForm = withinGameForm;
-
-			const combined = helpers.bound(crossGameForm + withinGameForm, -15, 15);
-			const formFactor = combined / 15; // -1 to +1
-
-			applyBasketballForm(p2.compositeRating, formFactor);
 		}
 		const seasonStatsKeys = bySport({
 			baseball: [

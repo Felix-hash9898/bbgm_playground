@@ -1,10 +1,16 @@
 import formatScoreWithShootout from "../../common/formatScoreWithShootout.ts";
 import getWinner from "../../common/getWinner.ts";
-import { isSport, PHASE, PLAYER } from "../../common/index.ts";
+import {
+	isSport,
+	PHASE,
+	PLAYER,
+	PLAYER_STATS_TABLES,
+} from "../../common/index.ts";
 import { orderBy } from "../../common/utils.ts";
-import type { UpdateEvents, ViewInput } from "../../common/types.ts";
+import type { Game, UpdateEvents, ViewInput } from "../../common/types.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers, processPlayerStats } from "../util/index.ts";
+import { aggregatePlayerGames } from "./playerGameLogSeries.basketball.ts";
 
 type PlayerOption = {
 	label: string;
@@ -13,7 +19,7 @@ type PlayerOption = {
 };
 
 const DEFAULT_METRIC = "pts";
-const METRIC_OPTIONS = [
+const BOX_SCORE_METRIC_OPTIONS = [
 	"min",
 	"pts",
 	"trb",
@@ -51,7 +57,20 @@ const METRIC_OPTIONS = [
 	"fgaMidRange",
 	"fgpMidRange",
 ] as const;
-const METRIC_OPTIONS_SET = new Set<string>(METRIC_OPTIONS);
+const BOX_SCORE_METRIC_OPTIONS_SET = new Set<string>(BOX_SCORE_METRIC_OPTIONS);
+
+// Advanced metrics (PER, BPM, WS, etc.) depend on team and opponent context, so they are computed from both teams' box scores for all games in the window, using the same aggregation as the player game log summaries.
+const ADVANCED_METRIC_OPTIONS = (PLAYER_STATS_TABLES.advanced?.stats ?? []).filter(
+	(stat) =>
+		!["gp", "gs", "min"].includes(stat) &&
+		!BOX_SCORE_METRIC_OPTIONS_SET.has(stat),
+);
+const ADVANCED_METRIC_OPTIONS_SET = new Set(ADVANCED_METRIC_OPTIONS);
+const METRIC_OPTIONS: string[] = [
+	...BOX_SCORE_METRIC_OPTIONS,
+	...ADVANCED_METRIC_OPTIONS,
+];
+const METRIC_OPTIONS_SET = new Set(METRIC_OPTIONS);
 const RAW_STATS_TO_SUM = [
 	"gp",
 	"gs",
@@ -80,10 +99,11 @@ const RAW_STATS_TO_SUM = [
 	"pts",
 ] as const;
 
-type MetricKey = (typeof METRIC_OPTIONS)[number];
+type BoxScoreMetricKey = (typeof BOX_SCORE_METRIC_OPTIONS)[number];
 
 type GameRow = {
 	away: boolean;
+	game: Game;
 	gid: number;
 	min: number;
 	num: number;
@@ -149,7 +169,29 @@ const getPlayers = async (season: number) => {
 		);
 };
 
-const getWindowProcessedStats = (windowGames: GameRow[], metric: MetricKey) => {
+const getAdvancedMetricValue = (
+	windowGames: GameRow[],
+	metric: string,
+	pid: number,
+): number | undefined => {
+	const value = aggregatePlayerGames(
+		windowGames.map((game) => game.game),
+		pid,
+	)?.advanced?.[metric];
+	return typeof value === "number" && Number.isFinite(value)
+		? value
+		: undefined;
+};
+
+const getWindowProcessedStats = (
+	windowGames: GameRow[],
+	metric: string,
+	pid: number,
+): number | undefined => {
+	if (ADVANCED_METRIC_OPTIONS_SET.has(metric)) {
+		return getAdvancedMetricValue(windowGames, metric, pid);
+	}
+
 	const totals = Object.fromEntries(
 		RAW_STATS_TO_SUM.map((stat) => [stat, 0]),
 	) as Record<string, number>;
@@ -177,7 +219,7 @@ const updateStatsVisualization = async (
 	state: any,
 ) => {
 	const selectedMetric = METRIC_OPTIONS_SET.has(metric)
-		? (metric as MetricKey)
+		? metric
 		: DEFAULT_METRIC;
 
 	if (!isSport("basketball")) {
@@ -261,6 +303,7 @@ const updateStatsVisualization = async (
 
 			allPlayerGames.push({
 				away: teamIndex === 1,
+				game,
 				gid: game.gid,
 				min: row.min ?? 0,
 				num: 0,
@@ -268,7 +311,7 @@ const updateStatsVisualization = async (
 				playoffs: !!game.playoffs,
 				processed: processPlayerStats(
 					row,
-					[...METRIC_OPTIONS] as MetricKey[],
+					[...BOX_SCORE_METRIC_OPTIONS] as BoxScoreMetricKey[],
 					"perGame",
 				),
 				result: `${result} ${formatScoreWithShootout(
@@ -322,13 +365,19 @@ const updateStatsVisualization = async (
 
 			return {
 				away: game.away,
-				displayValue: getWindowProcessedStats(windowGames, selectedMetric),
+				displayValue: getWindowProcessedStats(
+					windowGames,
+					selectedMetric,
+					selectedPid,
+				),
 				gid: game.gid,
 				min: game.min,
 				num: index + 1,
 				oppAbbrev: game.oppAbbrev,
 				playoffs: game.playoffs,
-				rawValue: game.processed[selectedMetric],
+				rawValue: ADVANCED_METRIC_OPTIONS_SET.has(selectedMetric)
+					? getAdvancedMetricValue([game], selectedMetric, selectedPid)
+					: game.processed[selectedMetric],
 				result: game.result,
 				windowSize: windowGames.length,
 			};

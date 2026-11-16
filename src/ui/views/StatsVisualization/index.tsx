@@ -391,7 +391,10 @@ const StatsVisualization = ({
 						Rolling values are computed from the combined box scores inside each
 						window. That means rolling percentages such as FG%, 3P%, FT%, eFG%,
 						and TS% reflect the actual window totals rather than a simple
-						average of single-game percentages.
+						average of single-game percentages. Advanced metrics such as PER,
+						BPM, and WS are calculated from both teams' box scores in the
+						window, like the Advanced stats table; cumulative ones (OWS, DWS,
+						WS, EWA, VORP) are window totals rather than per-game averages.
 					</p>
 
 					<DataTable

@@ -6,24 +6,50 @@ import { resetCache, resetG } from "../../../test/helpers.ts";
 import { player, team } from "../index.ts";
 import * as util from "../../util/index.ts";
 import {
-	applyBasketballForm,
 	getBasketballCompositeInjuryFactor,
 	processTeam,
 } from "./loadTeams.ts";
 
 describe("basketball loadTeams composite modifiers", () => {
-	test("form changes usage and passing but not turnovers", () => {
-		for (const formFactor of [-1, -0.5, 0, 0.5, 1]) {
-			const composites = {
-				usage: 0.6,
-				passing: 0.7,
-				turnovers: 0.4,
-			};
-			applyBasketballForm(composites, formFactor);
+	test("legacy Form fields from old saves do not affect composite ratings", async () => {
+		resetG();
+		const g = util.g;
+		g.setWithoutSavingToDB("userTid", 0);
+		g.setWithoutSavingToDB("userTids", [0]);
+		g.setWithoutSavingToDB("spectator", false);
+		g.setWithoutSavingToDB("numPlayersOnCourt", 5);
 
-			expect(composites.turnovers).toBe(0.4);
-			expect(composites.usage).toBeCloseTo(0.6 * (1 + formFactor * 0.08));
-			expect(composites.passing).toBeCloseTo(0.7 * (1 + formFactor * 0.08));
+		const basePlayers = Array.from({ length: 10 }, (_, i) => {
+			const p = player.generate(1, 25, 2024, true, DEFAULT_LEVEL) as Player;
+			p.pid = 300 + i;
+			p.rosterOrder = i;
+			return p;
+		});
+		const t = team.generate({ ...helpers.getTeamsDefault()[1], tid: 1 });
+		const teamSeason = { won: 0, lost: 0, tied: 0, otl: 0, cid: 0, did: 0 };
+
+		const run = async (legacyForm: boolean) => {
+			const players = structuredClone(basePlayers);
+			if (legacyForm) {
+				// Shape of player objects stored by the removed Form system
+				for (const p of players) {
+					Object.assign(p, { form: 10, gameForm: 5 });
+				}
+			}
+			await resetCache({ players, teams: [t] });
+			return processTeam(t, teamSeason, players);
+		};
+
+		const withoutForm = await run(false);
+		const withLegacyForm = await run(true);
+
+		expect(withLegacyForm.player.length).toBe(withoutForm.player.length);
+		for (let i = 0; i < withoutForm.player.length; i++) {
+			const a = withoutForm.player[i];
+			const b = withLegacyForm.player[i];
+			expect(b.id).toBe(a.id);
+			expect(b.compositeRating).toEqual(a.compositeRating);
+			expect(b).not.toHaveProperty("gameForm");
 		}
 	});
 

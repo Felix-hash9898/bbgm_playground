@@ -17,9 +17,6 @@ const BOX_SCORE_STATS = [
 	"pts",
 	"gmsc",
 	"bpmImpact",
-	"form",
-	"gameForm",
-	"formTot",
 ] as const;
 
 export type BasketballBoxScoreStat = (typeof BOX_SCORE_STATS)[number];

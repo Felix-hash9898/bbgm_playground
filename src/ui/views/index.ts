@@ -36,7 +36,6 @@ export { default as ExportLeague } from "./ExportLeague.tsx";
 export { default as ExportPlayers } from "./ExportPlayers.tsx";
 export { default as ExportStats } from "./ExportStats.tsx";
 export { default as FantasyDraft } from "./FantasyDraft.tsx";
-export { default as FormVisualization } from "./FormVisualization/index.tsx";
 export { default as FreeAgents } from "./FreeAgents.tsx";
 export { default as Frivolities } from "./Frivolities.tsx";
 export { default as FrivolitiesDraftClasses } from "./FrivolitiesDraftClasses.tsx";

@@ -125,7 +125,6 @@ type PlayerGameSim = {
 	targetMinutes?: number;
 	plannedMinutes: number;
 	usageBias: number;
-	gameForm: number; // Within-game random form factor (-5 to +5)
 	pendingPostGameInjury?: boolean;
 	newInjuryMode?: "inGame" | "postGame";
 };

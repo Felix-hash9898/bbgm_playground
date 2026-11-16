@@ -3,12 +3,56 @@ import { assert, test } from "vitest";
 import fixture from "../../../test/fixtures/basketballMilPinnedInjury.json";
 import { resetG } from "../../../test/helpers.ts";
 import { PHASE } from "../../../common/index.ts";
-import { g, helpers, random } from "../../util/index.ts";
-import { applyBasketballForm } from "../game/loadTeams.ts";
+import { g, helpers } from "../../util/index.ts";
 import { getGameEffectiveBasketballMinutesWithStatus as allocate } from "../team/basketballMinutes.ts";
 import GameSim from "./index.ts";
 
 type Args = Parameters<typeof allocate>[0];
+
+// Fixture normalization only: the removed Form system multiplied these composites by
+// 1 + 0.08 * formFactor (FULL) or 1 + 0.04 * formFactor (WEAK), with
+// formFactor = clamp(crossGameForm + gameForm, -15, 15) / 15.
+const LEGACY_FORM_FULL = [
+	"usage",
+	"passing",
+	"shootingMidRange",
+	"shootingThreePointer",
+	"shootingFT",
+	"shootingLowPost",
+	"drawingFouls",
+];
+const LEGACY_FORM_WEAK = [
+	"shootingAtRim",
+	"rebounding",
+	"stealing",
+	"defense",
+	"defenseInterior",
+	"defensePerimeter",
+];
+const stripLegacyFormMultiplier = (p: {
+	compositeRating: Record<string, number>;
+	gameForm?: number;
+	researchCrossGameForm?: number;
+}) => {
+	const formFactor =
+		helpers.bound(
+			(p.researchCrossGameForm ?? 0) + (p.gameForm ?? 0),
+			-15,
+			15,
+		) / 15;
+	for (const k of LEGACY_FORM_FULL) {
+		if (p.compositeRating[k] !== undefined) {
+			p.compositeRating[k] /= 1 + formFactor * 0.08;
+		}
+	}
+	for (const k of LEGACY_FORM_WEAK) {
+		if (p.compositeRating[k] !== undefined) {
+			p.compositeRating[k] /= 1 + formFactor * 0.04;
+		}
+	}
+	delete p.gameForm;
+	delete p.researchCrossGameForm;
+};
 const seed = (input: number) => {
 	let state = input >>> 0;
 	Math.random = () => {
@@ -69,27 +113,17 @@ test("real MIL roster: protected pins survive 0→1 and complete regulation/OT g
 					p.plannedMinutes = targets.minutesByPid[p.id]!;
 				}
 				seed(gameSeed);
-				// Same production form redraw and cached-form removal as the research runner.
+				// The frozen fixture was captured while the (now removed) Form system was
+				// active, so its composites include that game's Form multiplier. Strip it so
+				// GameSim receives the Form-free composites production loadTeams now builds.
 				for (const t of teams) {
 					for (const p of t.player) {
-						const source = p as typeof p & { researchCrossGameForm?: number };
-						const cross = source.researchCrossGameForm ?? 0;
-						const factors = Object.fromEntries(
-							Object.keys(p.compositeRating).map((k) => [k, 1]),
+						stripLegacyFormMultiplier(
+							p as typeof p & {
+								gameForm?: number;
+								researchCrossGameForm?: number;
+							},
 						);
-						applyBasketballForm(
-							factors,
-							helpers.bound(cross + (p.gameForm ?? 0), -15, 15) / 15,
-						);
-						for (const k of Object.keys(p.compositeRating)) {
-							p.compositeRating[k] /= factors[k]!;
-						}
-						p.gameForm = random.truncGauss(0, 2.25, -5, 5);
-						applyBasketballForm(
-							p.compositeRating,
-							helpers.bound(cross + p.gameForm, -15, 15) / 15,
-						);
-						delete source.researchCrossGameForm;
 					}
 				}
 				const result = new GameSim({

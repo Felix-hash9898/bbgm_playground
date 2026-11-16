@@ -305,7 +305,6 @@ const Roster = ({
 			"Age",
 			"Ovr",
 			"Pot",
-			...(isSport("basketball") && season === currentSeason ? ["Form"] : []),
 			...(season === currentSeason ? ["Contract", "Terms"] : []),
 			"stat:yearsWithTeam",
 			"Country",
@@ -557,13 +556,6 @@ const Roster = ({
 				showRatings
 					? wrappedRatingWithChange(p.ratings.pot, p.ratings.dpot)
 					: null,
-				...(isSport("basketball") && season === currentSeason
-					? [
-							(p as any).form != null
-								? ((p as any).form as number).toFixed(1)
-								: "0.0",
-						]
-					: []),
 				...(season === currentSeason
 					? [wrappedRosterContract(p), wrappedRosterContractTerms(p)]
 					: []),
