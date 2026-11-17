@@ -69,14 +69,62 @@ const seedRandom = (seed: number) => {
 	Math.random = seeded;
 };
 
-const waitFor = async (cond: () => boolean, timeoutMs: number) => {
+// Observability: heartbeat + captured errors go to OUT/heartbeat.jsonl
+const beat = (event: string, extra: Record<string, unknown> = {}) => {
+	try {
+		appendFileSync(path.join(OUT, "heartbeat.jsonl"), `${JSON.stringify({ t: new Date().toISOString(), event,
+			season: (g as any).get?.("season"), phase: (g as any).get?.("phase"), daysLeft: (g as any).get?.("daysLeft"),
+			autoPlay: !!local.autoPlayUntil, gameSim: lock.get("gameSim"), newPhase: lock.get("newPhase"),
+			heapMB: Math.round(process.memoryUsage().heapUsed / 1048576), ...extra })}\n`);
+	} catch {}
+};
+for (const level of ["error", "warn"] as const) {
+	const orig = console[level].bind(console);
+	console[level] = (...args: unknown[]) => {
+		beat(`console.${level}`, { msg: args.map((a) => (a instanceof Error ? `${a.message}\n${a.stack}` : String(a))).join(" ").slice(0, 2000) });
+		orig(...args);
+	};
+}
+process.on("unhandledRejection", (reason: any) => beat("unhandledRejection", { msg: String(reason?.stack ?? reason).slice(0, 2000) }));
+
+// Wait until the season target is reached. If Auto Play stops early (autoPlayUntil cleared, no lock held for
+// 30 s) it is re-armed, as a user would click Auto Play again; every re-arm is logged. Timeout per season.
+const waitForSeason = async (target: number, timeoutMs: number) => {
 	const t0 = Date.now();
-	while (!cond()) {
-		if (Date.now() - t0 > timeoutMs) {
-			throw new Error("timeout waiting for auto play");
+	let idleSince: number | undefined;
+	let rearms = 0;
+	let lastBeat = 0;
+	while (!(g.get("season") === target && g.get("phase") === PHASE.PRESEASON && !lock.get("newPhase") && !lock.get("gameSim")
+		&& local.autoPlayUntil === undefined)) {
+		const now = Date.now();
+		if (now - lastBeat > 60_000) {
+			beat("heartbeat", { target });
+			lastBeat = now;
+		}
+		if (now - t0 > timeoutMs) {
+			beat("timeout", { target, rearms });
+			throw new Error(`timeout waiting for auto play (season ${g.get("season")} phase ${g.get("phase")})`);
+		}
+		const stalled = local.autoPlayUntil === undefined && !lock.get("newPhase") && !lock.get("gameSim");
+		if (stalled) {
+			idleSince ??= now;
+			if (now - idleSince > 30_000) {
+				if (rearms >= 20) {
+					beat("giveUp", { target, rearms });
+					throw new Error(`auto play stalled repeatedly (season ${g.get("season")} phase ${g.get("phase")})`);
+				}
+				rearms += 1;
+				beat("rearm", { target, rearms });
+				local.autoPlayUntil = { season: target, phase: PHASE.PRESEASON, start: Date.now() };
+				void league.autoPlay({}).catch((e: any) => beat("autoPlayError", { msg: String(e?.stack ?? e).slice(0, 2000) }));
+				idleSince = undefined;
+			}
+		} else {
+			idleSince = undefined;
 		}
 		await new Promise((r) => setTimeout(r, 200));
 	}
+	return rearms;
 };
 
 async function createLeague(lid: number) {
@@ -184,9 +232,9 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 			const target = g.get("season") + 1;
 			const t1 = Date.now();
 			local.autoPlayUntil = { season: target, phase: PHASE.PRESEASON, start: Date.now() };
-			void league.autoPlay({});
-			await waitFor(() => local.autoPlayUntil === undefined && g.get("season") === target && g.get("phase") === PHASE.PRESEASON
-				&& !lock.get("newPhase") && !lock.get("gameSim"), 3_600_000);
+			beat("seasonStart", { target });
+			void league.autoPlay({}).catch((e: any) => beat("autoPlayError", { msg: String(e?.stack ?? e).slice(0, 2000) }));
+			const rearms = await waitForSeason(target, Number(process.env.FULL_SEASON_TIMEOUT_MS ?? 80 * 60_000));
 			// Memory: fake-indexeddb keeps every record in RAM. Box scores, events, feats and messages are not
 			// used by this study and are dropped after every season (players, stats, ratings, injuries, teams,
 			// contracts and draft data are untouched, so the simulation itself is unaffected).
@@ -207,7 +255,7 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 			const heapBeforeGc = Math.round(process.memoryUsage().heapUsed / 1048576);
 			(globalThis as any).gc?.();
 			timings.push({ season: target, seconds: (Date.now() - t1) / 1000, heapMB: Math.round(process.memoryUsage().heapUsed / 1048576),
-				heapBeforeGcMB: heapBeforeGc, gcExposed: typeof (globalThis as any).gc === "function", ...txStats });
+				heapBeforeGcMB: heapBeforeGc, gcExposed: typeof (globalThis as any).gc === "function", rearms, ...txStats });
 			if (process.env.FULL_DIAG === "1") {
 				// Memory diagnosis: record counts and serialized size of every IndexedDB store, and the size of every
 				// collection held by the Cache object, to locate what grows season over season.
