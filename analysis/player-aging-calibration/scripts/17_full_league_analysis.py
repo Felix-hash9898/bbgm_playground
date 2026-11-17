@@ -178,6 +178,22 @@ for arm in arms:
 Bp = pd.concat(Bp)
 Bp.to_csv(RESULTS / "full_B_bias_by_start_age.csv", index=False)
 
+# ---------------- H: paired arm contrasts on the same real players (same seed => same initial league), k <= 4
+H_rows = []
+Bk = B[B["k"] <= 4]
+wideB = Bk.pivot_table(index=["seed", "srID", "k", "band0"], columns="arm", values="sim_pbpm").reset_index()
+wideM = Bk.pivot_table(index=["seed", "srID", "k", "band0"], columns="arm", values="sim_mpg").reset_index()
+for x, y in [("playground", "official"), ("A2r", "playground"), ("A2r", "official")]:
+    if x not in wideB or y not in wideB:
+        continue
+    for metric, W in [("pbpm", wideB), ("mpg", wideM)]:
+        d = W.dropna(subset=[x, y]).assign(diff=lambda t: t[x] - t[y], hm_min=1.0, band1=lambda t: t["band0"])
+        t = band_table(d, "diff", cluster="srID")
+        t["contrast"], t["metric"] = f"{x}-{y}", metric
+        H_rows.append(t)
+if H_rows:
+    pd.concat(H_rows).to_csv(RESULTS / "full_H_paired_contrasts.csv", index=False)
+
 # ---------------- C: survival and retirement of 2005 players; draft-class careers
 real_active = R.groupby("srID")["season"].apply(set)
 C_rows = []

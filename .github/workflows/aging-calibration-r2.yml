@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: aging-calibration-r2
+  group: aging-calibration-r2-a3
   cancel-in-progress: false
 
 defaults:
@@ -27,6 +27,7 @@ env:
 jobs:
   # Diagnosis only: 15 minutes of season 1 under the V8 CPU profiler (runs in parallel with smoke)
   profile:
+    if: false # diagnosis finished (round 2): kept for reproducibility
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -88,6 +89,7 @@ jobs:
           if-no-files-found: warn
 
   probes:
+    if: false # finished in run 43999141183 (artifacts kept locally)
     needs: smoke
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -117,6 +119,35 @@ jobs:
             ${{ env.R }}/sim/probes.log
           if-no-files-found: warn
 
+  # Step2 design in the SAME cloud environment (Node 24) so A3 and Playground are paired with a cloud 'none' arm
+  step2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Step2 (5 real-roster saves x 3 seeds x none/playground/A3, 30% DiD controls)
+        run: |
+          AGING_RUN=1 AGING_MODE=step AGING_CONTROL_FRAC=0.3 AGING_SEEDS=1001,2002,3003 AGING_ARMS=none,playground,A3 \
+            AGING_OUT=$R/sim/output_step2 npx vitest run $R/sim/aging_arms.test.ts $VT 2>&1 | tee $R/sim/step2.log
+      - run: test "$(ls $R/sim/output_step2 | wc -l)" -eq 45
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: step2
+          path: |
+            ${{ env.R }}/sim/output_step2
+            ${{ env.R }}/sim/step2.log
+          if-no-files-found: warn
+
   full:
     needs: smoke
     runs-on: ubuntu-24.04
@@ -125,7 +156,8 @@ jobs:
       fail-fast: false
       max-parallel: 9
       matrix:
-        arm: [playground, official, A2r]
+        # Playground / Official / A2r finished in run 44008897802; this run adds the hybrid A3
+        arm: [A3]
         seed: [1, 2, 3]
     steps:
       - uses: actions/checkout@v4

@@ -80,7 +80,7 @@ async function selfTestFormula(arm: string) {
 	// expected from the Python ports: official stre30 ~ -2.3, playground ~ -0.05 (tp24 ~ +0.9), A2r ~ -0.3 (tp24 ~ +0.3)
 	const ok = arm === "official" ? res.stre30 < -1.2
 		: arm === "playground" ? res.stre30 > -0.8 && res.tp24 > 0.6
-		: arm === "A2r" ? res.stre30 > -1.0 && res.tp24 < 0.6
+		: arm === "A2r" || arm === "A3" ? res.stre30 > -1.0 && res.tp24 < 0.6
 		: true;
 	return { ...res, ok };
 }

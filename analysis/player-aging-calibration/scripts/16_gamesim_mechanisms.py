@@ -19,8 +19,15 @@ import pandas as pd
 from common import OUT_DATA, RESULTS, SIM_OUT, SAVES, dump_json
 from profile import box_metrics, read_gz_csv
 
-files = sorted(SIM_OUT.glob("jac__*.csv.gz"))
-J = pd.concat([read_gz_csv(f) for f in files], ignore_index=True)
+# local runs (Node 25, M1) and cloud runs (Node 24, GitHub runner) are each paired with their OWN base runs:
+# GameSim output is deterministic per environment but not bit-identical across Node versions.
+CLOUD = SIM_OUT.parent / "output_cloud" / "probes"
+local_files = [f for f in sorted(SIM_OUT.glob("jac__*.csv.gz")) if "sorted__" not in f.name]
+cloud_files = sorted(CLOUD.glob("jac__*.csv.gz")) if CLOUD.exists() else []
+J = pd.concat([read_gz_csv(f).assign(source="local") for f in local_files] +
+              [read_gz_csv(f).assign(source="cloud") for f in cloud_files], ignore_index=True)
+J["save_file"] = J["save"]
+J["save"] = J["source"] + ":" + J["save"]
 J["age"] = J["age"]
 J = pd.concat([box_metrics(g) for _, g in J.groupby(["save", "perturb", "seed"])], ignore_index=True)
 J["rim_share"] = J["fgaAtRim"] / J["fga"].replace(0, np.nan)
@@ -51,6 +58,9 @@ for pert, r in summ.iterrows():
         flat.append({"perturb": pert, "metric": c, "effect": r[(c, "mean")], "se": r[(c, "sem")]})
 F = pd.DataFrame(flat)
 F.to_csv(RESULTS / "gamesim_response.csv", index=False)
+
+# the 3-point audit below uses the local base runs only (one environment)
+J = J[J["source"] == "local"].assign(save=lambda d: d["save_file"])
 
 # ---- three-point ceiling implied by the choice rule (no forced/late-clock threes, factor = 1)
 def p3(comp):
