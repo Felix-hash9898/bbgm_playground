@@ -74,7 +74,7 @@ const beat = (event: string, extra: Record<string, unknown> = {}) => {
 	try {
 		appendFileSync(path.join(OUT, "heartbeat.jsonl"), `${JSON.stringify({ t: new Date().toISOString(), event,
 			season: (g as any).get?.("season"), phase: (g as any).get?.("phase"), daysLeft: (g as any).get?.("daysLeft"),
-			autoPlay: !!local.autoPlayUntil, gameSim: lock.get("gameSim"), newPhase: lock.get("newPhase"),
+			autoPlay: !!local.autoPlayUntil, gameSim: lock.get("gameSim"), newPhase: lock.get("newPhase"), stopGameSim: lock.get("stopGameSim"),
 			heapMB: Math.round(process.memoryUsage().heapUsed / 1048576), ...extra })}\n`);
 	} catch {}
 };
@@ -88,7 +88,7 @@ for (const level of ["error", "warn"] as const) {
 process.on("unhandledRejection", (reason: any) => beat("unhandledRejection", { msg: String(reason?.stack ?? reason).slice(0, 2000) }));
 
 // Wait until the season target is reached. If Auto Play stops early (autoPlayUntil cleared, no lock held for
-// 30 s) it is re-armed, as a user would click Auto Play again; every re-arm is logged. Timeout per season.
+// 120 s) it is re-armed, as a user would click Auto Play again; every re-arm is logged. Timeout per season.
 const waitForSeason = async (target: number, timeoutMs: number) => {
 	const t0 = Date.now();
 	let idleSince: number | undefined;
@@ -109,16 +109,19 @@ const waitForSeason = async (target: number, timeoutMs: number) => {
 			beat("timeout", { target, rearms });
 			throw new Error(`timeout waiting for auto play (season ${g.get("season")} phase ${g.get("phase")})`);
 		}
-		const stalled = local.autoPlayUntil === undefined && !lock.get("newPhase") && !lock.get("gameSim");
+		// Stalled = nothing running (no phase change, no game/FA day) for 30 s, whether or not autoPlayUntil was
+		// cleared: Auto Play can also stop with autoPlayUntil still set (e.g. stopGameSim from a tragic death).
+		const stalled = !lock.get("newPhase") && !lock.get("gameSim") && !lock.get("drafting");
 		if (stalled) {
 			idleSince ??= now;
-			if (now - idleSince > 30_000) {
+			if (now - idleSince > 120_000) {
 				if (rearms >= 20) {
 					beat("giveUp", { target, rearms });
 					throw new Error(`auto play stalled repeatedly (season ${g.get("season")} phase ${g.get("phase")})`);
 				}
 				rearms += 1;
 				beat("rearm", { target, rearms });
+				await lock.set("stopGameSim", false);
 				local.autoPlayUntil = { season: target, phase: PHASE.PRESEASON, start: Date.now() };
 				void league.autoPlay({}).catch((e: any) => beat("autoPlayError", { msg: String(e?.stack ?? e).slice(0, 2000) }));
 				idleSince = undefined;
@@ -180,7 +183,9 @@ async function loadLeague(lid: number) {
 	idb.cache.startAutoFlush();
 	await league.loadGameAttributes();
 	local.leagueLoaded = true;
-	await league.setGameAttributes({ spectator: true, realPlayerDeterminism: 0 });
+	// stopOnInjury is a UI preference; with it on, a tragic death sets stopGameSim without checking Auto Play
+	// (game/play.ts), which silently halts an Auto Play run (cloud profile run: stalled after 738 games).
+	await league.setGameAttributes({ spectator: true, realPlayerDeterminism: 0, stopOnInjury: false });
 }
 
 async function exportPlayers() {
