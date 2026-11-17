@@ -25,6 +25,38 @@ env:
   R: analysis/player-aging-calibration
 
 jobs:
+  # Diagnosis only: 15 minutes of season 1 under the V8 CPU profiler (runs in parallel with smoke)
+  profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Profile season 1 (aborts after 15 min)
+        continue-on-error: true
+        run: |
+          mkdir -p $R/sim/output_profile/prof
+          FULL_RUN=1 FULL_ARM=playground FULL_SEED=1 FULL_YEARS=1 FULL_OUT=$R/sim/output_profile FULL_SEASON_TIMEOUT_MS=900000 \
+            NODE_OPTIONS="$NODE_OPTIONS --cpu-prof --cpu-prof-dir=$GITHUB_WORKSPACE/$R/sim/output_profile/prof" \
+            npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/profile.log
+      - run: ls -la $R/sim/output_profile $R/sim/output_profile/prof || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: profile
+          path: |
+            ${{ env.R }}/sim/output_profile
+            ${{ env.R }}/sim/profile.log
+          if-no-files-found: warn
+
   smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 200

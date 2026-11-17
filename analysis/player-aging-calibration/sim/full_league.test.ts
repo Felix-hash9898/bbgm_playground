@@ -98,7 +98,11 @@ const waitForSeason = async (target: number, timeoutMs: number) => {
 		&& local.autoPlayUntil === undefined)) {
 		const now = Date.now();
 		if (now - lastBeat > 60_000) {
-			beat("heartbeat", { target });
+			let games: number | undefined;
+			try {
+				games = (await idb.cache.games.getAll()).length;
+			} catch {}
+			beat("heartbeat", { target, games, sinceLastBeatS: lastBeat ? Math.round((now - lastBeat) / 1000) : 0 });
 			lastBeat = now;
 		}
 		if (now - t0 > timeoutMs) {
@@ -214,6 +218,11 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		await createLeague(lid);
 		await loadLeague(lid);
 		const tCreate = (Date.now() - t0) / 1000;
+		{
+			const negs = await idb.cache.negotiations.getAll();
+			beat("afterCreate", { negotiations: negs.length, negotiationTids: [...new Set(negs.map((n: any) => n.tid))].slice(0, 10),
+				userTids: g.get("userTids"), spectator: g.get("spectator"), phase: g.get("phase") });
+		}
 		// Test-library leak (not product code): fake-indexeddb 6.2.5 never removes finished transactions from
 		// Database.transactions, so every transaction with its requests/results stays in memory (round-2 smoke:
 		// post-GC heap 0.6 -> 2.2 GB after 2 seasons with ~10 MB of data) and every scheduling step scans the
@@ -228,6 +237,35 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		const pruneTimer = setInterval(prune, 2000);
 		seedRandom(2000 + SEED);
 		const timings: any[] = [];
+		if (process.env.FULL_PROBE_AUTOPLAY === "1") {
+			// Light probe through the real Auto Play path; stop the game sim after a few seconds
+			local.autoPlayUntil = { season: g.get("season") + 1, phase: PHASE.PRESEASON, start: Date.now() };
+			beat("probeAP:start");
+			void league.autoPlay({}).catch((e: any) => beat("autoPlayError", { msg: String(e?.stack ?? e).slice(0, 2000) }));
+			for (let i = 0; i < 30; i++) {
+				await new Promise((r) => setTimeout(r, 500));
+				const negs = await idb.cache.negotiations.getAll();
+				beat("probeAP:tick", { games: (await idb.cache.games.getAll()).length, negotiations: negs.length });
+				if (i === 8) {
+					await lock.set("stopGameSim", true);
+				}
+			}
+			local.autoPlayUntil = undefined;
+			return;
+		}
+		if (process.env.FULL_PROBE_DAY === "1") {
+			// Light probe (one game day only): where does the season start stall?
+			const { phase: phaseMod, game, season: seasonMod } = await import("../../../src/worker/core/index.ts");
+			beat("probe:beforeRegularSeason", Object.fromEntries(["autoRelocate", "autoRelocateRealign", "autoRelocateRebrand", "autoExpand",
+				"autoExpandProb", "gameOver", "repeatSeason", "forceHistoricalRosters", "expansionDraft", "draftType", "challengeNoRatings"].map((k) => [k, (g as any).get(k)])));
+			await phaseMod.newPhase(PHASE.REGULAR_SEASON, {});
+			const negs = await idb.cache.negotiations.getAll();
+			beat("probe:afterRegularSeason", { negotiations: negs.length, negTids: [...new Set(negs.map((n: any) => n.tid))],
+				daysLeftSchedule: await seasonMod.getDaysLeftSchedule(), scheduleLen: (await idb.cache.schedule.getAll()).length });
+			await game.play(1, {});
+			beat("probe:afterPlay1", { games: (await idb.cache.games.getAll()).length, scheduleLen: (await idb.cache.schedule.getAll()).length });
+			return;
+		}
 		for (let y = 0; y < YEARS; y++) {
 			const target = g.get("season") + 1;
 			const t1 = Date.now();
