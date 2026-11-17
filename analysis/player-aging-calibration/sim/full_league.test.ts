@@ -24,31 +24,66 @@ import { gzipSync } from "node:zlib";
 import { describe, it, vi } from "vitest";
 import { unwrap } from "@dumbmatter/idb";
 
-vi.mock("../../../src/worker/core/player/developSeason.basketball.ts", async () => {
-	const arm = process.env.FULL_ARM ?? "playground";
-	if (arm === "playground") {
-		return await vi.importActual("../../../src/worker/core/player/developSeason.basketball.ts");
-	}
-	if (arm === "official") {
-		return await import("./formulas/official.developSeason.basketball.ts");
-	}
-	const { CANDIDATES } = await import("./formulas/candidates.ts");
-	if (!CANDIDATES[arm]) {
-		throw new Error(`unknown FULL_ARM ${arm}`);
-	}
-	return { default: CANDIDATES[arm] };
-});
-
 import { PHASE } from "../../../src/common/constants.ts";
-import { idb, connectLeague } from "../../../src/worker/db/index.ts";
-import Cache from "../../../src/worker/db/Cache.ts";
-import { g, helpers, local, lock } from "../../../src/worker/util/index.ts";
-import { league } from "../../../src/worker/core/index.ts";
-import realRosters from "../../../src/worker/core/realRosters/index.ts";
-import createStreamFromLeagueObject from "../../../src/worker/core/league/create/createStreamFromLeagueObject.ts";
-import { getDefaultSettings } from "../../../src/worker/views/newLeague.ts";
-import unwrapGameAttribute from "../../../src/common/unwrapGameAttribute.ts";
+import { DEFAULT_LEVEL } from "../../../src/common/budgetLevels.ts";
 import { installRealStatsFetch } from "./fetchRealStats.ts";
+
+// Stateful product modules come from a fresh module graph (vi.resetModules + vi.doMock + dynamic import):
+// a hoisted vi.mock is NOT enough, because the vitest setup file (src/worker/index.ts) has already imported
+// the whole worker, so every module would keep the real developSeason.basketball (round-2 cloud run 1 of the
+// 9 full-league jobs produced identical leagues for all arms for exactly this reason).
+let idb: any, connectLeague: any, Cache: any, g: any, helpers: any, local: any, lock: any, league: any, realRosters: any,
+	createStreamFromLeagueObject: any, getDefaultSettings: any, unwrapGameAttribute: any, developSeasonMod: any;
+const DEV_PATH = "../../../src/worker/core/player/developSeason.basketball.ts";
+async function loadProduct(arm: string) {
+	vi.resetModules();
+	vi.doMock(DEV_PATH, async () => {
+		if (arm === "playground") {
+			return await vi.importActual(DEV_PATH);
+		}
+		if (arm === "official") {
+			return await import("./formulas/official.developSeason.basketball.ts");
+		}
+		const { CANDIDATES } = await import("./formulas/candidates.ts");
+		if (!CANDIDATES[arm]) {
+			throw new Error(`unknown FULL_ARM ${arm}`);
+		}
+		return { default: CANDIDATES[arm] };
+	});
+	await import("../../../src/worker/index.ts"); // same entry/initialisation order as the vitest setup file
+	({ idb, connectLeague } = await import("../../../src/worker/db/index.ts"));
+	Cache = (await import("../../../src/worker/db/Cache.ts")).default;
+	({ g, helpers, local, lock } = await import("../../../src/worker/util/index.ts"));
+	({ league } = await import("../../../src/worker/core/index.ts"));
+	realRosters = (await import("../../../src/worker/core/realRosters/index.ts")).default;
+	createStreamFromLeagueObject = (await import("../../../src/worker/core/league/create/createStreamFromLeagueObject.ts")).default;
+	({ getDefaultSettings } = await import("../../../src/worker/views/newLeague.ts"));
+	unwrapGameAttribute = (await import("../../../src/common/unwrapGameAttribute.ts")).default;
+	developSeasonMod = await import("../../../src/worker/core/player/developSeason.ts");
+}
+
+// Self-test of the swap through the product's own developSeason.ts dispatcher (exactly what develop() calls):
+// mean one-season change of stre at age 30 and tp at age 24 on a fixed archetype, 3000 seeded draws.
+async function selfTestFormula(arm: string) {
+	const base = { hgt: 50, stre: 50, spd: 50, jmp: 50, endu: 50, ins: 50, dnk: 50, ft: 50, fg: 50, tp: 50, oiq: 50, diq: 50, drb: 50, pss: 50, reb: 50 };
+	const mean = async (age: number, key: string) => {
+		seedRandom(4242 + age);
+		let sum = 0;
+		for (let i = 0; i < 3000; i++) {
+			const r: any = { ...base };
+			await developSeasonMod.default(r, age, undefined, DEFAULT_LEVEL, false); // playground developSeason.ts API
+			sum += r[key] - (base as any)[key];
+		}
+		return sum / 3000;
+	};
+	const res = { stre30: await mean(30, "stre"), tp24: await mean(24, "tp") };
+	// expected from the Python ports: official stre30 ~ -2.3, playground ~ -0.05 (tp24 ~ +0.9), A2r ~ -0.3 (tp24 ~ +0.3)
+	const ok = arm === "official" ? res.stre30 < -1.2
+		: arm === "playground" ? res.stre30 > -0.8 && res.tp24 > 0.6
+		: arm === "A2r" ? res.stre30 > -1.0 && res.tp24 < 0.6
+		: true;
+	return { ...res, ok };
+}
 
 const ARM = process.env.FULL_ARM ?? "playground";
 const SEED = Number(process.env.FULL_SEED ?? 1);
@@ -217,6 +252,15 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 			throw new Error(`refusing to overwrite ${name}`);
 		}
 		installRealStatsFetch();
+		await loadProduct(ARM);
+		const selfTest = await selfTestFormula(ARM);
+		appendFileSync(path.join(OUT, "selftest.jsonl"), `${JSON.stringify({ arm: ARM, seed: SEED, ...selfTest })}\n`);
+		if (!selfTest.ok) {
+			throw new Error(`formula swap self-test failed for ${ARM}: ${JSON.stringify(selfTest)}`);
+		}
+		if (process.env.FULL_SELFTEST_ONLY === "1") {
+			return;
+		}
 		const lid = 700000 + (Math.abs(hash(`${ARM}|${SEED}|${START}`)) % 90000);
 		seedRandom(1000 + SEED);
 		const t0 = Date.now();
@@ -339,7 +383,7 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		const players = await exportPlayers();
 		const settingsUsed = Object.fromEntries(["salaryCap", "minContract", "maxContract", "luxuryPayroll", "minPayroll", "salaryCapType",
 			"maxRosterSize", "minRosterSize", "numGames", "spectator", "realPlayerDeterminism"].map((k) => [k, (g as any).get(k)]));
-		writeFileSync(path.join(OUT, `${name}.gz`), gzipSync(JSON.stringify({ arm: ARM, seed: SEED, start: START, years: YEARS, tCreate, timings, settingsUsed, players })), { flag: "wx" });
+		writeFileSync(path.join(OUT, `${name}.gz`), gzipSync(JSON.stringify({ arm: ARM, seed: SEED, start: START, years: YEARS, tCreate, timings, settingsUsed, selfTest, players })), { flag: "wx" });
 		idb.cache.stopAutoFlush();
 		idb.league.close();
 	}, 6 * 3_600_000);

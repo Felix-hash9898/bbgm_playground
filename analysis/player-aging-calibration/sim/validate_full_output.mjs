@@ -12,6 +12,7 @@ const start = d.start;
 const checks = [];
 const check = (name, ok, detail) => checks.push({ name, ok: !!ok, detail });
 
+check("formula swap self-test passed", d.selfTest?.ok === true, JSON.stringify(d.selfTest ?? null));
 check("years in file", d.years === years && d.timings.length === years, `years=${d.years} timings=${d.timings.length}`);
 check("timing seasons", d.timings.every((t, i) => t.season === start + 1 + i), d.timings.map((t) => t.season).join(","));
 const maxHeap = Math.max(...prog.map((p) => p.heapMB ?? 0));
