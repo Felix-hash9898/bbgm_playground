@@ -44,6 +44,13 @@ async function loadProduct(arm: string) {
 		if (arm === "official") {
 			return await import("./formulas/official.developSeason.basketball.ts");
 		}
+		if (arm.startsWith("v9")) {
+			const { V9 } = await import("./formulas/v9.ts"); // round 11: V9 structure arms (v9_specs.json)
+			if (!V9[arm]) {
+				throw new Error(`unknown FULL_ARM ${arm}`);
+			}
+			return { default: V9[arm] };
+		}
 		const { CANDIDATES } = await import("./formulas/candidates.ts");
 		if (!CANDIDATES[arm]) {
 			throw new Error(`unknown FULL_ARM ${arm}`);
@@ -76,13 +83,29 @@ async function selfTestFormula(arm: string) {
 		}
 		return sum / 3000;
 	};
-	const res = { stre30: await mean(30, "stre"), tp24: await mean(24, "tp") };
+	const res: Record<string, number> = { stre30: await mean(30, "stre"), tp24: await mean(24, "tp") };
+	// round 11: structural signature (means of V9 arms equal Playground's by construction, so a mean check cannot prove
+	// the swap): correlation of one-season oiq and diq changes at age 24 (Playground's single shared draw -> ~0.9; V9 ~0.1-0.2)
+	{
+		seedRandom(777);
+		const a: number[] = [], b: number[] = [];
+		for (let i = 0; i < 3000; i++) {
+			const r: any = { ...base };
+			await developSeasonMod.default(r, 24, undefined, DEFAULT_LEVEL, false);
+			a.push(r.oiq - base.oiq); b.push(r.diq - base.diq);
+		}
+		const m = (x: number[]) => x.reduce((s, v) => s + v, 0) / x.length;
+		const ma = m(a), mb = m(b);
+		const cov = m(a.map((v, i) => (v - ma) * (b[i]! - mb))), sa = Math.sqrt(m(a.map(v => (v - ma) ** 2))), sb = Math.sqrt(m(b.map(v => (v - mb) ** 2)));
+		res.corrIq24 = cov / (sa * sb);
+	}
 	// expected from the Python ports: official stre30 ~ -2.3, playground ~ -0.05 (tp24 ~ +0.9), A2r ~ -0.3 (tp24 ~ +0.3)
 	const ok = arm === "official" ? res.stre30 < -1.2
-		: arm === "playground" ? res.stre30 > -0.8 && res.tp24 > 0.6
+		: arm === "playground" ? res.stre30 > -0.8 && res.tp24 > 0.6 && res.corrIq24! > 0.7
+		: arm.startsWith("v9") ? res.stre30 > -0.8 && res.corrIq24! < 0.5
 		: arm === "A2r" || arm === "A3" ? res.stre30 > -1.0 && res.tp24 < 0.6
 		: true;
-	return { ...res, ok };
+	return { ...res, ok: !!ok };
 }
 
 const ARM = process.env.FULL_ARM ?? "playground";

@@ -1,0 +1,128 @@
+# Research-only workflow (player aging calibration, round 11): open-league pilot Playground vs V9 structure (v9s_l4).
+# Branch aging-calibration-cloud-r11 = aging-calibration-cloud-r2 tip (8e06fcc71: validated round-2 harness, product base
+# identical to this worktree for every module the harness and V9 import) + the round-11 overlay:
+#   analysis/player-aging-calibration/sim/full_league.test.ts      (V9 arms + structural swap signature corrIq24)
+#   analysis/player-aging-calibration/sim/formulas/index.ts        (registers V9)
+#   analysis/player-aging-calibration/sim/formulas/v9.ts           (V9 interpreter incl. production coaching effect)
+#   analysis/player-aging-calibration/sim/formulas/v9_specs.json   (frozen round-9 specs)
+#   .github/workflows/aging-calibration-r11.yml                    (this file)
+# No product (src/) change.  Order: selftest gate (both arms, seconds) -> 2-season smoke per arm (memory, Auto Play,
+# contracts, draft, injuries; validate_full_output.mjs) -> paired matrix 2 arms x 3 seeds x 8 seasons (2005 -> 2013).
+name: aging-calibration-r11
+
+on:
+  push:
+    branches: [aging-calibration-cloud-r11]
+    paths: [".github/workflows/aging-calibration-r11.yml", "analysis/player-aging-calibration/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: aging-calibration-r11
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NODE_OPTIONS: --max-old-space-size=6144
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+  VT: --project basketball --maxWorkers=1 --no-file-parallelism
+  R: analysis/player-aging-calibration
+
+jobs:
+  selftest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Formula swap self-test (playground corrIq24 > 0.7, v9s_l4 < 0.5; fails the run otherwise)
+        run: |
+          for ARM in playground v9s_l4; do
+            FULL_RUN=1 FULL_SELFTEST_ONLY=1 FULL_ARM=$ARM FULL_SEED=1 FULL_OUT=$R/sim/output_selftest npx vitest run $R/sim/full_league.test.ts $VT
+          done
+          cat $R/sim/output_selftest/selftest.jsonl
+          test "$(grep -c '"ok":true' $R/sim/output_selftest/selftest.jsonl)" -eq 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: selftest
+          path: ${{ env.R }}/sim/output_selftest
+
+  smoke:
+    needs: selftest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 200
+    strategy:
+      fail-fast: true
+      matrix:
+        arm: [playground, v9s_l4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Full league smoke (${{ matrix.arm }}, seed 1, 2 seasons)
+        run: |
+          FULL_RUN=1 FULL_DIAG=1 FULL_ARM=${{ matrix.arm }} FULL_SEED=1 FULL_YEARS=2 FULL_OUT=$R/sim/output_smoke \
+            NODE_OPTIONS="$NODE_OPTIONS --expose-gc" \
+            npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/smoke_${{ matrix.arm }}.log
+      - name: Validate memory, Auto Play, season progression
+        run: node $R/sim/validate_full_output.mjs $R/sim/output_smoke/full__2005__${{ matrix.arm }}__1.json.gz $R/sim/output_smoke/progress.jsonl 2 6144
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-${{ matrix.arm }}
+          path: |
+            ${{ env.R }}/sim/output_smoke
+            ${{ env.R }}/sim/smoke_${{ matrix.arm }}.log
+
+  full:
+    needs: smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        arm: [playground, v9s_l4]
+        seed: [11, 12, 13]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Full league ${{ matrix.arm }} seed ${{ matrix.seed }} (8 seasons)
+        run: |
+          FULL_RUN=1 FULL_ARM=${{ matrix.arm }} FULL_SEED=${{ matrix.seed }} FULL_YEARS=8 FULL_OUT=$R/sim/output_full_r11 \
+            npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/full_${{ matrix.arm }}_${{ matrix.seed }}.log
+      - name: Validate
+        run: node $R/sim/validate_full_output.mjs $R/sim/output_full_r11/full__2005__${{ matrix.arm }}__${{ matrix.seed }}.json.gz $R/sim/output_full_r11/progress.jsonl 8 6144
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-r11-${{ matrix.arm }}-${{ matrix.seed }}
+          path: |
+            ${{ env.R }}/sim/output_full_r11
+            ${{ env.R }}/sim/full_${{ matrix.arm }}_${{ matrix.seed }}.log
