@@ -260,7 +260,10 @@ export function prepare(p: Player, season: number, arm: R5Arm, factor = 1, start
 		const zz = 1 + Math.exp(lp) + Math.exp(lm);
 		mix = [1 / zz, Math.exp(lp) / zz, Math.exp(lm) / zz];
 	}
-	if (innovate && mix) {
+	// R13-M fix: an arm with three-point innovation only (three_anchor_rel_cap2_mix: innov = {three}) has no two-point
+	// innovation; without this guard undefined * gauss() = NaN made every mix NaN from season 2 on and every two-point
+	// draw fell through to midRange (cloud smoke run 44560536244: mid share 0.999, FT rate 0.095)
+	if (innovate && mix && arm.innov!.post !== undefined && arm.innov!.mid !== undefined) {
 		const [rim, post, mid] = mix;
 		const lp0 = Math.log(post / rim), lm0 = Math.log(mid / rim);
 		const [cp, cm] = arm.innovMean ? meanOffset2(lp0, lm0, arm.innov!.post, arm.innov!.mid) : [0, 0];

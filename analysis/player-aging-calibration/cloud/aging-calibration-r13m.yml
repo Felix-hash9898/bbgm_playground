@@ -19,10 +19,9 @@
 # Pre-registration: results/r13_preregistration.md, section "R13.1".
 name: aging-calibration-r13m
 
+# Ran once from the push of 87a71428b (run 44560536244).  Push trigger removed afterwards (commit with the D fix) so that
+# the arm-D rerun (aging-calibration-r13m-d.yml) does not repeat the A / B / C / guard / long jobs.
 on:
-  push:
-    branches: [aging-calibration-cloud-r13m]
-    paths: [".github/workflows/aging-calibration-r13m.yml", "analysis/player-aging-calibration/**"]
   workflow_dispatch:
 
 concurrency:
@@ -171,6 +170,7 @@ jobs:
           H=$R/sim/output_full_r13m/gamesim_hooks.jsonl
           [ -f "$H" ] || H=-
           node $R/sim/validate_gs_hooks.mjs "$F" "$H" "${{ matrix.gs }}" ${{ matrix.years }}
+          node $R/sim/validate_shot_sanity.mjs "$F"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

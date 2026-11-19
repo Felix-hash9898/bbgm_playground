@@ -1,0 +1,102 @@
+# R13-M arm D rerun after a research-code fault (NOT a parameter change): in run 44560536244 the arm
+# three_anchor_rel_cap2_mix produced NaN two-point mixes from season 2 on (innov = {three} only; the mix innovation read
+# innov.post / innov.mid = undefined) -> every two-pointer midRange.  Fix in sim/formulas/r5.ts (no mix innovation when the
+# arm defines none, as in its source arm `final`); every other arm's code path is unchanged.  Same matrix / seeds / seasons
+# as the pre-registered D rows; the original D artifacts stay as evidence of the fault.
+# Gate: overlay check -> 2-season smoke (product validator, hook validator, shot-structure sanity) -> D x 21-23 x 5.
+name: aging-calibration-r13m-d
+
+on:
+  push:
+    branches: [aging-calibration-cloud-r13m]
+    paths: [".github/workflows/aging-calibration-r13m-d.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: aging-calibration-r13m-d
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NODE_OPTIONS: --max-old-space-size=6144
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+  VT: --config analysis/player-aging-calibration/sim/r5.config.ts --maxWorkers=1 --no-file-parallelism
+  R: analysis/player-aging-calibration
+  GS: three_anchor_rel_cap2_mix
+  TAG: playground+three_anchor_rel_cap2_mix
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - run: node $R/sim/check_r13m_overlay.mjs $GS
+      - name: Full league smoke 2021 (D, seed 1, 2 seasons)
+        run: |
+          set -o pipefail
+          FULL_RUN=1 FULL_DIAG=1 FULL_START=2021 FULL_ARM=playground FULL_GS_ARM=$GS FULL_SEED=1 FULL_YEARS=2 FULL_OUT=$R/sim/output_smoke \
+            NODE_OPTIONS="$NODE_OPTIONS --expose-gc" npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/smoke_$TAG.log
+      - name: Validate output, hooks, shot structure
+        run: |
+          F=$R/sim/output_smoke/full__2021__${TAG}__1.json.gz
+          node $R/sim/validate_full_output.mjs "$F" $R/sim/output_smoke/progress.jsonl 2 6144
+          node $R/sim/validate_gs_hooks.mjs "$F" $R/sim/output_smoke/gamesim_hooks.jsonl "$GS" 2
+          node $R/sim/validate_shot_sanity.mjs "$F"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-d-${{ env.TAG }}
+          path: |
+            ${{ env.R }}/sim/output_smoke
+            ${{ env.R }}/sim/smoke_${{ env.TAG }}.log
+
+  full:
+    needs: smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [21, 22, 23]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Full league 2021 D seed ${{ matrix.seed }} (5 seasons)
+        run: |
+          set -o pipefail
+          FULL_RUN=1 FULL_START=2021 FULL_ARM=playground FULL_GS_ARM=$GS FULL_SEED=${{ matrix.seed }} FULL_YEARS=5 \
+            FULL_OUT=$R/sim/output_full_r13m npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/full_2021_${TAG}_${{ matrix.seed }}.log
+      - name: Validate output, hooks, shot structure
+        run: |
+          F=$R/sim/output_full_r13m/full__2021__${TAG}__${{ matrix.seed }}.json.gz
+          node $R/sim/validate_full_output.mjs "$F" $R/sim/output_full_r13m/progress.jsonl 5 6144
+          node $R/sim/validate_gs_hooks.mjs "$F" $R/sim/output_full_r13m/gamesim_hooks.jsonl "$GS" 5
+          node $R/sim/validate_shot_sanity.mjs "$F"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-r13m-d-2021-${{ env.TAG }}-${{ matrix.seed }}-5
+          path: |
+            ${{ env.R }}/sim/output_full_r13m
+            ${{ env.R }}/sim/full_2021_${{ env.TAG }}_${{ matrix.seed }}.log
