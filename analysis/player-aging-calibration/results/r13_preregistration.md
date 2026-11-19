@@ -78,3 +78,30 @@ Hard criteria for B vs A (unchanged from R13 except the guard, which is new):
 D is worth a dedicated follow-up only if league TS gap shrinks by >= 0.010 in every season 2021-2025 AND the drift of
 the mid-range share of 2PA over 2022 -> 2025 is within 0.03 of the NBA's (R7 failure mode: style drift in loops).
 GO for B requires every hard criterion; any failure is NO-GO for B (no re-tuning on these runs).
+
+## R13-M execution addendum (2026-11-19, written BEFORE any full-matrix result was downloaded)
+- Branch aging-calibration-cloud-r13m: 87a71428b (overlay) -> run 44560536244 (preflight, 4 smokes, 17 full jobs).
+- Scoring implementation fixed in scripts/110_r13m_eval.py before results (docstring); every point the text above leaves
+  open is read on the STRICT side: cohort = >= 300 sim min in all 12 modern runs (A/B-only cohort = sensitivity);
+  seeds pooled as stacked player rows; T3 / T5 league values on cohort sums (whole league = sensitivity); T5 / T6 every
+  season AND pooled; T7 star k = 3 per band, exit hazard EVERY age x tier cell (small cells still scored), generated
+  minutes every season; long-run generated-rookie bound age-standardised (n < 20 = fail); guard "growth" = scripts/77
+  survivor-free activity of the 2005 start cohort by age band (h 1-7 pooled).
+- Harness fault found by the smoke (not a result): arm D (three_anchor_rel_cap2_mix, innov = {three} only) produced NaN
+  two-point mixes from season 2 (mix innovation read undefined post / mid sigmas) -> every two-pointer midRange
+  (smoke season 2: mid 0.999, FT rate 0.095, TS 0.455).  The local R13.1 D smoke was 1 season, so it never ran this path.
+  Fix da53d53a4: no mix innovation when the arm defines none (as in its source arm `final`); B / C / A code paths
+  unchanged.  D is rerun with the SAME pre-registered matrix (run 44563665774, workflow aging-calibration-r13m-d);
+  run 44560536244's D archives are kept as evidence only and are not scored.  New harness sanity validator
+  sim/validate_shot_sanity.mjs (wide bounds, not a research criterion).
+- Cross-machine check: cloud control smoke = local R13.1 control smoke row for row (2021 + 2022 totals identical); cloud
+  cap2 smoke 2021 = local; 2022 differs because the local two-season cap2 smoke predates the R13.1 fallback fix (old
+  harness logged two-point choices of unprepared late signings, giving them chN = 0 history).  The R13.1 "second-season
+  spill +0.009" number therefore came from the pre-fix harness; the cloud value supersedes it.
+- Post-run (after the results existed; no criterion touched): sim/validate_full_output.mjs salary check fixed
+  (settingsUsed is read at the END of a run; the 2021 x 5 runs end under the real 2025-26 cap 154,650 > the old 140,000
+  bound -> every modern cloud job was marked failed although the data are valid).  New rule for modern starts: not the
+  product default 150,000 and >= 100,000.  All 20 scored archives re-validated locally (product, hooks, shot sanity).
+  The heap heuristic flags 3 runs (no --expose-gc in full jobs: pre-GC snapshots, max 2.1 GB of 6 GB) -> informational.
+- scripts/110: one mechanical rename after the first execution (column `ge` shadowed DataFrame.ge -> `g55`); no
+  definition changed.  Result: B NO-GO (9 / 19).

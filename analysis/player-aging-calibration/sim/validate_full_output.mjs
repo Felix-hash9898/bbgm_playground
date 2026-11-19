@@ -20,7 +20,9 @@ check("heap below limit with margin", maxHeap < 0.75 * heapLimit, `max heapUsed 
 const heaps = prog.map((p) => p.heapMB);
 check("post-GC heap not growing season over season", heaps.length < 2 || heaps.at(-1) < 1.5 * heaps[0] + 300, `post-GC heap by season: ${heaps.join(", ")} MB; transactions before prune: ${prog.map((p) => p.maxTransactionsBeforePrune).join(", ")}`);
 // round 13.1: start-aware (real caps: 2005 49,500; 2021-22 112,400; 2022-23 123,650; product default 150,000)
-check("historical salary environment (real season gameAttributes applied)", d.settingsUsed && d.settingsUsed.salaryCap < (start <= 2012 ? 80000 : 140000),
+// R13-M fix: settingsUsed is read at the END of the run; a 2021 start run for 5 seasons ends under the real 2025-26 cap
+// (154,650 > the old 140,000 bound; run 44560536244).  Modern starts: not the product default and >= 100,000.
+check("historical salary environment (real season gameAttributes applied)", d.settingsUsed && (start <= 2012 ? d.settingsUsed.salaryCap < 80000 : d.settingsUsed.salaryCap !== 150000 && d.settingsUsed.salaryCap >= 100000),
 	`salaryCap=${d.settingsUsed?.salaryCap} minContract=${d.settingsUsed?.minContract} maxContract=${d.settingsUsed?.maxContract}`);
 const gpBySeason = {};
 for (const p of d.players) {
