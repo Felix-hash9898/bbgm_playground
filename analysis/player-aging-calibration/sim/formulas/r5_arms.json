@@ -1,0 +1,2299 @@
+{
+	"unchanged": {},
+	"r4rev": {
+		"three": "r4rev"
+	},
+	"mixC1": {
+		"three": "r4rev",
+		"mix": "C1"
+	},
+	"mixC2": {
+		"three": "r4rev",
+		"mix": "C2"
+	},
+	"mixC1cal": {
+		"three": "r4rev",
+		"mix": "C1",
+		"makeShift": {
+			"atRim": 0.029,
+			"lowPost": 0.041,
+			"midRange": -0.079
+		},
+		"foulScale": {
+			"atRim": 0.85,
+			"lowPost": 0.85,
+			"midRange": 0.85
+		}
+	},
+	"mixC2cal": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.032,
+			"lowPost": 0.04,
+			"midRange": -0.063
+		},
+		"foulScale": {
+			"atRim": 0.85,
+			"lowPost": 0.85,
+			"midRange": 0.85
+		}
+	},
+	"mixC2cal_pg3": {
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.032,
+			"lowPost": 0.04,
+			"midRange": -0.063
+		},
+		"foulScale": {
+			"atRim": 0.85,
+			"lowPost": 0.85,
+			"midRange": 0.85
+		}
+	},
+	"mixC2calF": {
+		"three": "r4rev",
+		"mix": "C2",
+		"forced": 0.3,
+		"makeShift": {
+			"atRim": 0.032,
+			"lowPost": 0.04,
+			"midRange": -0.063
+		},
+		"foulScale": {
+			"atRim": 0.85,
+			"lowPost": 0.85,
+			"midRange": 0.85
+		}
+	},
+	"mixC2cal2": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		}
+	},
+	"mixC1cal2": {
+		"three": "r4rev",
+		"mix": "C1",
+		"makeShift": {
+			"atRim": 0.044,
+			"lowPost": 0.05,
+			"midRange": -0.072
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		}
+	},
+	"mixC2cal2_pg3": {
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		}
+	},
+	"mixC2cal2F": {
+		"three": "r4rev",
+		"mix": "C2",
+		"forced": 0.3,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		}
+	},
+	"final": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		}
+	},
+	"final_noeramix": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		}
+	},
+	"final_foul145": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 1.2847,
+			"lowPost": 1.2847,
+			"midRange": 1.2847,
+			"threePointer": 1.45
+		}
+	},
+	"final_foul165": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 1.4619,
+			"lowPost": 1.4619,
+			"midRange": 1.4619,
+			"threePointer": 1.65
+		}
+	},
+	"final_eraFoul2005": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 1.3733,
+			"lowPost": 1.3733,
+			"midRange": 1.3733,
+			"threePointer": 1.55
+		}
+	},
+	"r6ctx": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		]
+	},
+	"r6shrink": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4
+		}
+	},
+	"r6both": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4
+		}
+	},
+	"r6ctx_c": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.059,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		]
+	},
+	"r6shrink_c": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.06,
+			"midRange": -0.012
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4
+		}
+	},
+	"r6both_c": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4
+		}
+	},
+	"finalEra_r08": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"eraFoul": -0.655,
+		"eraRim": 0.08
+	},
+	"finalEra_r12": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"eraFoul": -0.655,
+		"eraRim": 0.12
+	},
+	"finalEra_r16": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"eraFoul": -0.655,
+		"eraRim": 0.16
+	},
+	"r6style": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4
+		},
+		"zoneHist": 150
+	},
+	"r6skill": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		}
+	},
+	"r6skill_cs": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"choiceState": true
+	},
+	"r6skill_csf": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"choiceState": true,
+		"skillFrozen": true
+	},
+	"r6dyn": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.385,
+			"mid": 0.365,
+			"post": 0.267
+		}
+	},
+	"r6dyn2": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		}
+	},
+	"r6skill_nh": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true
+	},
+	"eraJ_p35_r10": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"eraFoul": -0.35,
+		"eraRim": 0.1
+	},
+	"eraJ_p35_r16": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"eraFoul": -0.35,
+		"eraRim": 0.16
+	},
+	"eraJ_p50_r10": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"eraFoul": -0.5,
+		"eraRim": 0.1
+	},
+	"eraJ_p50_r16": {
+		"three": "r4era",
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"eraFoul": -0.5,
+		"eraRim": 0.16
+	},
+	"r6blk": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		}
+	},
+	"r6blk_c": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008
+	},
+	"r6foul": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"foulHist": 300
+	},
+	"r6foul_c": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 1.135,
+			"lowPost": 1.135,
+			"midRange": 1.135,
+			"threePointer": 1.22
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"foulHist": 300
+	},
+	"r6foul2": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"foulModel": 300
+	},
+	"r6usg": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"usageModel": 500
+	},
+	"r6dyn2_um": {
+		"three": "r4rev",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.058,
+			"lowPost": 0.065,
+			"midRange": -0.008
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.048,
+			-0.072
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"usageMap": true
+	},
+	"r7u": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.5,
+		"eraRim": 0.1,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		}
+	},
+	"r7u_drift": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.5,
+		"eraRim": 0.1,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"drift": true
+	},
+	"r7u_eraR": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.5,
+		"eraRim": 0.1,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"eraRatio": true
+	},
+	"r7u_noCtx": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.5,
+		"eraRim": 0.1,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		}
+	},
+	"r7u_noEraEff": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		}
+	},
+	"r7u_noShrink": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.5,
+		"eraRim": 0.1,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		}
+	},
+	"r7u2": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true
+	},
+	"r7u3": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true
+	},
+	"r7u3_e2_m4": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 2,
+		"eraRatioMix": 0.4
+	},
+	"r7u3_e2_m6": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 2,
+		"eraRatioMix": 0.6
+	},
+	"r7u3_e3_m4": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.4
+	},
+	"r7u3_e3_m6": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6
+	},
+	"r7u4": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6
+	},
+	"r7u4h": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.22
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6,
+		"histZone": true
+	},
+	"r7u4h_p32": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.32
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6,
+		"histZone": true
+	},
+	"r7u4h_p42": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.42
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6,
+		"histZone": true
+	},
+	"r7u5": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.42
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6,
+		"histZone": true
+	},
+	"r7u6": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.42
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6,
+		"histZone": true,
+		"eraMixLeague": true
+	},
+	"r7u5m": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.42
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6,
+		"histZone": true,
+		"innovMean": true
+	},
+	"r7u6m": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.42
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6,
+		"histZone": true,
+		"eraMixLeague": true,
+		"innovMean": true
+	},
+	"r7u7": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.42
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": 0.024,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6,
+		"histZone": true,
+		"eraMixLeague": true,
+		"innovMean": true,
+		"eraMixPrior": true
+	},
+	"r7u8": {
+		"three": "r4era",
+		"mix": "C2",
+		"makeShift": {
+			"atRim": 0.096,
+			"lowPost": 0.088,
+			"midRange": -0.039
+		},
+		"foulScale": {
+			"atRim": 0.9303,
+			"lowPost": 0.9303,
+			"midRange": 0.9303
+		},
+		"astModel": true,
+		"rimCtx": [
+			0.032,
+			-0.048
+		],
+		"shrink": {
+			"midRange": 0.25,
+			"lowPost": 0.4,
+			"atRim": 0.5
+		},
+		"zoneHist": 150,
+		"zoneSkill": {
+			"atRim": 120,
+			"lowPost": 90,
+			"midRange": 238
+		},
+		"shrinkNeedsHist": true,
+		"blockWeights": {
+			"atRim": 1.72,
+			"tipIn": 1.72,
+			"putBack": 1.72,
+			"lowPost": 1.94,
+			"midRange": 0.42,
+			"threePointer": 0.15
+		},
+		"threeShift": -0.008,
+		"era": true,
+		"eraFoul": -0.63,
+		"eraRim": 0.143,
+		"choiceState": true,
+		"skillFrozen": true,
+		"innov": {
+			"three": 0.305,
+			"mid": 0.235,
+			"post": 0.42
+		},
+		"eraPost": 0.068,
+		"eraMid": 0.01,
+		"eraThree": -0.0102,
+		"ctxModernOnly": true,
+		"eraRatio": true,
+		"choiceState3": true,
+		"eraRatio3": 3,
+		"eraRatioMix": 0.6,
+		"histZone": true,
+		"innovMean": true
+	},
+	"three_era": {
+		"three": "r4era"
+	},
+	"three_dyn": {
+		"three": "r4era",
+		"choiceState3": true,
+		"eraRatio": true,
+		"eraRatio3": 3,
+		"innov": {
+			"three": 0.305
+		},
+		"innovMean": true
+	},
+	"three_era_p": {
+		"three": "r4era",
+		"pScale": true
+	},
+	"three_dyn_p": {
+		"three": "r4era",
+		"choiceState3": true,
+		"eraRatio": true,
+		"eraRatio3": 3,
+		"innov": {
+			"three": 0.305
+		},
+		"innovMean": true,
+		"pScale": true
+	},
+	"three_dyn_q": {
+		"three": "r4era",
+		"choiceState3": true,
+		"eraRatio": true,
+		"eraRatio3": 3,
+		"innov": {
+			"three": 0.305
+		},
+		"innovMean": true,
+		"pScale": true,
+		"eraLeague3": true
+	},
+	"three_anchor": {
+		"three": "r4era",
+		"choiceState3": true,
+		"innov": {
+			"three": 0.305
+		},
+		"innovMean": true,
+		"pScale": true,
+		"anchor3": true
+	},
+	"three_anchor_s": {
+		"three": "r4era",
+		"pScale": true,
+		"anchor3": true
+	},
+	"three_anchor_rel": {
+		"three": "r4era",
+		"choiceState3": true,
+		"innov": {
+			"three": 0.305
+		},
+		"innovMean": true,
+		"pScale": true,
+		"anchor3": true,
+		"anchor3rel": true
+	},
+	"three_era_p_cap2": {
+		"three": "r4era",
+		"pScale": true,
+		"priorCapPg": 2
+	},
+	"three_anchor_rel_cap2": {
+		"three": "r4era",
+		"choiceState3": true,
+		"innov": {
+			"three": 0.305
+		},
+		"innovMean": true,
+		"pScale": true,
+		"anchor3": true,
+		"anchor3rel": true,
+		"priorCapPg": 2
+	},
+	"three_era_p_cap2_mix": {
+		"three": "r4era",
+		"pScale": true,
+		"priorCapPg": 2,
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		}
+	},
+	"three_anchor_rel_cap2_mix": {
+		"three": "r4era",
+		"choiceState3": true,
+		"innov": {
+			"three": 0.305
+		},
+		"innovMean": true,
+		"pScale": true,
+		"anchor3": true,
+		"anchor3rel": true,
+		"priorCapPg": 2,
+		"mix": "C2",
+		"era": true,
+		"makeShift": {
+			"atRim": 0.046,
+			"lowPost": 0.049,
+			"midRange": -0.058
+		},
+		"foulScale": {
+			"atRim": 0.886,
+			"lowPost": 0.886,
+			"midRange": 0.886
+		}
+	}
+}

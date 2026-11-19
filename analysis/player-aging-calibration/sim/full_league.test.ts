@@ -35,6 +35,38 @@ import { installRealStatsFetch } from "./fetchRealStats.ts";
 let idb: any, connectLeague: any, Cache: any, g: any, helpers: any, local: any, lock: any, league: any, realRosters: any,
 	createStreamFromLeagueObject: any, getDefaultSettings: any, unwrapGameAttribute: any, developSeasonMod: any;
 const DEV_PATH = "../../../src/worker/core/player/developSeason.basketball.ts";
+// ---- round 13: GameSim research arm in the open league ----------------------------------------------------------------
+const gsState: { log: any[]; choice?: Map<number, number[]>; calls?: Record<string, number> } = { log: [] };
+async function gsSeasonStart() {
+	const r5 = await import("./formulas/r5.ts");
+	const armDef = (r5.R5_ARMS as any)[GS];
+	if (!armDef) throw new Error(`unknown FULL_GS_ARM ${GS}`);
+	r5.uninstall();
+	const season = g.get("season");
+	const all = await idb.cache.players.getAll();
+	// carry the previous season's logged regular-choice counts onto the player's own regular-season stats row
+	// (the product does not record choices; choiceState3 reads chN / ch3 from the season - 1 row)
+	if (gsState.choice) {
+		for (const p of all) {
+			const c = gsState.choice.get(p.pid);
+			if (!c) continue;
+			const rows = (p.stats as any[]).filter(x => !x.playoffs && x.season === season - 1);
+			if (!rows.length) continue;
+			const row = rows.reduce((x, y) => ((x.min ?? 0) >= (y.min ?? 0) ? x : y));
+			row.chN = c[3] ?? 0;
+			row.ch3 = Math.max(0, (c[3] ?? 0) - (c[0] ?? 0) - (c[1] ?? 0) - (c[2] ?? 0));
+			await idb.cache.players.put(p);
+		}
+	}
+	const factor = g.get("threePointTendencyFactor");
+	const prepared = new Map<number, any>();
+	for (const p of all) if (p.tid >= 0) prepared.set(p.pid, r5.prepare(p as any, season, armDef, factor, START));
+	const calls: Record<string, number> = {};
+	const choiceLog = new Map<number, number[]>();
+	r5.install(armDef, prepared, calls, factor, choiceLog, process.env.FULL_GS_STRICT !== "1"); // FULL_GS_STRICT=1: no fallback (fail-fast test only)
+	gsState.choice = choiceLog; gsState.calls = calls;
+	gsState.log.push({ season, factor, prepared: prepared.size, calls });
+}
 async function loadProduct(arm: string) {
 	vi.resetModules();
 	vi.doMock(DEV_PATH, async () => {
@@ -57,6 +89,13 @@ async function loadProduct(arm: string) {
 		}
 		return { default: CANDIDATES[arm] };
 	});
+	if (GS) {
+		const RS_PATH = "../../../src/worker/core/phase/newPhaseRegularSeason.ts";
+		vi.doMock(RS_PATH, async () => {
+			const actual: any = await vi.importActual(RS_PATH);
+			return { default: async (...args: any[]) => { const r = await actual.default(...args); await gsSeasonStart(); return r; } };
+		});
+	}
 	await import("../../../src/worker/index.ts"); // same entry/initialisation order as the vitest setup file
 	({ idb, connectLeague } = await import("../../../src/worker/db/index.ts"));
 	Cache = (await import("../../../src/worker/db/Cache.ts")).default;
@@ -109,6 +148,9 @@ async function selfTestFormula(arm: string) {
 }
 
 const ARM = process.env.FULL_ARM ?? "playground";
+// round 13: optional GameSim research arm (sim/formulas/r5_arms.json), installed at every regular-season start; run with
+// --config analysis/player-aging-calibration/sim/r5.config.ts (in-memory GameSim hook transform; no hook = product logic)
+const GS = process.env.FULL_GS_ARM ?? "";
 const SEED = Number(process.env.FULL_SEED ?? 1);
 const START = Number(process.env.FULL_START ?? 2005);
 const YEARS = Number(process.env.FULL_YEARS ?? 10);
@@ -136,10 +178,19 @@ const beat = (event: string, extra: Record<string, unknown> = {}) => {
 			heapMB: Math.round(process.memoryUsage().heapUsed / 1048576), ...extra })}\n`);
 	} catch {}
 };
+let researchHookError: string | undefined;
+const onAutoPlayError = (e: any) => {
+	const msg = String(e?.stack ?? e).slice(0, 2000);
+	if (/sim\/formulas\/r5\.ts|missing round-5 player/.test(msg)) researchHookError ??= msg; // round 13.1 fail-fast
+	beat("autoPlayError", { msg });
+};
 for (const level of ["error", "warn"] as const) {
 	const orig = console[level].bind(console);
 	console[level] = (...args: unknown[]) => {
-		beat(`console.${level}`, { msg: args.map((a) => (a instanceof Error ? `${a.message}\n${a.stack}` : String(a))).join(" ").slice(0, 2000) });
+		const msg = args.map((a) => (a instanceof Error ? `${a.message}\n${a.stack}` : String(a))).join(" ").slice(0, 2000);
+		// round 13.1: an exception thrown by research hook code (sim/formulas/r5.ts) must fail the run, not be re-armed
+		if (level === "error" && /sim\/formulas\/r5\.ts|missing round-5 player/.test(msg)) researchHookError ??= msg;
+		beat(`console.${level}`, { msg });
 		orig(...args);
 	};
 }
@@ -163,6 +214,10 @@ const waitForSeason = async (target: number, timeoutMs: number) => {
 			beat("heartbeat", { target, games, sinceLastBeatS: lastBeat ? Math.round((now - lastBeat) / 1000) : 0 });
 			lastBeat = now;
 		}
+		if (researchHookError) {
+			beat("researchHookError", { target, msg: researchHookError });
+			throw new Error(`GameSim research hook error: ${researchHookError.slice(0, 300)}`);
+		}
 		if (now - t0 > timeoutMs) {
 			beat("timeout", { target, rearms });
 			throw new Error(`timeout waiting for auto play (season ${g.get("season")} phase ${g.get("phase")})`);
@@ -181,7 +236,7 @@ const waitForSeason = async (target: number, timeoutMs: number) => {
 				beat("rearm", { target, rearms });
 				await lock.set("stopGameSim", false);
 				local.autoPlayUntil = { season: target, phase: PHASE.PRESEASON, start: Date.now() };
-				void league.autoPlay({}).catch((e: any) => beat("autoPlayError", { msg: String(e?.stack ?? e).slice(0, 2000) }));
+				void league.autoPlay({}).catch(onAutoPlayError);
 				idleSince = undefined;
 			}
 		} else {
@@ -267,7 +322,7 @@ async function exportPlayers() {
 
 describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", () => {
 	it(`arm ${ARM} seed ${SEED}`, async () => {
-		const name = `full__${START}__${ARM}__${SEED}.json`;
+		const name = `full__${START}__${ARM}${GS ? `+${GS}` : ""}__${SEED}.json`;
 		if (!existsSync(OUT)) {
 			mkdirSync(OUT, { recursive: true });
 		}
@@ -284,7 +339,7 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		if (process.env.FULL_SELFTEST_ONLY === "1") {
 			return;
 		}
-		const lid = 700000 + (Math.abs(hash(`${ARM}|${SEED}|${START}`)) % 90000);
+		const lid = 700000 + (Math.abs(hash(`${ARM}|${GS}|${SEED}|${START}`)) % 90000);
 		seedRandom(1000 + SEED);
 		const t0 = Date.now();
 		await createLeague(lid);
@@ -313,7 +368,7 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 			// Light probe through the real Auto Play path; stop the game sim after a few seconds
 			local.autoPlayUntil = { season: g.get("season") + 1, phase: PHASE.PRESEASON, start: Date.now() };
 			beat("probeAP:start");
-			void league.autoPlay({}).catch((e: any) => beat("autoPlayError", { msg: String(e?.stack ?? e).slice(0, 2000) }));
+			void league.autoPlay({}).catch(onAutoPlayError);
 			for (let i = 0; i < 30; i++) {
 				await new Promise((r) => setTimeout(r, 500));
 				const negs = await idb.cache.negotiations.getAll();
@@ -343,8 +398,13 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 			const t1 = Date.now();
 			local.autoPlayUntil = { season: target, phase: PHASE.PRESEASON, start: Date.now() };
 			beat("seasonStart", { target });
-			void league.autoPlay({}).catch((e: any) => beat("autoPlayError", { msg: String(e?.stack ?? e).slice(0, 2000) }));
+			void league.autoPlay({}).catch(onAutoPlayError);
 			const rearms = await waitForSeason(target, Number(process.env.FULL_SEASON_TIMEOUT_MS ?? 80 * 60_000));
+			if (GS) {
+				const last = gsState.log.at(-1);
+				appendFileSync(path.join(OUT, "gamesim_hooks.jsonl"), `${JSON.stringify({ arm: ARM, gs: GS, seed: SEED, ...last })}\n`);
+				if (!last || !(last.calls.three > 0)) throw new Error(`GameSim research arm ${GS} inactive in season ${target - 1}: ${JSON.stringify(last)}`);
+			}
 			// Memory: fake-indexeddb keeps every record in RAM. Box scores, events, feats and messages are not
 			// used by this study and are dropped after every season (players, stats, ratings, injuries, teams,
 			// contracts and draft data are untouched, so the simulation itself is unaffected).
@@ -406,7 +466,7 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		const players = await exportPlayers();
 		const settingsUsed = Object.fromEntries(["salaryCap", "minContract", "maxContract", "luxuryPayroll", "minPayroll", "salaryCapType",
 			"maxRosterSize", "minRosterSize", "numGames", "spectator", "realPlayerDeterminism"].map((k) => [k, (g as any).get(k)]));
-		writeFileSync(path.join(OUT, `${name}.gz`), gzipSync(JSON.stringify({ arm: ARM, seed: SEED, start: START, years: YEARS, tCreate, timings, settingsUsed, selfTest, players })), { flag: "wx" });
+		writeFileSync(path.join(OUT, `${name}.gz`), gzipSync(JSON.stringify({ arm: ARM, gs: GS || null, gsLog: gsState.log, seed: SEED, start: START, years: YEARS, tCreate, timings, settingsUsed, selfTest, players })), { flag: "wx" });
 		idb.cache.stopAutoFlush();
 		idb.league.close();
 	}, 6 * 3_600_000);

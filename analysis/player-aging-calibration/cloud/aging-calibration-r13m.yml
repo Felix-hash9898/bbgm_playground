@@ -1,0 +1,180 @@
+# Research-only workflow, round 13.1 proposal (NOT pushed, NOT run; needs explicit authorisation).
+# Modern open league from the real 2021 preseason with a GameSim research arm (FULL_GS_ARM, in-memory transform
+# --config sim/r5.config.ts; with no hook installed the transform is an exact no-op, verified 503 / 503 rows in R13).
+#
+# Branch aging-calibration-cloud-r13m = aging-calibration-cloud-r11 tip b30a3449a (product src/ byte-identical to the
+# local worktree for GameSim.basketball/index.ts, game/loadTeams.ts, phase/newPhaseRegularSeason.ts,
+# player/developSeason.basketball.ts and vitest.config.ts -- checked with cmp in R13.1) + this overlay, copied from
+# analysis/player-aging-calibration (the preflight job lists every reachable research module and fails on any miss):
+#   sim/full_league.test.ts  sim/r5.config.ts  sim/fetchRealStats.ts  sim/validate_full_output.mjs  sim/validate_gs_hooks.mjs
+#   sim/check_r13m_overlay.mjs  sim/formulas/{r5.ts,r5_arms.json,r4.ts,r4_tendency.json,candidates.ts,candidate_specs.json,
+#   index.ts,v9.ts,v9_specs.json,official.developSeason.basketball.ts}  sim/r5_inputs/{era_three_league,era_mix_league,
+#   zone_history,zone_history_hist}.json  results/{r5_mix_fit,r5_era_fit,r6_assist_fit,r6_foul_model,r6_usage_model,
+#   r6_usage_nba_fit,r7_drift_fit}.json  + .github/workflows/aging-calibration-r13m.yml (this file)
+# The R13 mirror missed every r5 file and folded the hook check into the validator's arguments (plain YAML scalar);
+# both fixed here.  No product (src/) change.
+#
+# Jobs: preflight (overlay + anchors + arms; formula swap self-test) -> smoke (control, candidate, V9 + candidate,
+# 2021 x 2 seasons; product validator + hook validator) -> modern matrix and the 2005 regression guard.
+# Pre-registration: results/r13_preregistration.md, section "R13.1".
+name: aging-calibration-r13m
+
+on:
+  push:
+    branches: [aging-calibration-cloud-r13m]
+    paths: [".github/workflows/aging-calibration-r13m.yml", "analysis/player-aging-calibration/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: aging-calibration-r13m
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NODE_OPTIONS: --max-old-space-size=6144
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+  VT: --config analysis/player-aging-calibration/sim/r5.config.ts --maxWorkers=1 --no-file-parallelism
+  R: analysis/player-aging-calibration
+  CAND: three_anchor_rel_cap2
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Overlay complete, GameSim / loadTeams anchors match once, arms exist
+        run: node $R/sim/check_r13m_overlay.mjs $CAND,three_anchor_rel_cap2_mix
+      - name: Formula swap self-test (playground corrIq24 > 0.7, v9s_l4 < 0.5; fails the run otherwise)
+        run: |
+          for ARM in playground v9s_l4; do
+            FULL_RUN=1 FULL_SELFTEST_ONLY=1 FULL_ARM=$ARM FULL_SEED=1 FULL_OUT=$R/sim/output_selftest npx vitest run $R/sim/full_league.test.ts $VT
+          done
+          cat $R/sim/output_selftest/selftest.jsonl
+          test "$(grep -c '"ok":true' $R/sim/output_selftest/selftest.jsonl)" -eq 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preflight
+          path: ${{ env.R }}/sim/output_selftest
+
+  smoke:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 200
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { arm: playground, gs: "" }
+          - { arm: playground, gs: three_anchor_rel_cap2 }
+          - { arm: v9s_l4, gs: three_anchor_rel_cap2 }
+          - { arm: playground, gs: three_anchor_rel_cap2_mix }
+    env:
+      TAG: ${{ matrix.arm }}${{ matrix.gs && format('+{0}', matrix.gs) || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Full league smoke 2021 (${{ env.TAG }}, seed 1, 2 seasons)
+        run: |
+          set -o pipefail
+          FULL_RUN=1 FULL_DIAG=1 FULL_START=2021 FULL_ARM=${{ matrix.arm }} FULL_GS_ARM=${{ matrix.gs }} FULL_SEED=1 FULL_YEARS=2 FULL_OUT=$R/sim/output_smoke \
+            NODE_OPTIONS="$NODE_OPTIONS --expose-gc" \
+            npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/smoke_$TAG.log
+      - name: Validate memory, Auto Play, season progression, salary environment
+        run: node $R/sim/validate_full_output.mjs $R/sim/output_smoke/full__2021__${TAG}__1.json.gz $R/sim/output_smoke/progress.jsonl 2 6144
+      - name: Validate GameSim hook bookkeeping (control - no hooks; arm - one active record per season)
+        run: |
+          H=$R/sim/output_smoke/gamesim_hooks.jsonl
+          [ -f "$H" ] || H=-
+          node $R/sim/validate_gs_hooks.mjs $R/sim/output_smoke/full__2021__${TAG}__1.json.gz "$H" "${{ matrix.gs }}" 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-${{ env.TAG }}
+          path: |
+            ${{ env.R }}/sim/output_smoke
+            ${{ env.R }}/sim/smoke_${{ env.TAG }}.log
+
+  full:
+    needs: smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        include:
+          # modern 2021 -> 2026 (5 simulated seasons with NBA truth 2021-2025)
+          - { start: 2021, arm: playground, gs: "", seed: 21, years: 5 }
+          - { start: 2021, arm: playground, gs: "", seed: 22, years: 5 }
+          - { start: 2021, arm: playground, gs: "", seed: 23, years: 5 }
+          - { start: 2021, arm: playground, gs: three_anchor_rel_cap2, seed: 21, years: 5 }
+          - { start: 2021, arm: playground, gs: three_anchor_rel_cap2, seed: 22, years: 5 }
+          - { start: 2021, arm: playground, gs: three_anchor_rel_cap2, seed: 23, years: 5 }
+          - { start: 2021, arm: v9s_l4, gs: three_anchor_rel_cap2, seed: 21, years: 5 }
+          - { start: 2021, arm: v9s_l4, gs: three_anchor_rel_cap2, seed: 22, years: 5 }
+          - { start: 2021, arm: v9s_l4, gs: three_anchor_rel_cap2, seed: 23, years: 5 }
+          - { start: 2021, arm: playground, gs: three_anchor_rel_cap2_mix, seed: 21, years: 5 }
+          - { start: 2021, arm: playground, gs: three_anchor_rel_cap2_mix, seed: 22, years: 5 }
+          - { start: 2021, arm: playground, gs: three_anchor_rel_cap2_mix, seed: 23, years: 5 }
+          # long-horizon stability (no truth after 2025: bounds only)
+          - { start: 2021, arm: playground, gs: "", seed: 31, years: 15 }
+          - { start: 2021, arm: playground, gs: three_anchor_rel_cap2, seed: 31, years: 15 }
+          # 2005 regression guard (paired with the existing controls sim/output_full_r11 playground seeds 11-13,
+          # same harness; the transform is a no-op for the control)
+          - { start: 2005, arm: playground, gs: three_anchor_rel_cap2, seed: 11, years: 8 }
+          - { start: 2005, arm: playground, gs: three_anchor_rel_cap2, seed: 12, years: 8 }
+          - { start: 2005, arm: playground, gs: three_anchor_rel_cap2, seed: 13, years: 8 }
+    env:
+      TAG: ${{ matrix.arm }}${{ matrix.gs && format('+{0}', matrix.gs) || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --run pre-test
+      - name: Full league ${{ matrix.start }} ${{ env.TAG }} seed ${{ matrix.seed }} (${{ matrix.years }} seasons)
+        run: |
+          set -o pipefail
+          FULL_RUN=1 FULL_START=${{ matrix.start }} FULL_ARM=${{ matrix.arm }} FULL_GS_ARM=${{ matrix.gs }} FULL_SEED=${{ matrix.seed }} FULL_YEARS=${{ matrix.years }} \
+            FULL_OUT=$R/sim/output_full_r13m npx vitest run $R/sim/full_league.test.ts $VT 2>&1 | tee $R/sim/full_${{ matrix.start }}_${TAG}_${{ matrix.seed }}.log
+      - name: Validate output and hook bookkeeping
+        run: |
+          F=$R/sim/output_full_r13m/full__${{ matrix.start }}__${TAG}__${{ matrix.seed }}.json.gz
+          node $R/sim/validate_full_output.mjs "$F" $R/sim/output_full_r13m/progress.jsonl ${{ matrix.years }} 6144
+          H=$R/sim/output_full_r13m/gamesim_hooks.jsonl
+          [ -f "$H" ] || H=-
+          node $R/sim/validate_gs_hooks.mjs "$F" "$H" "${{ matrix.gs }}" ${{ matrix.years }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-r13m-${{ matrix.start }}-${{ env.TAG }}-${{ matrix.seed }}-${{ matrix.years }}
+          path: |
+            ${{ env.R }}/sim/output_full_r13m
+            ${{ env.R }}/sim/full_${{ matrix.start }}_${{ env.TAG }}_${{ matrix.seed }}.log

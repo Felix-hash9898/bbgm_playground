@@ -1,0 +1,9 @@
+{
+ "fit_seasons": [
+  2010,
+  2015
+ ],
+ "x": "log(threePointTendencyFactor)",
+ "kappa_post": 0.8966091327529334,
+ "kappa_mid": -1.6180834005433906
+}
