@@ -6,7 +6,7 @@
  * product's own Auto Play (local.autoPlayUntil + league.autoPlay): regular season, playoffs, draft
  * lottery, draft (real draft classes), re-signing, free agency, AI trades, contracts, retirement,
  * preseason development, injuries incl. permanent rating losses. spectator=true so every team is AI.
- * The ONLY difference between arms is the developSeason.basketball module, replaced with vi.mock.
+ * Arms vary development through vi.doMock and optionally GameSim through the research hook.
  *
  * Paired randomness: Math.random is seeded (mulberry32) identically per seed before creation and before
  * auto play, so arms share the initial league and the first random draws; trajectories diverge after the
@@ -18,13 +18,14 @@
  *        --project basketball --maxWorkers=1 --no-file-parallelism
  */
 import "fake-indexeddb/auto";
+import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, it, vi } from "vitest";
 import { unwrap } from "@dumbmatter/idb";
 
-import { PHASE } from "../../../src/common/constants.ts";
+import { PHASE, PLAYER } from "../../../src/common/constants.ts";
 import { DEFAULT_LEVEL } from "../../../src/common/budgetLevels.ts";
 import { installRealStatsFetch } from "./fetchRealStats.ts";
 
@@ -35,15 +36,19 @@ import { installRealStatsFetch } from "./fetchRealStats.ts";
 let idb: any, connectLeague: any, Cache: any, g: any, helpers: any, local: any, lock: any, league: any, realRosters: any,
 	createStreamFromLeagueObject: any, getDefaultSettings: any, unwrapGameAttribute: any, developSeasonMod: any;
 const DEV_PATH = "../../../src/worker/core/player/developSeason.basketball.ts";
+let acceptanceDevelopmentActive = false;
 // ---- round 13: GameSim research arm in the open league ----------------------------------------------------------------
 const gsState: { log: any[]; choice?: Map<number, number[]>; calls?: Record<string, number> } = { log: [] };
 async function gsSeasonStart() {
 	const r5 = await import("./formulas/r5.ts");
-	const armDef = (r5.R5_ARMS as any)[GS];
+	const factor = g.get("threePointTendencyFactor");
+	const armDef = r5.resolveR5Arm(GS, factor);
 	if (!armDef) throw new Error(`unknown FULL_GS_ARM ${GS}`);
 	r5.uninstall();
 	const season = g.get("season");
 	const all = await idb.cache.players.getAll();
+	let previousChoiceDecisions = 0;
+	let previousChoicePlayers = 0;
 	// carry the previous season's logged regular-choice counts onto the player's own regular-season stats row
 	// (the product does not record choices; choiceState3 reads chN / ch3 from the season - 1 row)
 	if (gsState.choice) {
@@ -54,18 +59,36 @@ async function gsSeasonStart() {
 			if (!rows.length) continue;
 			const row = rows.reduce((x, y) => ((x.min ?? 0) >= (y.min ?? 0) ? x : y));
 			row.chN = c[3] ?? 0;
-			row.ch3 = Math.max(0, (c[3] ?? 0) - (c[0] ?? 0) - (c[1] ?? 0) - (c[2] ?? 0));
+			const madeThreeChoices = row.chN - (c[0] ?? 0) - (c[1] ?? 0) - (c[2] ?? 0);
+			if (armDef.choiceHistoryBridge && madeThreeChoices < 0) throw new Error("Invalid regular-season shot counts");
+			row.ch3 = Math.max(0, madeThreeChoices);
+			if (row.chN > 0) {
+				previousChoiceDecisions += row.chN;
+				previousChoicePlayers += 1;
+			}
 			await idb.cache.players.put(p);
 		}
 	}
-	const factor = g.get("threePointTendencyFactor");
 	const prepared = new Map<number, any>();
 	for (const p of all) if (p.tid >= 0) prepared.set(p.pid, r5.prepare(p as any, season, armDef, factor, START));
 	const calls: Record<string, number> = {};
 	const choiceLog = new Map<number, number[]>();
-	r5.install(armDef, prepared, calls, factor, choiceLog, process.env.FULL_GS_STRICT !== "1"); // FULL_GS_STRICT=1: no fallback (fail-fast test only)
+	const regularChoiceCalls = { beforeDeadline: 0, afterDeadline: 0 };
+	// R16 learns regular-season shot identity. The hooks still apply in playoffs.
+	const logChoices = armDef.choiceHistoryBridge ? () => {
+		const phase = g.get("phase");
+		if (ACCEPTANCE) {
+			if (phase === PHASE.REGULAR_SEASON) regularChoiceCalls.beforeDeadline++;
+			if (phase === PHASE.AFTER_TRADE_DEADLINE) regularChoiceCalls.afterDeadline++;
+		}
+		return phase === PHASE.REGULAR_SEASON || phase === PHASE.AFTER_TRADE_DEADLINE;
+	} : undefined;
+	r5.install(armDef, prepared, calls, factor, choiceLog, process.env.FULL_GS_STRICT !== "1", logChoices);
 	gsState.choice = choiceLog; gsState.calls = calls;
-	gsState.log.push({ season, factor, prepared: prepared.size, calls });
+	const history = armDef.choiceHistoryBridge ? { previousChoiceDecisions, previousChoicePlayers,
+		twoPointModel: armDef.mix ?? null, midrangeKept: [...prepared.values()].filter(x => x.midrangeKept).length,
+		...(ACCEPTANCE ? { regularChoiceCalls } : {}) } : {};
+	gsState.log.push({ season, factor, prepared: prepared.size, calls, ...history });
 }
 async function loadProduct(arm: string) {
 	vi.resetModules();
@@ -78,10 +101,15 @@ async function loadProduct(arm: string) {
 		}
 		if (arm.startsWith("v9")) {
 			const { V9 } = await import("./formulas/v9.ts"); // round 11: V9 structure arms (v9_specs.json)
-			if (!V9[arm]) {
+			const candidate = V9[arm];
+			if (!candidate) {
 				throw new Error(`unknown FULL_ARM ${arm}`);
 			}
-			return { default: V9[arm] };
+			if (ACCEPTANCE) {
+				const { default: baseline } = await vi.importActual<typeof import("../../../src/worker/core/player/developSeason.basketball.ts")>(DEV_PATH);
+				return { default: (...args: Parameters<typeof baseline>) => (acceptanceDevelopmentActive ? candidate : baseline)(...args) };
+			}
+			return { default: candidate };
 		}
 		const { CANDIDATES } = await import("./formulas/candidates.ts");
 		if (!CANDIDATES[arm]) {
@@ -154,6 +182,7 @@ const GS = process.env.FULL_GS_ARM ?? "";
 const SEED = Number(process.env.FULL_SEED ?? 1);
 const START = Number(process.env.FULL_START ?? 2005);
 const YEARS = Number(process.env.FULL_YEARS ?? 10);
+const ACCEPTANCE = process.env.FULL_ACCEPTANCE === "1";
 const OUT = path.resolve(process.cwd(), process.env.FULL_OUT ?? "analysis/player-aging-calibration/sim/output_full");
 
 let rngState = 1;
@@ -301,22 +330,62 @@ async function loadLeague(lid: number) {
 	await league.setGameAttributes({ spectator: true, realPlayerDeterminism: 0, stopOnInjury: false });
 }
 
+const SKILLS = ["hgt", "stre", "spd", "jmp", "endu", "ins", "dnk", "ft", "fg", "tp", "oiq", "diq", "drb", "pss", "reb"];
+const ENV_KEYS = ["salaryCap", "minContract", "maxContract", "salaryCapType", "numGames", "quarterLength",
+	"threePointTendencyFactor", "twoPointAccuracyFactor", "injuryRate", "spectator", "realPlayerDeterminism"];
+const digest = (x: unknown) => createHash("sha256").update(JSON.stringify(x)).digest("hex");
+
+async function openingReceipt() {
+	const players = (await idb.cache.players.getAll()).sort((a: any, b: any) => a.pid - b.pid);
+	return {
+		env: Object.fromEntries(ENV_KEYS.map(k => [k, g.get(k)])),
+		teams: digest((await idb.cache.teams.getAll()).sort((a: any, b: any) => a.tid - b.tid)
+			.map((t: any) => [t.tid, t.cid, t.did, t.abbrev, t.disabled])),
+		players: digest(players.map((p: any) => {
+			const r = p.ratings.at(-1);
+			return [p.pid, p.srID, p.tid, p.born.year, p.draft.year, p.draft.round, p.draft.pick,
+				p.contract.amount, p.contract.exp, p.injury, r.season, r.ovr, r.pos, ...SKILLS.map(k => r[k])];
+		})),
+		potential: digest(players.map((p: any) => [p.pid, p.ratings.at(-1).pot])),
+		playerCount: players.length,
+	};
+}
+
+async function preseasonSnapshot() {
+	const season = g.get("season");
+	const teams = await idb.cache.teamSeasons.indexGetAll("teamSeasonsBySeasonTid",
+		[[season - 1, -Infinity], [season - 1, Infinity]]);
+	const players = (await idb.cache.players.getAll()).filter((p: any) => p.tid >= PLAYER.FREE_AGENT);
+	return {
+		season,
+		// Team-season wins and losses count played regular games, including shortened historical schedules.
+		teamRecords: teams.map((t: any) => [t.tid, t.won, t.lost, t.tied ?? 0, t.playoffRoundsWon]),
+		// pid, tid, contract amount/expiration, remaining injury games at the preseason snapshot
+		market: players.map((p: any) => [p.pid, p.tid, p.contract.amount, p.contract.exp, p.injury.gamesRemaining]),
+		cap: g.get("salaryCap"),
+	};
+}
+
 async function exportPlayers() {
 	await idb.cache.flush();
 	const tx = idb.league.transaction(["players"], "readonly");
 	const players = await tx.objectStore("players").getAll();
 	await tx.done;
-	const KEYS = ["hgt", "stre", "spd", "jmp", "endu", "ins", "dnk", "ft", "fg", "tp", "oiq", "diq", "drb", "pss", "reb"];
 	const STAT = ["gp", "gs", "min", "pts", "fg", "fga", "tp", "tpa", "ft", "fta", "orb", "drb", "ast", "tov", "stl", "blk", "pf",
 		"fgAtRim", "fgaAtRim", "fgLowPost", "fgaLowPost", "fgMidRange", "fgaMidRange", "per", "ows", "dws", "obpm", "dbpm"];
 	return players.map((p: any) => ({
 		pid: p.pid, srID: p.srID ?? null, real: !!p.real, born: p.born.year, tid: p.tid, retiredYear: p.retiredYear ?? null,
 		draft: { year: p.draft.year, pick: p.draft.pick, round: p.draft.round },
-		ratings: p.ratings.map((r: any) => ({ season: r.season, ovr: r.ovr, pot: r.pot, pos: r.pos, locked: !!r.locked, ...Object.fromEntries(KEYS.map((k) => [k, r[k]])) })),
+		ratings: p.ratings.map((r: any) => ({ season: r.season, ovr: r.ovr, pot: r.pot, pos: r.pos, locked: !!r.locked, ...Object.fromEntries(SKILLS.map((k) => [k, r[k]])) })),
 		stats: p.stats.filter((s: any) => !s.playoffs).map((s: any) => ({ season: s.season, tid: s.tid, ...Object.fromEntries(STAT.map((k) => [k, s[k] ?? 0])) })),
 		injuries: (p.injuries ?? []).map((i: any) => ({ season: i.season, type: i.type, games: i.games, ovrDrop: i.ovrDrop ?? 0 })),
 		contract: p.contract, salaries: (p.salaries ?? []).length,
-		transactions: (p.transactions ?? []).map((t: any) => ({ season: t.season, phase: t.phase, tid: t.tid, type: t.type })),
+		transactions: (p.transactions ?? []).map((t: any) => ({ season: t.season, phase: t.phase, tid: t.tid, type: t.type,
+			...(ACCEPTANCE && t.type === "trade" ? { fromTid: t.fromTid } : {}) })),
+		...(ACCEPTANCE ? { firstNBAContract: p.firstNBAContract ?? null,
+			salaryHistory: p.salaries ?? [],
+			playoffs: p.stats.filter((s: any) => s.playoffs && s.season >= START)
+				.map(({ season, tid, gp, min }: any) => ({ season, tid, gp, min })) } : {}),
 	}));
 }
 
@@ -331,6 +400,7 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		}
 		installRealStatsFetch();
 		await loadProduct(ARM);
+		acceptanceDevelopmentActive = true;
 		const selfTest = await selfTestFormula(ARM);
 		appendFileSync(path.join(OUT, "selftest.jsonl"), `${JSON.stringify({ arm: ARM, seed: SEED, ...selfTest })}\n`);
 		if (!selfTest.ok) {
@@ -340,10 +410,15 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 			return;
 		}
 		const lid = 700000 + (Math.abs(hash(`${ARM}|${GS}|${SEED}|${START}`)) % 90000);
+		// Open every acceptance arm with the same production POT and draft pool.
+		// Formula calls from the first live season onward use the assigned treatment.
+		acceptanceDevelopmentActive = false;
 		seedRandom(1000 + SEED);
 		const t0 = Date.now();
 		await createLeague(lid);
 		await loadLeague(lid);
+		const opening = ACCEPTANCE ? await openingReceipt() : undefined;
+		acceptanceDevelopmentActive = true;
 		const tCreate = (Date.now() - t0) / 1000;
 		{
 			const negs = await idb.cache.negotiations.getAll();
@@ -364,6 +439,7 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		const pruneTimer = setInterval(prune, 2000);
 		seedRandom(2000 + SEED);
 		const timings: any[] = [];
+		const snapshots: Awaited<ReturnType<typeof preseasonSnapshot>>[] = [];
 		if (process.env.FULL_PROBE_AUTOPLAY === "1") {
 			// Light probe through the real Auto Play path; stop the game sim after a few seconds
 			local.autoPlayUntil = { season: g.get("season") + 1, phase: PHASE.PRESEASON, start: Date.now() };
@@ -390,7 +466,17 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 			beat("probe:afterRegularSeason", { negotiations: negs.length, negTids: [...new Set(negs.map((n: any) => n.tid))],
 				daysLeftSchedule: await seasonMod.getDaysLeftSchedule(), scheduleLen: (await idb.cache.schedule.getAll()).length });
 			await game.play(1, {});
-			beat("probe:afterPlay1", { games: (await idb.cache.games.getAll()).length, scheduleLen: (await idb.cache.schedule.getAll()).length });
+			const games = await idb.cache.games.getAll();
+			beat("probe:afterPlay1", { games: games.length, scheduleLen: (await idb.cache.schedule.getAll()).length });
+			if (ACCEPTANCE) {
+				const snapshot = await preseasonSnapshot();
+				writeFileSync(path.join(OUT, "probe.json"), JSON.stringify({ arm: ARM, gs: GS || null, start: START, seed: SEED,
+					selfTest, opening, gsLog: gsState.log, snapshot, gamesPlayed: games.length,
+					box: digest(games.map((game: any) => game.teams.map((t: any) => [t.tid, t.pts, t.fga, t.tpa, t.fta]))) }), { flag: "wx" });
+			}
+			clearInterval(pruneTimer);
+			idb.cache.stopAutoFlush();
+			idb.league.close();
 			return;
 		}
 		for (let y = 0; y < YEARS; y++) {
@@ -405,6 +491,7 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 				appendFileSync(path.join(OUT, "gamesim_hooks.jsonl"), `${JSON.stringify({ arm: ARM, gs: GS, seed: SEED, ...last })}\n`);
 				if (!last || !(last.calls.three > 0)) throw new Error(`GameSim research arm ${GS} inactive in season ${target - 1}: ${JSON.stringify(last)}`);
 			}
+			if (ACCEPTANCE) snapshots.push(await preseasonSnapshot());
 			// Memory: fake-indexeddb keeps every record in RAM. Box scores, events, feats and messages are not
 			// used by this study and are dropped after every season (players, stats, ratings, injuries, teams,
 			// contracts and draft data are untouched, so the simulation itself is unaffected).
@@ -466,7 +553,8 @@ describe.skipIf(process.env.FULL_RUN !== "1")("full league aging experiment", ()
 		const players = await exportPlayers();
 		const settingsUsed = Object.fromEntries(["salaryCap", "minContract", "maxContract", "luxuryPayroll", "minPayroll", "salaryCapType",
 			"maxRosterSize", "minRosterSize", "numGames", "spectator", "realPlayerDeterminism"].map((k) => [k, (g as any).get(k)]));
-		writeFileSync(path.join(OUT, `${name}.gz`), gzipSync(JSON.stringify({ arm: ARM, gs: GS || null, gsLog: gsState.log, seed: SEED, start: START, years: YEARS, tCreate, timings, settingsUsed, selfTest, players })), { flag: "wx" });
+		writeFileSync(path.join(OUT, `${name}.gz`), gzipSync(JSON.stringify({ arm: ARM, gs: GS || null, gsLog: gsState.log, seed: SEED, start: START, years: YEARS, tCreate, timings, settingsUsed, selfTest, players, opening,
+			...(ACCEPTANCE ? { snapshots } : {}) })), { flag: "wx" });
 		idb.cache.stopAutoFlush();
 		idb.league.close();
 	}, 6 * 3_600_000);

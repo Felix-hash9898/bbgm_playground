@@ -44,6 +44,8 @@ export type R5Arm = {
 	eraPost?: number; eraMid?: number; eraThree?: number; // round 7: era make terms per zone (x log factor)
 	ctxModernOnly?: boolean;                 // round 7: creation context only when the era factor >= 0.95
 	choiceState3?: boolean;
+	choiceHistoryBridge?: boolean;           // keep adjacent real box history when switching to regular-season choice counts
+	keepMidrange?: boolean;
 	pScale?: boolean;
 	eraLeague3?: boolean;
 	anchor3?: boolean;
@@ -55,11 +57,26 @@ export type R5Arm = {
 	drift?: boolean;                         // round 7: yearly 3PA-tendency drift (style mean reversion + experience + age + 3P% signal, r7_drift_fit "all")
 	usageMap?: boolean;                      // round 6: usage composite x (NBA-fitted / sim-fitted ratings->usage)^gamma, ratings only
 	usageModel?: number;                     // round 6 usage state: pseudo minutes of the shrinkage toward the expected sim usage
+	drbOutlet?: boolean;                     // R15: false = no DRB outlet bias (upstream rebound credit)
+	makeTable?: Record<string, number>;       // R14: per-season additive two-point make shift (scripts/114)
+	foulTable?: Record<string, number>;       // R14: per-season league foul multiplier (era preset table, scripts/114)
 	foulModel?: number;                      // round 6 FT model v2: m = shrunk(own FTr toward expected sim FTr, pseudo FGA) / expected
 	foulHist?: number;                       // round 6 foul-drawing state: shrunk previous-season FTr (pseudo FGA) replaces the composite-relative foul rate
 	shrinkNeedsHist?: boolean;               // round 6: shrink a zone's composite slope only when a zone record replaces it
 };
-export const R5_ARMS = ARMS as Record<string, R5Arm>;
+const historicalR16: R5Arm = { ...ARMS.three_era_p_cap2, choiceState3: true, choiceHistoryBridge: true, anchor3: true, anchor3rel: true };
+const modernR16: R5Arm = { ...ARMS.r15_D_ef_r08_fm, choiceState3: true, choiceHistoryBridge: true, anchor3: true, anchor3rel: true };
+export const R5_ARMS: Record<string, R5Arm> = {
+	...ARMS as Record<string, R5Arm>,
+	r16_career: modernR16,
+	r16_midrange: { ...modernR16, keepMidrange: true, histZone: true },
+};
+
+export function resolveR5Arm(name: string, factor: number) {
+	// Preserve the three-point identity component in the earlier, higher-FTr
+	// environment where the full R15 package overshot in open leagues.
+	return (name === "r16_career" || name === "r16_midrange") && factor < .8 ? historicalR16 : R5_ARMS[name];
+}
 
 const KEYS = ["hgt", "stre", "spd", "jmp", "endu", "ins", "dnk", "ft", "fg", "tp", "oiq", "diq", "drb", "pss", "reb"] as const;
 const composite = (r: PlayerRatings, keys: (keyof PlayerRatings)[], w: number[]) =>
@@ -90,6 +107,17 @@ export function playgroundThreeChoice(r: PlayerRatings) {
 	return .67 * s2;
 }
 
+const revised = model.revised;
+const toDecisionShare = (q: number) => (revised.drawOddsRatio * q) / (1 - q + revised.drawOddsRatio * q);
+
+function revisedThreePrior(r: PlayerRatings, priorCapPg: number) {
+	const centered = model.features.map((key, i) => (r[key as keyof PlayerRatings] as number) / 100 - revised.center[i]!);
+	const low = 1 / (1 + Math.exp(-(revised.low[0]! + dot(revised.low.slice(1), centered))));
+	const positive = Math.min(.93, Math.max(.10, revised.average + dot(revised.positive, centered)));
+	const prior = low * revised.lowMean + (1 - low) * positive;
+	return priorCapPg ? Math.min(prior, priorCapPg * playgroundThreeChoice(r)) : prior;
+}
+
 /**
  * Era-safe round-4 revised tendency. The player's own previous-season shares already contain the era, so only the
  * (modern-trained) ratings prior is scaled by the era factor. GameSim multiplies the hook value by the factor again,
@@ -97,27 +125,46 @@ export function playgroundThreeChoice(r: PlayerRatings) {
  */
 export function shotTendencyEra(p: Player, season: number, factor: number, pScale = false, priorCapPg = 0) {
 	const r = p.ratings.at(-1)! as PlayerRatings;
-	const fit = model.revised;
-	const centered = model.features.map((key, i) => (r[key as keyof PlayerRatings] as number) / 100 - fit.center[i]!);
-	const low = 1 / (1 + Math.exp(-(fit.low[0]! + dot(fit.low.slice(1), centered))));
-	const positive = Math.min(.93, Math.max(.10, fit.average + dot(fit.positive, centered)));
-	const prior0 = low * fit.lowMean + (1 - low) * positive;
-	const prior = priorCapPg ? Math.min(prior0, priorCapPg * playgroundThreeChoice(r)) : prior0;
-	let attempts = fit.pseudoAttempts;
+	const prior = revisedThreePrior(r, priorCapPg);
+	let attempts = revised.pseudoAttempts;
 	let threes = attempts * prior * factor;
 	for (const row of p.stats) {
 		if (row.playoffs || (row.season !== season - 1 && row.season !== season - 2)) continue;
-		const weight = row.season === season - 1 ? 1 : fit.previousWeight;
+		const weight = row.season === season - 1 ? 1 : revised.previousWeight;
 		attempts += weight * (row.fga ?? 0);
 		threes += weight * (row.tpa ?? 0);
 	}
-	const share = threes / attempts;
-	const odds = fit.drawOddsRatio * share;
-	const P = odds / (1 - share + odds);
+	const P = toDecisionShare(threes / attempts);
 	return pScale ? Math.min(.97, P) / factor : Math.min(1, P / factor);
 }
 
-export type R5Player = { three: number | undefined; choice: number; pg?: number; mix?: [number, number, number]; ast: number; cMid: number; cPost: number; cRim: number; hist?: number[]; ftr?: [number, number]; cDf: number; ftrExp: number; usg?: [number, number]; usgExp: number; usgNba: number };
+function bridgeChoiceHistory(p: Player, season: number, factor: number, priorCapPg: number) {
+	let count = revised.pseudoAttempts;
+	let threes = count * toDecisionShare(revisedThreePrior(p.ratings.at(-1) as PlayerRatings, priorCapPg) * factor);
+	let foundChoiceHistory = false;
+	for (let lag = 1; lag <= 2; lag++) {
+		const rows = p.stats.filter(row => row.season === season - lag && !row.playoffs);
+		const weight = lag === 1 ? 1 : revised.previousWeight;
+		const n = rows.reduce((sum, row) => sum + ((row as { chN?: number }).chN ?? 0), 0);
+		if (n > 0) {
+			foundChoiceHistory = true;
+			const tpa = rows.reduce((sum, row) => sum + ((row as { ch3?: number }).ch3 ?? 0), 0);
+			if (tpa < 0 || tpa > n) throw new Error("Invalid regular-season shot history");
+			count += weight * n;
+			threes += weight * tpa;
+		} else {
+			const fga = rows.reduce((sum, row) => sum + (row.fga ?? 0), 0);
+			const tpa = rows.reduce((sum, row) => sum + (row.tpa ?? 0), 0);
+			if (fga > 0) {
+				count += weight * fga;
+				threes += weight * fga * toDecisionShare(tpa / fga);
+			}
+		}
+	}
+	return foundChoiceHistory ? Math.min(.97, threes / count) / factor : undefined;
+}
+
+export type R5Player = { three: number | undefined; choice: number; pg?: number; mix?: [number, number, number]; ast: number; cMid: number; cPost: number; cRim: number; hist?: number[]; ftr?: [number, number]; cDf: number; ftrExp: number; usg?: [number, number]; usgExp: number; usgNba: number; midrangeKept?: boolean };
 // 5-point Gauss-Hermite rule for a standard normal (deterministic: no extra random draws)
 const GH = [[0, .5333333333333333], [1.3556261799742657, .2220759220056126], [-1.3556261799742657, .2220759220056126],
 	[2.8569700138728056, .0112574113277207], [-2.8569700138728056, .0112574113277207]] as const;
@@ -157,17 +204,16 @@ export function prepare(p: Player, season: number, arm: R5Arm, factor = 1, start
 	seasonCtx.season = season; seasonCtx.start = startSeason;
 	const r = p.ratings.at(-1)! as PlayerRatings;
 	let three = arm.three === "r4rev" ? shotTendency(p, season, true) : arm.three === "r4era" ? shotTendencyEra(p, season, factor, !!arm.pScale, arm.priorCapPg ?? 0) : undefined;
-	if (arm.choiceState3) {
+	if (arm.choiceHistoryBridge) {
+		three = bridgeChoiceHistory(p, season, factor, arm.priorCapPg ?? 0) ?? three;
+	} else if (arm.choiceState3) {
 		const rowsC = (s2: number) => p.stats.filter(x => !x.playoffs && x.season === s2 && (x as any).chN !== undefined) as any[];
 		const c1 = rowsC(season - 1), c2 = rowsC(season - 2);
 		if (c1.length) {
 			const sum = (rs: any[], k: string) => rs.reduce((a, x) => a + (x[k] ?? 0), 0);
 			const rr = p.ratings.at(-1)! as PlayerRatings;
 			const fit = model.revised;
-			const centered = model.features.map((key, i) => (rr[key as keyof PlayerRatings] as number) / 100 - fit.center[i]!);
-			const low = 1 / (1 + Math.exp(-(fit.low[0]! + dot(fit.low.slice(1), centered))));
-			const prior0 = low * fit.lowMean + (1 - low) * Math.min(.93, Math.max(.10, fit.average + dot(fit.positive, centered)));
-			const prior = arm.priorCapPg ? Math.min(prior0, arm.priorCapPg * playgroundThreeChoice(rr)) : prior0;
+			const prior = revisedThreePrior(rr, arm.priorCapPg ?? 0);
 			const n = sum(c1, "chN") + fit.previousWeight * sum(c2, "chN") + fit.pseudoAttempts;
 			const t3 = sum(c1, "ch3") + fit.previousWeight * sum(c2, "ch3") + fit.pseudoAttempts * prior * factor;
 			three = arm.pScale ? Math.min(.97, t3 / n) / factor : Math.min(1, (t3 / n) / factor); // GameSim multiplies the hook value by the factor again
@@ -241,6 +287,20 @@ export function prepare(p: Player, season: number, arm: R5Arm, factor = 1, start
 	const hist = simRow.length
 		? (["fgaAtRim", "fgaLowPost", "fgaMidRange", "fgAtRim", "fgLowPost", "fgMidRange"] as const).map(k => simRow.reduce((a, x) => a + ((x as any)[k] ?? 0), 0))
 		: zoneRecord(arm, season, p.srID);
+	let midrangeKept = false;
+	if (arm.keepMidrange && mix && hist && (simRow.length > 0 || season === startSeason)) {
+		// Historical NBA zones can seed the opening only. Subsequent
+		// seasons learn from this league's own regular-season shots.
+		const n = hist[0]! + hist[1]! + hist[2]!;
+		const observed = hist[2]! / Math.max(1, n);
+		const [rim, post, mid] = mix;
+		if (n >= 150 && observed >= .38 && observed > mid) {
+			const m = mid + (n / (n + 300)) * (observed - mid);
+			const scale = (1 - m) / (rim + post);
+			mix = [rim * scale, post * scale, m];
+			midrangeKept = true;
+		}
+	}
 	const style = chosen ?? hist;
 	if (arm.zoneHist && style && mix) {
 		const k = arm.zoneHist!, n = style[0]! + style[1]! + style[2]!;
@@ -290,13 +350,14 @@ export function prepare(p: Player, season: number, arm: R5Arm, factor = 1, start
 			const fga = rows.reduce((a, x) => a + (x.fga ?? 0), 0), fta = rows.reduce((a, x) => a + (x.fta ?? 0), 0);
 			return fga > 0 ? [fta, fga] as [number, number] : undefined;
 		})(),
-		hist: arm.zoneSkill ? (arm.skillFrozen ? zoneRecord(arm, startSeason, p.srID) : hist) : undefined };
+		hist: arm.zoneSkill ? (arm.skillFrozen ? zoneRecord(arm, startSeason, p.srID) : hist) : undefined,
+		midrangeKept };
 }
 
 type Hooks = {
-	r4ShotProbability?: (pid: number) => number | undefined;
+	r4ShotProbability?: (pid: number, allStarGame?: boolean) => number | undefined;
 	r5ForcedThree?: (pid: number) => boolean;
-	r5TwoType?: (pid: number) => TwoType | undefined;
+	r5TwoType?: (pid: number, allStarGame?: boolean) => TwoType | undefined;
 	r5MakeShift?: (type: string, pid: number, assisted?: boolean) => number;
 	r6AstProb?: (pid: number, base: number) => number;
 	r6BlockWeight?: (type: string) => number;
@@ -304,9 +365,9 @@ type Hooks = {
 	r6UsageMult?: (pid: number) => number;
 	r5FoulScale?: (type: string, pid?: number) => number;
 };
-export const HOOK_NAMES = ["r4ShotProbability", "r5ForcedThree", "r5TwoType", "r5MakeShift", "r5FoulScale", "r6AstProb", "r6BlockWeight", "r6ThreeShift", "r6UsageMult"] as const;
+export const HOOK_NAMES = ["r4ShotProbability", "r5ForcedThree", "r5TwoType", "r5MakeShift", "r5FoulScale", "r6AstProb", "r6BlockWeight", "r6ThreeShift", "r6UsageMult", "r15DrbOutlet"] as const;
 
-export function install(arm: R5Arm, players: Map<number, R5Player>, calls: Record<string, number>, factor = 1, choiceLog?: Map<number, number[]>, lenient = false) {
+export function install(arm: R5Arm, players: Map<number, R5Player>, calls: Record<string, number>, factor = 1, choiceLog?: Map<number, number[]>, lenient = false, logChoicesThisGame?: () => boolean) {
 	// lenient (round 13, open league): players signed after the season-start prepare fall back to PRODUCTION (hook returns undefined)
 	const lf = Math.log(factor);
 	const h = globalThis as typeof globalThis & Hooks;
@@ -333,32 +394,36 @@ export function install(arm: R5Arm, players: Map<number, R5Player>, calls: Recor
 		for (const x of players.values()) if (x.three !== undefined) x.three = Math.min(.97 / factor, x.three * c);
 		calls.anchor_c = c;
 	}
-	if (arm.three) h.r4ShotProbability = pid => {
+	if (arm.drbOutlet === false) (h as any).r15DrbOutlet = () => 1; // R15: remove the playground DRB outlet bias (upstream behaviour)
+	const shouldLogChoice = (allStarGame?: boolean) => choiceLog !== undefined &&
+		(logChoicesThisGame ? !allStarGame && logChoicesThisGame() : true);
+	if (arm.three) h.r4ShotProbability = (pid, allStarGame) => {
 		if (lenient && !players.has(pid)) { count("three_missing"); return undefined as unknown as number; }
 		count("three");
-		if (choiceLog) {
-			const c = choiceLog.get(pid) ?? [0, 0, 0, 0];
+		if (shouldLogChoice(allStarGame)) {
+			const c = choiceLog!.get(pid) ?? [0, 0, 0, 0];
 			c[3] = (c[3] ?? 0) + 1; // regular three-point decisions (forced threes, put-backs and tip-ins never reach here)
-			choiceLog.set(pid, c);
+			choiceLog!.set(pid, c);
 		}
 		return get(pid).three;
 	};
 	if (arm.forced) h.r5ForcedThree = pid => { count("forced"); return Math.random() < Math.min(1, get(pid).choice / arm.forced!); };
-	if (arm.mix) h.r5TwoType = pid => {
+	if (arm.mix) h.r5TwoType = (pid, allStarGame) => {
 		count("mix");
 		const [rim, post] = get(pid).mix!;
 		const u = Math.random();
 		const t = u < rim ? 0 : u < rim + post ? 1 : 2;
-		if (choiceLog) {
-			const c = choiceLog.get(pid) ?? [0, 0, 0, 0];
+		if (shouldLogChoice(allStarGame)) {
+			const c = choiceLog!.get(pid) ?? [0, 0, 0, 0];
 			c[t] = (c[t] ?? 0) + 1;
-			choiceLog.set(pid, c);
+			choiceLog!.set(pid, c);
 		}
 		return (["atRim", "lowPost", "midRange"] as const)[t];
 	};
 	// round 11 fix: choice-scale three-point state without a two-point mix model must still log the TOTAL of regular
 	// two-point choices (ch3 = decisions - two-point choices); pass-through (undefined -> production two-point draw)
-	else if (arm.choiceState3 && choiceLog) h.r5TwoType = pid => {
+	else if (arm.choiceState3 && choiceLog) h.r5TwoType = (pid, allStarGame) => {
+		if (!shouldLogChoice(allStarGame)) return undefined;
 		const c = choiceLog.get(pid) ?? [0, 0, 0, 0];
 		c[2] = (c[2] ?? 0) + 1;
 		choiceLog.set(pid, c);
@@ -388,9 +453,12 @@ export function install(arm: R5Arm, players: Map<number, R5Player>, calls: Recor
 	}
 	const ctxOn = !arm.ctxModernOnly || factor >= .95;
 	if (arm.astModel && ctxOn) h.r6AstProb = (pid, base) => { count("ast"); return Math.min(.97, base * get(pid).ast / astMean); };
-	if (arm.makeShift || arm.rimCtx || arm.shrink || arm.eraRim || arm.zoneSkill) h.r5MakeShift = (type, pid, assisted) => {
+	// R14: per-season additive two-point make shift (era preset table, fitted with the foul table on 2007 / 2011 / 2025)
+	const mkKeys = arm.makeTable ? Object.keys(arm.makeTable).map(Number).sort((x, y) => x - y) : [];
+	const mkShift = arm.makeTable ? arm.makeTable[String(Math.min(mkKeys.at(-1) ?? 0, Math.max(mkKeys[0] ?? 0, seasonCtx.season)))] ?? 0 : 0;
+	if (arm.makeShift || arm.rimCtx || arm.shrink || arm.eraRim || arm.zoneSkill || arm.makeTable) h.r5MakeShift = (type, pid, assisted) => {
 		count("make");
-		let shift = arm.makeShift?.[type as TwoType] ?? 0;
+		let shift = (arm.makeShift?.[type as TwoType] ?? 0) + mkShift;
 		if (arm.rimCtx && ctxOn && type === "atRim") shift += assisted ? arm.rimCtx[0] : arm.rimCtx[1];
 		if (arm.eraPost && type === "lowPost") shift += arm.eraPost * lf;
 		if (arm.eraMid && type === "midRange") shift += arm.eraMid * lf;
@@ -435,9 +503,14 @@ export function install(arm: R5Arm, players: Map<number, R5Player>, calls: Recor
 		const avg = wsum > 0 ? msum / wsum : 1;
 		for (const [pid, v] of foulMult) foulMult.set(pid, v / avg);
 	}
-	if (arm.foulScale || arm.eraFoul || arm.foulHist || arm.foulModel) h.r5FoulScale = (type, pid) => {
+	// R14: per-season league foul multiplier (era preset table, scripts/114: m = a + b x NBA league FTr, fitted on 2007 / 2011 /
+	// 2025); seasons outside the table take the nearest end value (future seasons = last real season)
+	const ftKeys = arm.foulTable ? Object.keys(arm.foulTable).map(Number).sort((x, y) => x - y) : [];
+	const ftSeason = Math.min(ftKeys.at(-1) ?? 0, Math.max(ftKeys[0] ?? 0, seasonCtx.season));
+	const ftMult = arm.foulTable ? arm.foulTable[String(ftSeason)] ?? 1 : 1;
+	if (arm.foulScale || arm.eraFoul || arm.foulHist || arm.foulModel || arm.foulTable) h.r5FoulScale = (type, pid) => {
 		count("foul");
-		return (arm.foulScale?.[type as TwoType] ?? 1) * (arm.eraFoul ? Math.exp(arm.eraFoul * lf) : 1) * (pid !== undefined ? foulMult.get(pid) ?? 1 : 1);
+		return ftMult * (arm.foulScale?.[type as TwoType] ?? 1) * (arm.eraFoul ? Math.exp(arm.eraFoul * lf) : 1) * (pid !== undefined ? foulMult.get(pid) ?? 1 : 1);
 	};
 	// round 13.1 (open league): every per-player hook falls back to PRODUCTION for players signed after the season-start
 	// prepare (the GameSim replacements treat undefined as "use the original expression"); counted as <hook>_missing.

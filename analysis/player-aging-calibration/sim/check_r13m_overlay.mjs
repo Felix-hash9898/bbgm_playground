@@ -40,7 +40,7 @@ for (const [before] of reps) {
 }
 const lt = readFileSync("src/worker/core/game/loadTeams.ts", "utf8");
 if (lt.split("p2.compositeRating.usage = p2.compositeRating.usage ** 1.9;").length !== 2) fails.push("loadTeams usage anchor");
-if (reps.length !== 10) fails.push(`expected 10 GameSim replacements, found ${reps.length}`);
+if (reps.length !== 11) fails.push(`expected 11 GameSim replacements, found ${reps.length}`); // R15: + DRB outlet hook
 
 const A = JSON.parse(readFileSync(`${R}/sim/formulas/r5_arms.json`, "utf8"));
 for (const a of arms) if (!A[a]) fails.push(`unknown GameSim arm ${a}`);

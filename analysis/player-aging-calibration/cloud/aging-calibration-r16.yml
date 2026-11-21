@@ -1,0 +1,165 @@
+name: aging-calibration-r16
+
+# Release each stage with a new lightweight tag on the same isolated commit.
+# Tag pushes work without a workflow on the repository's default branch.
+on:
+  push:
+    tags:
+      - aging-r16-pilot
+      - 'aging-r16-core-*'
+      - 'aging-r16-long-*'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: aging-calibration-r16
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  R: analysis/player-aging-calibration
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      stage: ${{ steps.plan.outputs.stage }}
+      freeze: ${{ steps.plan.outputs.freeze }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: plan
+        name: Verify freeze, build matrix, and verify prior-stage authorization receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          freeze="$(python3 -B "$R/cloud/r16_freeze.py" verify)"
+          case "$GITHUB_REF_NAME" in
+            aging-r16-pilot) stage=pilot ;;
+            *)
+              [[ "$GITHUB_REF_NAME" =~ ^aging-r16-(core|long)-([1-9][0-9]*)$ ]]
+              stage="${BASH_REMATCH[1]}"
+              run="${BASH_REMATCH[2]}"
+              if [[ "$stage" == core ]]; then previous=pilot; else previous=core; fi
+              evidence="$(gh run view "$run" --repo "$GITHUB_REPOSITORY" --json conclusion,headSha,event,workflowName \
+                --jq '[.conclusion,.headSha,.event,.workflowName] | join(" ")')"
+              [[ "$evidence" == "success $GITHUB_SHA push aging-calibration-r16" ]]
+              gh run download "$run" --repo "$GITHUB_REPOSITORY" --name "r16-${previous}-score" --dir prior
+              python3 -B "$R/cloud/r16_acceptance.py" prior "$stage" prior/receipt.json "$freeze" "$run" "$GITHUB_SHA"
+              ;;
+          esac
+          {
+            echo "freeze=$freeze"
+            echo "stage=$stage"
+            echo "matrix=$(python3 -B "$R/cloud/r16_acceptance.py" matrix "$stage")"
+          } >> "$GITHUB_OUTPUT"
+
+  day:
+    needs: prepare
+    if: needs.prepare.outputs.stage == 'pilot'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.0"
+          cache: pnpm
+      - run: |
+          pnpm install --frozen-lockfile
+          node --run pre-test
+          node "$R/sim/check_r13m_overlay.mjs" three_era_p_cap2,r15_D_ef_r08_fm
+      - name: Check both development arms and one NBA opening day
+        run: |
+          mkdir day-probe
+          for arm in A B C; do
+            bash "$R/cloud/run_r16_acceptance.sh" "$arm" 2024 41 1 "day-probe/$arm" day
+          done
+          python3 -B "$R/cloud/r16_acceptance.py" probe day-probe
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r16-day
+          path: day-probe
+          retention-days: 14
+          overwrite: true
+
+  run:
+    needs: [prepare, day]
+    if: always() && needs.prepare.result == 'success' && (needs.day.result == 'success' || (needs.prepare.outputs.stage != 'pilot' && needs.day.result == 'skipped'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      ARM: ${{ matrix.arm }}
+      START: ${{ matrix.start }}
+      SEED: ${{ matrix.seed }}
+      YEARS: ${{ matrix.years }}
+      FREEZE: ${{ needs.prepare.outputs.freeze }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.0"
+          cache: pnpm
+      - run: |
+          pnpm install --frozen-lockfile
+          node --run pre-test
+      - name: Play complete spectator league
+        run: |
+          bash "$R/cloud/run_r16_acceptance.sh" "$ARM" "$START" "$SEED" "$YEARS" league
+          printf '%s\n' "$FREEZE" > league/freeze.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r16-cell-${{ matrix.start }}-${{ matrix.seed }}-${{ matrix.arm }}
+          path: league
+          retention-days: 14
+          overwrite: true
+
+  score:
+    needs: [prepare, run]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      STAGE: ${{ needs.prepare.outputs.stage }}
+      FREEZE: ${{ needs.prepare.outputs.freeze }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: r16-cell-*
+          path: cells
+      - name: Score same-opening treatment contrasts and check progression gates
+        run: python3 -B "$R/cloud/r16_acceptance.py" score "$STAGE" cells score "$FREEZE"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r16-${{ env.STAGE }}-score
+          path: score
+          retention-days: 30
+          overwrite: true

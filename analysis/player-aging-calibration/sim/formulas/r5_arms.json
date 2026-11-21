@@ -1,2299 +1,3184 @@
 {
-	"unchanged": {},
-	"r4rev": {
-		"three": "r4rev"
-	},
-	"mixC1": {
-		"three": "r4rev",
-		"mix": "C1"
-	},
-	"mixC2": {
-		"three": "r4rev",
-		"mix": "C2"
-	},
-	"mixC1cal": {
-		"three": "r4rev",
-		"mix": "C1",
-		"makeShift": {
-			"atRim": 0.029,
-			"lowPost": 0.041,
-			"midRange": -0.079
-		},
-		"foulScale": {
-			"atRim": 0.85,
-			"lowPost": 0.85,
-			"midRange": 0.85
-		}
-	},
-	"mixC2cal": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.032,
-			"lowPost": 0.04,
-			"midRange": -0.063
-		},
-		"foulScale": {
-			"atRim": 0.85,
-			"lowPost": 0.85,
-			"midRange": 0.85
-		}
-	},
-	"mixC2cal_pg3": {
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.032,
-			"lowPost": 0.04,
-			"midRange": -0.063
-		},
-		"foulScale": {
-			"atRim": 0.85,
-			"lowPost": 0.85,
-			"midRange": 0.85
-		}
-	},
-	"mixC2calF": {
-		"three": "r4rev",
-		"mix": "C2",
-		"forced": 0.3,
-		"makeShift": {
-			"atRim": 0.032,
-			"lowPost": 0.04,
-			"midRange": -0.063
-		},
-		"foulScale": {
-			"atRim": 0.85,
-			"lowPost": 0.85,
-			"midRange": 0.85
-		}
-	},
-	"mixC2cal2": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		}
-	},
-	"mixC1cal2": {
-		"three": "r4rev",
-		"mix": "C1",
-		"makeShift": {
-			"atRim": 0.044,
-			"lowPost": 0.05,
-			"midRange": -0.072
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		}
-	},
-	"mixC2cal2_pg3": {
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		}
-	},
-	"mixC2cal2F": {
-		"three": "r4rev",
-		"mix": "C2",
-		"forced": 0.3,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		}
-	},
-	"final": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		}
-	},
-	"final_noeramix": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		}
-	},
-	"final_foul145": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 1.2847,
-			"lowPost": 1.2847,
-			"midRange": 1.2847,
-			"threePointer": 1.45
-		}
-	},
-	"final_foul165": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 1.4619,
-			"lowPost": 1.4619,
-			"midRange": 1.4619,
-			"threePointer": 1.65
-		}
-	},
-	"final_eraFoul2005": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 1.3733,
-			"lowPost": 1.3733,
-			"midRange": 1.3733,
-			"threePointer": 1.55
-		}
-	},
-	"r6ctx": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		]
-	},
-	"r6shrink": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4
-		}
-	},
-	"r6both": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4
-		}
-	},
-	"r6ctx_c": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.059,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		]
-	},
-	"r6shrink_c": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.06,
-			"midRange": -0.012
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4
-		}
-	},
-	"r6both_c": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4
-		}
-	},
-	"finalEra_r08": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"eraFoul": -0.655,
-		"eraRim": 0.08
-	},
-	"finalEra_r12": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"eraFoul": -0.655,
-		"eraRim": 0.12
-	},
-	"finalEra_r16": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"eraFoul": -0.655,
-		"eraRim": 0.16
-	},
-	"r6style": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4
-		},
-		"zoneHist": 150
-	},
-	"r6skill": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		}
-	},
-	"r6skill_cs": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"choiceState": true
-	},
-	"r6skill_csf": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"choiceState": true,
-		"skillFrozen": true
-	},
-	"r6dyn": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.385,
-			"mid": 0.365,
-			"post": 0.267
-		}
-	},
-	"r6dyn2": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		}
-	},
-	"r6skill_nh": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true
-	},
-	"eraJ_p35_r10": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"eraFoul": -0.35,
-		"eraRim": 0.1
-	},
-	"eraJ_p35_r16": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"eraFoul": -0.35,
-		"eraRim": 0.16
-	},
-	"eraJ_p50_r10": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"eraFoul": -0.5,
-		"eraRim": 0.1
-	},
-	"eraJ_p50_r16": {
-		"three": "r4era",
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"eraFoul": -0.5,
-		"eraRim": 0.16
-	},
-	"r6blk": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		}
-	},
-	"r6blk_c": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008
-	},
-	"r6foul": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"foulHist": 300
-	},
-	"r6foul_c": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 1.135,
-			"lowPost": 1.135,
-			"midRange": 1.135,
-			"threePointer": 1.22
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"foulHist": 300
-	},
-	"r6foul2": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"foulModel": 300
-	},
-	"r6usg": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"usageModel": 500
-	},
-	"r6dyn2_um": {
-		"three": "r4rev",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.058,
-			"lowPost": 0.065,
-			"midRange": -0.008
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.048,
-			-0.072
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"usageMap": true
-	},
-	"r7u": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.5,
-		"eraRim": 0.1,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		}
-	},
-	"r7u_drift": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.5,
-		"eraRim": 0.1,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"drift": true
-	},
-	"r7u_eraR": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.5,
-		"eraRim": 0.1,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"eraRatio": true
-	},
-	"r7u_noCtx": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.5,
-		"eraRim": 0.1,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		}
-	},
-	"r7u_noEraEff": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		}
-	},
-	"r7u_noShrink": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.5,
-		"eraRim": 0.1,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		}
-	},
-	"r7u2": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true
-	},
-	"r7u3": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true
-	},
-	"r7u3_e2_m4": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 2,
-		"eraRatioMix": 0.4
-	},
-	"r7u3_e2_m6": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 2,
-		"eraRatioMix": 0.6
-	},
-	"r7u3_e3_m4": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.4
-	},
-	"r7u3_e3_m6": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6
-	},
-	"r7u4": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6
-	},
-	"r7u4h": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.22
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6,
-		"histZone": true
-	},
-	"r7u4h_p32": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.32
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6,
-		"histZone": true
-	},
-	"r7u4h_p42": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.42
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6,
-		"histZone": true
-	},
-	"r7u5": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.42
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6,
-		"histZone": true
-	},
-	"r7u6": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.42
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6,
-		"histZone": true,
-		"eraMixLeague": true
-	},
-	"r7u5m": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.42
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6,
-		"histZone": true,
-		"innovMean": true
-	},
-	"r7u6m": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.42
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6,
-		"histZone": true,
-		"eraMixLeague": true,
-		"innovMean": true
-	},
-	"r7u7": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.42
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": 0.024,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6,
-		"histZone": true,
-		"eraMixLeague": true,
-		"innovMean": true,
-		"eraMixPrior": true
-	},
-	"r7u8": {
-		"three": "r4era",
-		"mix": "C2",
-		"makeShift": {
-			"atRim": 0.096,
-			"lowPost": 0.088,
-			"midRange": -0.039
-		},
-		"foulScale": {
-			"atRim": 0.9303,
-			"lowPost": 0.9303,
-			"midRange": 0.9303
-		},
-		"astModel": true,
-		"rimCtx": [
-			0.032,
-			-0.048
-		],
-		"shrink": {
-			"midRange": 0.25,
-			"lowPost": 0.4,
-			"atRim": 0.5
-		},
-		"zoneHist": 150,
-		"zoneSkill": {
-			"atRim": 120,
-			"lowPost": 90,
-			"midRange": 238
-		},
-		"shrinkNeedsHist": true,
-		"blockWeights": {
-			"atRim": 1.72,
-			"tipIn": 1.72,
-			"putBack": 1.72,
-			"lowPost": 1.94,
-			"midRange": 0.42,
-			"threePointer": 0.15
-		},
-		"threeShift": -0.008,
-		"era": true,
-		"eraFoul": -0.63,
-		"eraRim": 0.143,
-		"choiceState": true,
-		"skillFrozen": true,
-		"innov": {
-			"three": 0.305,
-			"mid": 0.235,
-			"post": 0.42
-		},
-		"eraPost": 0.068,
-		"eraMid": 0.01,
-		"eraThree": -0.0102,
-		"ctxModernOnly": true,
-		"eraRatio": true,
-		"choiceState3": true,
-		"eraRatio3": 3,
-		"eraRatioMix": 0.6,
-		"histZone": true,
-		"innovMean": true
-	},
-	"three_era": {
-		"three": "r4era"
-	},
-	"three_dyn": {
-		"three": "r4era",
-		"choiceState3": true,
-		"eraRatio": true,
-		"eraRatio3": 3,
-		"innov": {
-			"three": 0.305
-		},
-		"innovMean": true
-	},
-	"three_era_p": {
-		"three": "r4era",
-		"pScale": true
-	},
-	"three_dyn_p": {
-		"three": "r4era",
-		"choiceState3": true,
-		"eraRatio": true,
-		"eraRatio3": 3,
-		"innov": {
-			"three": 0.305
-		},
-		"innovMean": true,
-		"pScale": true
-	},
-	"three_dyn_q": {
-		"three": "r4era",
-		"choiceState3": true,
-		"eraRatio": true,
-		"eraRatio3": 3,
-		"innov": {
-			"three": 0.305
-		},
-		"innovMean": true,
-		"pScale": true,
-		"eraLeague3": true
-	},
-	"three_anchor": {
-		"three": "r4era",
-		"choiceState3": true,
-		"innov": {
-			"three": 0.305
-		},
-		"innovMean": true,
-		"pScale": true,
-		"anchor3": true
-	},
-	"three_anchor_s": {
-		"three": "r4era",
-		"pScale": true,
-		"anchor3": true
-	},
-	"three_anchor_rel": {
-		"three": "r4era",
-		"choiceState3": true,
-		"innov": {
-			"three": 0.305
-		},
-		"innovMean": true,
-		"pScale": true,
-		"anchor3": true,
-		"anchor3rel": true
-	},
-	"three_era_p_cap2": {
-		"three": "r4era",
-		"pScale": true,
-		"priorCapPg": 2
-	},
-	"three_anchor_rel_cap2": {
-		"three": "r4era",
-		"choiceState3": true,
-		"innov": {
-			"three": 0.305
-		},
-		"innovMean": true,
-		"pScale": true,
-		"anchor3": true,
-		"anchor3rel": true,
-		"priorCapPg": 2
-	},
-	"three_era_p_cap2_mix": {
-		"three": "r4era",
-		"pScale": true,
-		"priorCapPg": 2,
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		}
-	},
-	"three_anchor_rel_cap2_mix": {
-		"three": "r4era",
-		"choiceState3": true,
-		"innov": {
-			"three": 0.305
-		},
-		"innovMean": true,
-		"pScale": true,
-		"anchor3": true,
-		"anchor3rel": true,
-		"priorCapPg": 2,
-		"mix": "C2",
-		"era": true,
-		"makeShift": {
-			"atRim": 0.046,
-			"lowPost": 0.049,
-			"midRange": -0.058
-		},
-		"foulScale": {
-			"atRim": 0.886,
-			"lowPost": 0.886,
-			"midRange": 0.886
-		}
-	}
+ "unchanged": {},
+ "r4rev": {
+  "three": "r4rev"
+ },
+ "mixC1": {
+  "three": "r4rev",
+  "mix": "C1"
+ },
+ "mixC2": {
+  "three": "r4rev",
+  "mix": "C2"
+ },
+ "mixC1cal": {
+  "three": "r4rev",
+  "mix": "C1",
+  "makeShift": {
+   "atRim": 0.029,
+   "lowPost": 0.041,
+   "midRange": -0.079
+  },
+  "foulScale": {
+   "atRim": 0.85,
+   "lowPost": 0.85,
+   "midRange": 0.85
+  }
+ },
+ "mixC2cal": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.032,
+   "lowPost": 0.04,
+   "midRange": -0.063
+  },
+  "foulScale": {
+   "atRim": 0.85,
+   "lowPost": 0.85,
+   "midRange": 0.85
+  }
+ },
+ "mixC2cal_pg3": {
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.032,
+   "lowPost": 0.04,
+   "midRange": -0.063
+  },
+  "foulScale": {
+   "atRim": 0.85,
+   "lowPost": 0.85,
+   "midRange": 0.85
+  }
+ },
+ "mixC2calF": {
+  "three": "r4rev",
+  "mix": "C2",
+  "forced": 0.3,
+  "makeShift": {
+   "atRim": 0.032,
+   "lowPost": 0.04,
+   "midRange": -0.063
+  },
+  "foulScale": {
+   "atRim": 0.85,
+   "lowPost": 0.85,
+   "midRange": 0.85
+  }
+ },
+ "mixC2cal2": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  }
+ },
+ "mixC1cal2": {
+  "three": "r4rev",
+  "mix": "C1",
+  "makeShift": {
+   "atRim": 0.044,
+   "lowPost": 0.05,
+   "midRange": -0.072
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  }
+ },
+ "mixC2cal2_pg3": {
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  }
+ },
+ "mixC2cal2F": {
+  "three": "r4rev",
+  "mix": "C2",
+  "forced": 0.3,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  }
+ },
+ "final": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  }
+ },
+ "final_noeramix": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  }
+ },
+ "final_foul145": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 1.2847,
+   "lowPost": 1.2847,
+   "midRange": 1.2847,
+   "threePointer": 1.45
+  }
+ },
+ "final_foul165": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 1.4619,
+   "lowPost": 1.4619,
+   "midRange": 1.4619,
+   "threePointer": 1.65
+  }
+ },
+ "final_eraFoul2005": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 1.3733,
+   "lowPost": 1.3733,
+   "midRange": 1.3733,
+   "threePointer": 1.55
+  }
+ },
+ "r6ctx": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ]
+ },
+ "r6shrink": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4
+  }
+ },
+ "r6both": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4
+  }
+ },
+ "r6ctx_c": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.059,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ]
+ },
+ "r6shrink_c": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.06,
+   "midRange": -0.012
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4
+  }
+ },
+ "r6both_c": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4
+  }
+ },
+ "finalEra_r08": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.655,
+  "eraRim": 0.08
+ },
+ "finalEra_r12": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.655,
+  "eraRim": 0.12
+ },
+ "finalEra_r16": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.655,
+  "eraRim": 0.16
+ },
+ "r6style": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4
+  },
+  "zoneHist": 150
+ },
+ "r6skill": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  }
+ },
+ "r6skill_cs": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "choiceState": true
+ },
+ "r6skill_csf": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "choiceState": true,
+  "skillFrozen": true
+ },
+ "r6dyn": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.385,
+   "mid": 0.365,
+   "post": 0.267
+  }
+ },
+ "r6dyn2": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  }
+ },
+ "r6skill_nh": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true
+ },
+ "eraJ_p35_r10": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.35,
+  "eraRim": 0.1
+ },
+ "eraJ_p35_r16": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.35,
+  "eraRim": 0.16
+ },
+ "eraJ_p50_r10": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.5,
+  "eraRim": 0.1
+ },
+ "eraJ_p50_r16": {
+  "three": "r4era",
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.5,
+  "eraRim": 0.16
+ },
+ "r6blk": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  }
+ },
+ "r6blk_c": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008
+ },
+ "r6foul": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "foulHist": 300
+ },
+ "r6foul_c": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 1.135,
+   "lowPost": 1.135,
+   "midRange": 1.135,
+   "threePointer": 1.22
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "foulHist": 300
+ },
+ "r6foul2": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "foulModel": 300
+ },
+ "r6usg": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "usageModel": 500
+ },
+ "r6dyn2_um": {
+  "three": "r4rev",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.058,
+   "lowPost": 0.065,
+   "midRange": -0.008
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.048,
+   -0.072
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "usageMap": true
+ },
+ "r7u": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.5,
+  "eraRim": 0.1,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  }
+ },
+ "r7u_drift": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.5,
+  "eraRim": 0.1,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "drift": true
+ },
+ "r7u_eraR": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.5,
+  "eraRim": 0.1,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "eraRatio": true
+ },
+ "r7u_noCtx": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.5,
+  "eraRim": 0.1,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  }
+ },
+ "r7u_noEraEff": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  }
+ },
+ "r7u_noShrink": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.5,
+  "eraRim": 0.1,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  }
+ },
+ "r7u2": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true
+ },
+ "r7u3": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true
+ },
+ "r7u3_e2_m4": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 2,
+  "eraRatioMix": 0.4
+ },
+ "r7u3_e2_m6": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 2,
+  "eraRatioMix": 0.6
+ },
+ "r7u3_e3_m4": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.4
+ },
+ "r7u3_e3_m6": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6
+ },
+ "r7u4": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6
+ },
+ "r7u4h": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.22
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6,
+  "histZone": true
+ },
+ "r7u4h_p32": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.32
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6,
+  "histZone": true
+ },
+ "r7u4h_p42": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.42
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6,
+  "histZone": true
+ },
+ "r7u5": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.42
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6,
+  "histZone": true
+ },
+ "r7u6": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.42
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6,
+  "histZone": true,
+  "eraMixLeague": true
+ },
+ "r7u5m": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.42
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6,
+  "histZone": true,
+  "innovMean": true
+ },
+ "r7u6m": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.42
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6,
+  "histZone": true,
+  "eraMixLeague": true,
+  "innovMean": true
+ },
+ "r7u7": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.42
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": 0.024,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6,
+  "histZone": true,
+  "eraMixLeague": true,
+  "innovMean": true,
+  "eraMixPrior": true
+ },
+ "r7u8": {
+  "three": "r4era",
+  "mix": "C2",
+  "makeShift": {
+   "atRim": 0.096,
+   "lowPost": 0.088,
+   "midRange": -0.039
+  },
+  "foulScale": {
+   "atRim": 0.9303,
+   "lowPost": 0.9303,
+   "midRange": 0.9303
+  },
+  "astModel": true,
+  "rimCtx": [
+   0.032,
+   -0.048
+  ],
+  "shrink": {
+   "midRange": 0.25,
+   "lowPost": 0.4,
+   "atRim": 0.5
+  },
+  "zoneHist": 150,
+  "zoneSkill": {
+   "atRim": 120,
+   "lowPost": 90,
+   "midRange": 238
+  },
+  "shrinkNeedsHist": true,
+  "blockWeights": {
+   "atRim": 1.72,
+   "tipIn": 1.72,
+   "putBack": 1.72,
+   "lowPost": 1.94,
+   "midRange": 0.42,
+   "threePointer": 0.15
+  },
+  "threeShift": -0.008,
+  "era": true,
+  "eraFoul": -0.63,
+  "eraRim": 0.143,
+  "choiceState": true,
+  "skillFrozen": true,
+  "innov": {
+   "three": 0.305,
+   "mid": 0.235,
+   "post": 0.42
+  },
+  "eraPost": 0.068,
+  "eraMid": 0.01,
+  "eraThree": -0.0102,
+  "ctxModernOnly": true,
+  "eraRatio": true,
+  "choiceState3": true,
+  "eraRatio3": 3,
+  "eraRatioMix": 0.6,
+  "histZone": true,
+  "innovMean": true
+ },
+ "three_era": {
+  "three": "r4era"
+ },
+ "three_dyn": {
+  "three": "r4era",
+  "choiceState3": true,
+  "eraRatio": true,
+  "eraRatio3": 3,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true
+ },
+ "three_era_p": {
+  "three": "r4era",
+  "pScale": true
+ },
+ "three_dyn_p": {
+  "three": "r4era",
+  "choiceState3": true,
+  "eraRatio": true,
+  "eraRatio3": 3,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true
+ },
+ "three_dyn_q": {
+  "three": "r4era",
+  "choiceState3": true,
+  "eraRatio": true,
+  "eraRatio3": 3,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "eraLeague3": true
+ },
+ "three_anchor": {
+  "three": "r4era",
+  "choiceState3": true,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "anchor3": true
+ },
+ "three_anchor_s": {
+  "three": "r4era",
+  "pScale": true,
+  "anchor3": true
+ },
+ "three_anchor_rel": {
+  "three": "r4era",
+  "choiceState3": true,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "anchor3": true,
+  "anchor3rel": true
+ },
+ "three_era_p_cap2": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2
+ },
+ "three_anchor_rel_cap2": {
+  "three": "r4era",
+  "choiceState3": true,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "anchor3": true,
+  "anchor3rel": true,
+  "priorCapPg": 2
+ },
+ "three_era_p_cap2_mix": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  }
+ },
+ "three_anchor_rel_cap2_mix": {
+  "three": "r4era",
+  "choiceState3": true,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "anchor3": true,
+  "anchor3rel": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  }
+ },
+ "three_era_p_cap2_mix_ft": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.4327,
+   "2001": 1.4372,
+   "2002": 1.3266,
+   "2003": 1.3934,
+   "2004": 1.3994,
+   "2005": 1.5504,
+   "2006": 1.6124,
+   "2007": 1.5708,
+   "2008": 1.4193,
+   "2009": 1.4171,
+   "2010": 1.3787,
+   "2011": 1.3759,
+   "2012": 1.2025,
+   "2013": 1.1642,
+   "2014": 1.2626,
+   "2015": 1.1849,
+   "2016": 1.2053,
+   "2017": 1.1649,
+   "2018": 1.0307,
+   "2019": 1.0791,
+   "2020": 1.0902,
+   "2021": 0.9942,
+   "2022": 1.004,
+   "2023": 1.1353,
+   "2024": 0.9763,
+   "2025": 0.9659
+  }
+ },
+ "three_anchor_rel_cap2_mix_ft": {
+  "three": "r4era",
+  "choiceState3": true,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "anchor3": true,
+  "anchor3rel": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.4327,
+   "2001": 1.4372,
+   "2002": 1.3266,
+   "2003": 1.3934,
+   "2004": 1.3994,
+   "2005": 1.5504,
+   "2006": 1.6124,
+   "2007": 1.5708,
+   "2008": 1.4193,
+   "2009": 1.4171,
+   "2010": 1.3787,
+   "2011": 1.3759,
+   "2012": 1.2025,
+   "2013": 1.1642,
+   "2014": 1.2626,
+   "2015": 1.1849,
+   "2016": 1.2053,
+   "2017": 1.1649,
+   "2018": 1.0307,
+   "2019": 1.0791,
+   "2020": 1.0902,
+   "2021": 0.9942,
+   "2022": 1.004,
+   "2023": 1.1353,
+   "2024": 0.9763,
+   "2025": 0.9659
+  }
+ },
+ "three_era_p_cap2_mix_ftm": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.4327,
+   "2001": 1.4372,
+   "2002": 1.3266,
+   "2003": 1.3934,
+   "2004": 1.3994,
+   "2005": 1.5504,
+   "2006": 1.6124,
+   "2007": 1.5708,
+   "2008": 1.4193,
+   "2009": 1.4171,
+   "2010": 1.3787,
+   "2011": 1.3759,
+   "2012": 1.2025,
+   "2013": 1.1642,
+   "2014": 1.2626,
+   "2015": 1.1849,
+   "2016": 1.2053,
+   "2017": 1.1649,
+   "2018": 1.0307,
+   "2019": 1.0791,
+   "2020": 1.0902,
+   "2021": 0.9942,
+   "2022": 1.004,
+   "2023": 1.1353,
+   "2024": 0.9763,
+   "2025": 0.9659
+  },
+  "makeTable": {
+   "2000": -0.0283,
+   "2001": -0.0313,
+   "2002": -0.0294,
+   "2003": -0.0306,
+   "2004": -0.0319,
+   "2005": -0.0274,
+   "2006": -0.0238,
+   "2007": -0.0206,
+   "2008": -0.021,
+   "2009": -0.0206,
+   "2010": -0.0177,
+   "2011": -0.0198,
+   "2012": -0.0243,
+   "2013": -0.0216,
+   "2014": -0.0195,
+   "2015": -0.0206,
+   "2016": -0.0179,
+   "2017": -0.0126,
+   "2018": -0.0095,
+   "2019": -0.0054,
+   "2020": -0.0035,
+   "2021": -0.0007,
+   "2022": 0.0003,
+   "2023": 0.0071,
+   "2024": 0.006,
+   "2025": 0.0059
+  }
+ },
+ "three_anchor_rel_cap2_mix_ftm": {
+  "three": "r4era",
+  "choiceState3": true,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "anchor3": true,
+  "anchor3rel": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.4327,
+   "2001": 1.4372,
+   "2002": 1.3266,
+   "2003": 1.3934,
+   "2004": 1.3994,
+   "2005": 1.5504,
+   "2006": 1.6124,
+   "2007": 1.5708,
+   "2008": 1.4193,
+   "2009": 1.4171,
+   "2010": 1.3787,
+   "2011": 1.3759,
+   "2012": 1.2025,
+   "2013": 1.1642,
+   "2014": 1.2626,
+   "2015": 1.1849,
+   "2016": 1.2053,
+   "2017": 1.1649,
+   "2018": 1.0307,
+   "2019": 1.0791,
+   "2020": 1.0902,
+   "2021": 0.9942,
+   "2022": 1.004,
+   "2023": 1.1353,
+   "2024": 0.9763,
+   "2025": 0.9659
+  },
+  "makeTable": {
+   "2000": -0.0283,
+   "2001": -0.0313,
+   "2002": -0.0294,
+   "2003": -0.0306,
+   "2004": -0.0319,
+   "2005": -0.0274,
+   "2006": -0.0238,
+   "2007": -0.0206,
+   "2008": -0.021,
+   "2009": -0.0206,
+   "2010": -0.0177,
+   "2011": -0.0198,
+   "2012": -0.0243,
+   "2013": -0.0216,
+   "2014": -0.0195,
+   "2015": -0.0206,
+   "2016": -0.0179,
+   "2017": -0.0126,
+   "2018": -0.0095,
+   "2019": -0.0054,
+   "2020": -0.0035,
+   "2021": -0.0007,
+   "2022": 0.0003,
+   "2023": 0.0071,
+   "2024": 0.006,
+   "2025": 0.0059
+  }
+ },
+ "three_era_p_cap2_mix_ftm2": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.3867,
+   "2001": 1.3909,
+   "2002": 1.2889,
+   "2003": 1.3506,
+   "2004": 1.3561,
+   "2005": 1.4952,
+   "2006": 1.5524,
+   "2007": 1.5141,
+   "2008": 1.3744,
+   "2009": 1.3723,
+   "2010": 1.337,
+   "2011": 1.3344,
+   "2012": 1.1746,
+   "2013": 1.1392,
+   "2014": 1.23,
+   "2015": 1.1583,
+   "2016": 1.1771,
+   "2017": 1.1399,
+   "2018": 1.0161,
+   "2019": 1.0607,
+   "2020": 1.071,
+   "2021": 0.9825,
+   "2022": 0.9915,
+   "2023": 1.1126,
+   "2024": 0.966,
+   "2025": 0.9564
+  },
+  "makeTable": {
+   "2000": -0.0283,
+   "2001": -0.0313,
+   "2002": -0.0294,
+   "2003": -0.0306,
+   "2004": -0.0319,
+   "2005": -0.0274,
+   "2006": -0.0238,
+   "2007": -0.0206,
+   "2008": -0.021,
+   "2009": -0.0206,
+   "2010": -0.0177,
+   "2011": -0.0198,
+   "2012": -0.0243,
+   "2013": -0.0216,
+   "2014": -0.0195,
+   "2015": -0.0206,
+   "2016": -0.0179,
+   "2017": -0.0126,
+   "2018": -0.0095,
+   "2019": -0.0054,
+   "2020": -0.0035,
+   "2021": -0.0007,
+   "2022": 0.0003,
+   "2023": 0.0071,
+   "2024": 0.006,
+   "2025": 0.0059
+  }
+ },
+ "three_anchor_rel_cap2_mix_ftm2": {
+  "three": "r4era",
+  "choiceState3": true,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "anchor3": true,
+  "anchor3rel": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.3867,
+   "2001": 1.3909,
+   "2002": 1.2889,
+   "2003": 1.3506,
+   "2004": 1.3561,
+   "2005": 1.4952,
+   "2006": 1.5524,
+   "2007": 1.5141,
+   "2008": 1.3744,
+   "2009": 1.3723,
+   "2010": 1.337,
+   "2011": 1.3344,
+   "2012": 1.1746,
+   "2013": 1.1392,
+   "2014": 1.23,
+   "2015": 1.1583,
+   "2016": 1.1771,
+   "2017": 1.1399,
+   "2018": 1.0161,
+   "2019": 1.0607,
+   "2020": 1.071,
+   "2021": 0.9825,
+   "2022": 0.9915,
+   "2023": 1.1126,
+   "2024": 0.966,
+   "2025": 0.9564
+  },
+  "makeTable": {
+   "2000": -0.0283,
+   "2001": -0.0313,
+   "2002": -0.0294,
+   "2003": -0.0306,
+   "2004": -0.0319,
+   "2005": -0.0274,
+   "2006": -0.0238,
+   "2007": -0.0206,
+   "2008": -0.021,
+   "2009": -0.0206,
+   "2010": -0.0177,
+   "2011": -0.0198,
+   "2012": -0.0243,
+   "2013": -0.0216,
+   "2014": -0.0195,
+   "2015": -0.0206,
+   "2016": -0.0179,
+   "2017": -0.0126,
+   "2018": -0.0095,
+   "2019": -0.0054,
+   "2020": -0.0035,
+   "2021": -0.0007,
+   "2022": 0.0003,
+   "2023": 0.0071,
+   "2024": 0.006,
+   "2025": 0.0059
+  }
+ },
+ "three_era_p_cap2_mix_ftm2f": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.3867,
+   "2001": 1.3909,
+   "2002": 1.2889,
+   "2003": 1.3506,
+   "2004": 1.3561,
+   "2005": 1.4952,
+   "2006": 1.5524,
+   "2007": 1.5141,
+   "2008": 1.3744,
+   "2009": 1.3723,
+   "2010": 1.337,
+   "2011": 1.3344,
+   "2012": 1.1746,
+   "2013": 1.1392,
+   "2014": 1.23,
+   "2015": 1.1583,
+   "2016": 1.1771,
+   "2017": 1.1399,
+   "2018": 1.0161,
+   "2019": 1.0607,
+   "2020": 1.071,
+   "2021": 0.9825,
+   "2022": 0.9915,
+   "2023": 1.1126,
+   "2024": 0.966,
+   "2025": 0.9564
+  },
+  "makeTable": {
+   "2000": -0.0283,
+   "2001": -0.0313,
+   "2002": -0.0294,
+   "2003": -0.0306,
+   "2004": -0.0319,
+   "2005": -0.0274,
+   "2006": -0.0238,
+   "2007": -0.0206,
+   "2008": -0.021,
+   "2009": -0.0206,
+   "2010": -0.0177,
+   "2011": -0.0198,
+   "2012": -0.0243,
+   "2013": -0.0216,
+   "2014": -0.0195,
+   "2015": -0.0206,
+   "2016": -0.0179,
+   "2017": -0.0126,
+   "2018": -0.0095,
+   "2019": -0.0054,
+   "2020": -0.0035,
+   "2021": -0.0007,
+   "2022": 0.0003,
+   "2023": 0.0071,
+   "2024": 0.006,
+   "2025": 0.0059
+  },
+  "foulModel": 300
+ },
+ "three_anchor_rel_cap2_mix_ftm2f": {
+  "three": "r4era",
+  "choiceState3": true,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "anchor3": true,
+  "anchor3rel": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.3867,
+   "2001": 1.3909,
+   "2002": 1.2889,
+   "2003": 1.3506,
+   "2004": 1.3561,
+   "2005": 1.4952,
+   "2006": 1.5524,
+   "2007": 1.5141,
+   "2008": 1.3744,
+   "2009": 1.3723,
+   "2010": 1.337,
+   "2011": 1.3344,
+   "2012": 1.1746,
+   "2013": 1.1392,
+   "2014": 1.23,
+   "2015": 1.1583,
+   "2016": 1.1771,
+   "2017": 1.1399,
+   "2018": 1.0161,
+   "2019": 1.0607,
+   "2020": 1.071,
+   "2021": 0.9825,
+   "2022": 0.9915,
+   "2023": 1.1126,
+   "2024": 0.966,
+   "2025": 0.9564
+  },
+  "makeTable": {
+   "2000": -0.0283,
+   "2001": -0.0313,
+   "2002": -0.0294,
+   "2003": -0.0306,
+   "2004": -0.0319,
+   "2005": -0.0274,
+   "2006": -0.0238,
+   "2007": -0.0206,
+   "2008": -0.021,
+   "2009": -0.0206,
+   "2010": -0.0177,
+   "2011": -0.0198,
+   "2012": -0.0243,
+   "2013": -0.0216,
+   "2014": -0.0195,
+   "2015": -0.0206,
+   "2016": -0.0179,
+   "2017": -0.0126,
+   "2018": -0.0095,
+   "2019": -0.0054,
+   "2020": -0.0035,
+   "2021": -0.0007,
+   "2022": 0.0003,
+   "2023": 0.0071,
+   "2024": 0.006,
+   "2025": 0.0059
+  },
+  "foulModel": 300
+ },
+ "r15_mix": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true
+ },
+ "r15_mix_make": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  }
+ },
+ "r15_mix_foul": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  }
+ },
+ "r15_D_fm": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulModel": 300
+ },
+ "r15_D_ef": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.655
+ },
+ "r15_D_ef_fm": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.655,
+  "foulModel": 300
+ },
+ "r15_D_ef_r08": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.655,
+  "eraRim": 0.08
+ },
+ "r15_D_ef_r08_fm": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.655,
+  "eraRim": 0.08,
+  "foulModel": 300
+ },
+ "r15_ftm_lag": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.5318,
+   "2001": 1.3867,
+   "2002": 1.3909,
+   "2003": 1.2889,
+   "2004": 1.3505,
+   "2005": 1.3561,
+   "2006": 1.4952,
+   "2007": 1.5524,
+   "2008": 1.514,
+   "2009": 1.3743,
+   "2010": 1.3723,
+   "2011": 1.337,
+   "2012": 1.3343,
+   "2013": 1.1745,
+   "2014": 1.1392,
+   "2015": 1.2299,
+   "2016": 1.1583,
+   "2017": 1.1771,
+   "2018": 1.1398,
+   "2019": 1.0161,
+   "2020": 1.0607,
+   "2021": 1.0709,
+   "2022": 0.9825,
+   "2023": 0.9915,
+   "2024": 1.1125,
+   "2025": 0.966
+  },
+  "makeTable": {
+   "2000": -0.0331,
+   "2001": -0.0283,
+   "2002": -0.0313,
+   "2003": -0.0294,
+   "2004": -0.0305,
+   "2005": -0.0319,
+   "2006": -0.0274,
+   "2007": -0.0238,
+   "2008": -0.0205,
+   "2009": -0.021,
+   "2010": -0.0206,
+   "2011": -0.0177,
+   "2012": -0.0197,
+   "2013": -0.0243,
+   "2014": -0.0216,
+   "2015": -0.0195,
+   "2016": -0.0206,
+   "2017": -0.0179,
+   "2018": -0.0126,
+   "2019": -0.0095,
+   "2020": -0.0054,
+   "2021": -0.0035,
+   "2022": -0.0007,
+   "2023": 0.0004,
+   "2024": 0.0071,
+   "2025": 0.006
+  },
+  "foulModel": 300
+ },
+ "r15_ftm_lagN": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "foulTable": {
+   "2000": 1.5318,
+   "2001": 1.3867,
+   "2002": 1.3909,
+   "2003": 1.2889,
+   "2004": 1.3505,
+   "2005": 1.3561,
+   "2006": 1.4952,
+   "2007": 1.5524,
+   "2008": 1.514,
+   "2009": 1.3743,
+   "2010": 1.3723,
+   "2011": 1.337,
+   "2012": 1.3343,
+   "2013": 1.1745,
+   "2014": 1.1392,
+   "2015": 1.2299,
+   "2016": 1.1583,
+   "2017": 1.1771,
+   "2018": 1.0,
+   "2019": 1.0,
+   "2020": 1.0,
+   "2021": 1.0,
+   "2022": 1.0,
+   "2023": 1.0,
+   "2024": 1.0,
+   "2025": 1.0
+  },
+  "makeTable": {
+   "2000": -0.0331,
+   "2001": -0.0283,
+   "2002": -0.0313,
+   "2003": -0.0294,
+   "2004": -0.0305,
+   "2005": -0.0319,
+   "2006": -0.0274,
+   "2007": -0.0238,
+   "2008": -0.0205,
+   "2009": -0.021,
+   "2010": -0.0206,
+   "2011": -0.0177,
+   "2012": -0.0197,
+   "2013": -0.0243,
+   "2014": -0.0216,
+   "2015": -0.0195,
+   "2016": -0.0206,
+   "2017": -0.0179,
+   "2018": 0.0,
+   "2019": 0.0,
+   "2020": 0.0,
+   "2021": 0.0,
+   "2022": 0.0,
+   "2023": 0.0,
+   "2024": 0.0,
+   "2025": 0.0
+  },
+  "foulModel": 300
+ },
+ "r15_cap2_noOutlet": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "drbOutlet": false
+ },
+ "r15_D_ef_r08_fm_noOutlet": {
+  "three": "r4era",
+  "pScale": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.655,
+  "eraRim": 0.08,
+  "foulModel": 300,
+  "drbOutlet": false
+ },
+ "r15_rel_D_ef_r08_fm": {
+  "three": "r4era",
+  "choiceState3": true,
+  "innov": {
+   "three": 0.305
+  },
+  "innovMean": true,
+  "pScale": true,
+  "anchor3": true,
+  "anchor3rel": true,
+  "priorCapPg": 2,
+  "mix": "C2",
+  "era": true,
+  "makeShift": {
+   "atRim": 0.046,
+   "lowPost": 0.049,
+   "midRange": -0.058
+  },
+  "foulScale": {
+   "atRim": 0.886,
+   "lowPost": 0.886,
+   "midRange": 0.886
+  },
+  "eraFoul": -0.655,
+  "eraRim": 0.08,
+  "foulModel": 300
+ }
 }
