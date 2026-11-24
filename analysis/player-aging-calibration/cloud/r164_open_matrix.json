@@ -47,7 +47,7 @@
   ]
  },
  "stage2": {
-  "note": "F only, era guard. A/B/C come from the published R16 core archive.",
+  "note": "Era guard plus the revised rookie dose on two stage 1 windows. A/B/C come from the published R16 archives.",
   "cells": [
    {
     "arm": "F",
@@ -72,6 +72,24 @@
     "start": 2011,
     "seed": 71,
     "years": 4
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 22,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 41,
+    "years": 3
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 42,
+    "years": 3
    }
   ]
  },
@@ -81,5 +99,6 @@
   "2015": "44877904077",
   "2006": "44877904077",
   "2011": "44877904077"
- }
+ },
+ "stage1_note": "Stage 1 ran as 45501890596 with its own freeze (results/r164_cloud/run_45501890596). Same matrix, earlier rookie dose."
 }

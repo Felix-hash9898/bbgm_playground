@@ -12,10 +12,11 @@ const RULES = {
 	// A drafted player first gets an audition (minutes), then keeps the place while the shrunk production difference per
 	// 36 minutes against the veteran stays above "keep". Clubs invest more in first-round picks, and rebuilding clubs
 	// more than contenders; nobody who is far behind the veteran (reach) or clearly worse on the floor keeps a place.
-	rebuilding: { slots: 3, distance: .44, floor: 5, transfer: 8,
-		first: { audition: 500, reach: 14, keep: -2.5 }, second: { audition: 200, reach: 11, keep: -.6 } },
-	contending: { slots: 2, distance: .40, floor: 5, transfer: 6,
-		first: { audition: 250, reach: 10, keep: -1 }, second: { audition: 110, reach: 7, keep: 0 } },
+	// Stage 1 auditioned almost every first-round pick but at five or six minutes a night; the NBA gives 12-18.
+	rebuilding: { slots: 3, distance: .44, floor: 5,
+		first: { audition: 700, reach: 14, keep: -2.5, transfer: 11, cap: 18 }, second: { audition: 200, reach: 11, keep: -.6, transfer: 8, cap: 13 } },
+	contending: { slots: 2, distance: .40, floor: 5,
+		first: { audition: 450, reach: 11, keep: -1, transfer: 9, cap: 16 }, second: { audition: 110, reach: 7, keep: 0, transfer: 6, cap: 13 } },
 } as const;
 
 function rate(p: Player, season: number) {
@@ -60,11 +61,11 @@ export function planYoungMinutes(club: Club, players: Player[], profiles: Basket
 		const pot = potFallback ? Math.max(r.pot, potFallback(r.ovr, age)) : r.pot;
 		const upside = pot - r.ovr;
 		const firstRound = p.draft.round === 1;
-		if (p.draft.round < 1 || age > 25 || (minutes[p.pid] ?? 0) >= 12) continue;
+		const terms = firstRound ? rule.first : rule.second;
+		if (p.draft.round < 1 || age > 25 || (minutes[p.pid] ?? 0) >= terms.cap - 1) continue;
 		// First season, or an early career that has not really started yet.
 		if (experience !== 1 && !((experience === 2 || experience === 3) && age <= 24 && careerMinutes(p, season) < 700 * (experience - 1))) continue;
 		if (upside < 2 && !firstRound && r.ovr < 48) continue;
-		const terms = firstRound ? rule.first : rule.second;
 		const own = rate(p, season);
 		const auditioning = own.min < terms.audition;
 		for (const q of available) {
@@ -79,17 +80,17 @@ export function planYoungMinutes(club: Club, players: Player[], profiles: Basket
 			if (!auditioning && (other.min < 50 || difference < terms.keep - (lateLook ? .6 : 0))) continue;
 			const pedigree = firstRound ? 1.5 + Math.max(0, 15 - p.draft.pick) * .1 : 0;
 			const score = Math.min(4, Math.max(0, upside) * .22) + pedigree - gap - distance * 5 + (auditioning ? 0 : difference);
-			options.push({ p, q, gap, difference, observed: own.min, score,
+			options.push({ p, q, terms, gap, difference, observed: own.min, score,
 				phase: auditioning ? "trial" as const : difference >= terms.keep ? "earned" as const : "late look" as const });
 		}
 	}
 	options.sort((a, b) => b.score - a.score || a.p.pid - b.p.pid || a.q.pid - b.q.pid);
 	const used = new Set<number>();
 	const decisions: YoungDecision[] = [];
-	for (const { p, q, gap, difference, observed, phase } of options) {
+	for (const { p, q, terms, gap, difference, observed, phase } of options) {
 		if (decisions.length >= rule.slots) break;
 		if (used.has(p.pid) || used.has(q.pid)) continue;
-		const transfer = Math.min(rule.transfer, 13 - (minutes[p.pid] ?? 0), minutes[q.pid]! - 5);
+		const transfer = Math.min(terms.transfer, terms.cap - (minutes[p.pid] ?? 0), minutes[q.pid]! - 5);
 		if (!(transfer >= 2)) continue;
 		minutes[p.pid] = (minutes[p.pid] ?? 0) + transfer;
 		minutes[q.pid]! -= transfer;
