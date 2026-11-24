@@ -1,0 +1,85 @@
+{
+ "stage1": {
+  "note": "F on openings with A/B/C archives that no R16.4 change was tuned on, plus one new seed with its own C. G is F with an exploratory age tilt of growth.",
+  "cells": [
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 41,
+    "years": 3
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 42,
+    "years": 3
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 22,
+    "years": 6
+   },
+   {
+    "arm": "G",
+    "start": 2021,
+    "seed": 22,
+    "years": 6
+   },
+   {
+    "arm": "C",
+    "start": 2021,
+    "seed": 23,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 23,
+    "years": 6
+   },
+   {
+    "arm": "G",
+    "start": 2021,
+    "seed": 23,
+    "years": 6
+   }
+  ]
+ },
+ "stage2": {
+  "note": "F only, era guard. A/B/C come from the published R16 core archive.",
+  "cells": [
+   {
+    "arm": "F",
+    "start": 2015,
+    "seed": 15,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2015,
+    "seed": 16,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2006,
+    "seed": 61,
+    "years": 5
+   },
+   {
+    "arm": "F",
+    "start": 2011,
+    "seed": 71,
+    "years": 4
+   }
+  ]
+ },
+ "reuse": {
+  "2024": "44875544270",
+  "2021": "44877904077",
+  "2015": "44877904077",
+  "2006": "44877904077",
+  "2011": "44877904077"
+ }
+}

@@ -1,0 +1,74 @@
+name: aging-calibration-r164-open
+
+# Runs only when one of these exact tags is pushed to the isolated research commit. Stage 2 follows a reviewed stage 1.
+on:
+  push:
+    tags: [aging-r164-stage1, aging-r164-stage2]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aging-calibration-r164-open
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  R: analysis/player-aging-calibration
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: plan
+        run: |
+          python3 -B "$R/cloud/r164_open_freeze.py" verify
+          echo "matrix=$(python3 -B "$R/cloud/r164_open.py" matrix "${GITHUB_REF_NAME#aging-r164-}")" >> "$GITHUB_OUTPUT"
+
+  run:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      ARM: ${{ matrix.arm }}
+      START: ${{ matrix.start }}
+      SEED: ${{ matrix.seed }}
+      YEARS: ${{ matrix.years }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.0"
+          cache: pnpm
+      - run: |
+          pnpm install --frozen-lockfile
+          node --run pre-test
+      - name: Run and validate one open league
+        run: |
+          bash "$R/cloud/run_r164_open.sh" "$ARM" "$START" "$SEED" "$YEARS" league
+          python3 -B "$R/cloud/r164_open.py" cell league "$ARM" "$START" "$SEED" "$YEARS"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r164-cell-${{ matrix.start }}-${{ matrix.seed }}-${{ matrix.arm }}
+          path: league
+          retention-days: 30
