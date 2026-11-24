@@ -1,0 +1,11 @@
+{
+  "reuse": {"start": 2021, "years": 6, "seeds": [21, 22], "arms": ["A", "B", "C"], "core_run": 44877904077},
+  "run": [
+    {"arm": "D", "start": 2021, "seed": 21, "years": 6},
+    {"arm": "D", "start": 2021, "seed": 22, "years": 6},
+    {"arm": "E", "start": 2021, "seed": 21, "years": 6},
+    {"arm": "E", "start": 2021, "seed": 22, "years": 6},
+    {"arm": "C", "start": 2024, "seed": 43, "years": 3},
+    {"arm": "E", "start": 2024, "seed": 43, "years": 3}
+  ]
+}
