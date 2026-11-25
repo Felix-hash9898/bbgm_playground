@@ -3,7 +3,7 @@ name: aging-calibration-r164-open
 # Runs only when one of these exact tags is pushed to the isolated research commit. Stage 2 follows a reviewed stage 1.
 on:
   push:
-    tags: [aging-r164-stage1, aging-r164-stage2]
+    tags: [aging-r164-stage1, aging-r164-stage2, aging-r164-long]
 
 permissions:
   contents: read
@@ -38,10 +38,10 @@ jobs:
   run:
     needs: prepare
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
-      max-parallel: 7
+      max-parallel: 10
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     env:
       ARM: ${{ matrix.arm }}

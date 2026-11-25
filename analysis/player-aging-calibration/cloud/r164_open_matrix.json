@@ -100,5 +100,76 @@
   "2006": "44877904077",
   "2011": "44877904077"
  },
- "stage1_note": "Stage 1 ran as 45501890596 with its own freeze (results/r164_cloud/run_45501890596). Same matrix, earlier rookie dose."
+ "stage1_note": "Stage 1 ran as 45501890596 with its own freeze (results/r164_cloud/run_45501890596). Same matrix, earlier rookie dose.",
+ "stage2_note": "Stage 2 ran as 45509023563 with its own freeze (results/r164_cloud/run_45509023563).",
+ "guard": {
+  "note": "Style response now also runs before 2015. Same archived A/B/C as stage 2.",
+  "cells": [
+   {
+    "arm": "F",
+    "start": 2006,
+    "seed": 61,
+    "years": 5
+   },
+   {
+    "arm": "F",
+    "start": 2011,
+    "seed": 71,
+    "years": 4
+   }
+  ]
+ },
+ "long": {
+  "note": "Eighteen seasons, new seeds, every arm on one commit.",
+  "cells": [
+   {
+    "arm": "A",
+    "start": 2021,
+    "seed": 31,
+    "years": 18
+   },
+   {
+    "arm": "B",
+    "start": 2021,
+    "seed": 31,
+    "years": 18
+   },
+   {
+    "arm": "C",
+    "start": 2021,
+    "seed": 31,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 31,
+    "years": 18
+   },
+   {
+    "arm": "A",
+    "start": 2021,
+    "seed": 32,
+    "years": 18
+   },
+   {
+    "arm": "B",
+    "start": 2021,
+    "seed": 32,
+    "years": 18
+   },
+   {
+    "arm": "C",
+    "start": 2021,
+    "seed": 32,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 32,
+    "years": 18
+   }
+  ]
+ }
 }

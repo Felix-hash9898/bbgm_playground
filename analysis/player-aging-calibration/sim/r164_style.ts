@@ -29,7 +29,7 @@ export function respond(p: number, dSkill: number, dRole: number, oldShare: numb
 export function applyStyleResponse164(players: StylePlayer[], prepared: Map<number, R5Player>, previous: StyleMemory163 | undefined,
 	season: number, factor: number): StyleMemory163 {
 	const current = styleMemory163(players);
-	if (!previous || factor < .8) return current;
+	if (!previous) return current; // every era: before 2015 the history anchor had cut the same link (slope 0, NBA 1.0)
 	for (const p of players) {
 		const before = previous.get(p.pid);
 		const after = current.get(p.pid);

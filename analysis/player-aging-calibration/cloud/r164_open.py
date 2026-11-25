@@ -52,7 +52,7 @@ def read_cell(folder, cell, release):
         marks = [c["finish"]["installed"] for c in components]
         r16.require(all(b <= a for a, b in zip(marks, marks[1:])), f"{folder}: finishing identity grew after the opening")
         r16.require(components[0]["style"]["adjusted"] == 0 and
-                    all((c["style"]["adjusted"] > 0) == (c["factor"] >= .8) for c in components[1:]), f"{folder}: style response")
+                    all(c["style"]["adjusted"] > 0 for c in components[1:]), f"{folder}: style response")
     else:
         r16.require(all("finish" not in c and "style" not in c for c in components), f"{folder}: component leak")
     for row in lines(folder / "market.jsonl"):
@@ -94,7 +94,7 @@ def summary(out, arm):
 def gates(rows):
     d = lambda k: [f[k] - c[k] for f, c in rows if f[k] is not None and c[k] is not None]
     seasons = sum(f["seasons"] for f, _ in rows)
-    modern = [(f, c) for f, c in rows if f["start"] >= 2015]
+    modern = [(f, c) for f, c in rows if f["start"] >= 2015] or rows
     md = lambda k: [f[k] - c[k] for f, c in modern if f[k] is not None and c[k] is not None]
     yield "career", "first-round rookies reaching 500 minutes, F-C", median(md("first500")), .07, "min"
     yield "career", "first-round rookies reaching 500 minutes, F over NBA", median(f["first500"] - f["first500_nba"] for f, _ in modern), .05, "max"
@@ -137,7 +137,7 @@ def archived(cell):
 def score(stage, artifacts, output):
     release = digest()
     wanted = cells(stage)
-    r16.require({p.name for p in artifacts.iterdir() if p.is_dir()} == {f"r164-cell-{r16.key(c)}" for c in wanted}, "Missing or unexpected cells")
+    r16.require({p.name for p in artifacts.iterdir() if p.is_dir()} >= {f"r164-cell-{r16.key(c)}" for c in wanted}, "Missing cells")
     leagues = {}
     for cell in wanted:
         folder = artifacts / f"r164-cell-{r16.key(cell)}"
@@ -174,17 +174,18 @@ def score(stage, artifacts, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest="action", required=True)
-    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2"))
+    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long"))
     c = subs.add_parser("cell"); c.add_argument("folder", type=Path); c.add_argument("arm", choices=ARMS)
     for k in ("start", "seed", "years"):
         c.add_argument(k, type=int)
-    s = subs.add_parser("score"); s.add_argument("stage", choices=("stage1", "stage2")); s.add_argument("artifacts", type=Path); s.add_argument("output", type=Path)
+    s = subs.add_parser("score"); s.add_argument("stage", choices=("stage1", "stage2", "guard")); s.add_argument("artifacts", type=Path); s.add_argument("output", type=Path)
     a = parser.parse_args()
     if a.action == "matrix":
-        print(json.dumps({"include": cells(a.stage)}))
+        todo = cells("long") + cells("guard") if a.stage == "long" else cells(a.stage)
+        print(json.dumps({"include": [dict(c, timeout=350 if c["years"] > 6 else 90) for c in todo]}))
     elif a.action == "cell":
         cell = {k: getattr(a, k) for k in ("arm", "start", "seed", "years")}
-        r16.require(cell in cells("stage1") + cells("stage2"), "Cell outside the matrix")
+        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long") for x in cells(stage)], "Cell outside the matrix")
         read_cell(a.folder, cell, digest())
         print("cell verified")
     elif not score(a.stage, a.artifacts, a.output):
