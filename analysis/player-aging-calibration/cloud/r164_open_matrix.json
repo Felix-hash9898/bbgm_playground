@@ -788,5 +788,190 @@
     "years": 6
    }
   ]
+ },
+ "trajectory": {
+  "note": "L = K + OVR-neutral composition of growth + generated-class spread; M = L + smaller permanent random steps from 29. Seeds of the final round (K, F archived there), 2008, and 2012 / 2017 for the growth audit.",
+  "cells": [
+   {
+    "arm": "L",
+    "start": 2021,
+    "seed": 36,
+    "years": 18
+   },
+   {
+    "arm": "M",
+    "start": 2021,
+    "seed": 36,
+    "years": 18
+   },
+   {
+    "arm": "L",
+    "start": 2021,
+    "seed": 37,
+    "years": 18
+   },
+   {
+    "arm": "M",
+    "start": 2021,
+    "seed": 37,
+    "years": 18
+   },
+   {
+    "arm": "L",
+    "start": 2021,
+    "seed": 38,
+    "years": 18
+   },
+   {
+    "arm": "M",
+    "start": 2021,
+    "seed": 38,
+    "years": 18
+   },
+   {
+    "arm": "L",
+    "start": 2024,
+    "seed": 58,
+    "years": 18
+   },
+   {
+    "arm": "M",
+    "start": 2024,
+    "seed": 58,
+    "years": 18
+   },
+   {
+    "arm": "L",
+    "start": 2024,
+    "seed": 59,
+    "years": 18
+   },
+   {
+    "arm": "M",
+    "start": 2024,
+    "seed": 59,
+    "years": 18
+   },
+   {
+    "arm": "L",
+    "start": 2024,
+    "seed": 60,
+    "years": 18
+   },
+   {
+    "arm": "M",
+    "start": 2024,
+    "seed": 60,
+    "years": 18
+   },
+   {
+    "arm": "L",
+    "start": 2008,
+    "seed": 91,
+    "years": 18
+   },
+   {
+    "arm": "M",
+    "start": 2008,
+    "seed": 91,
+    "years": 18
+   },
+   {
+    "arm": "L",
+    "start": 2008,
+    "seed": 92,
+    "years": 18
+   },
+   {
+    "arm": "M",
+    "start": 2008,
+    "seed": 92,
+    "years": 18
+   },
+   {
+    "arm": "L",
+    "start": 2008,
+    "seed": 93,
+    "years": 18
+   },
+   {
+    "arm": "M",
+    "start": 2008,
+    "seed": 93,
+    "years": 18
+   },
+   {
+    "arm": "L",
+    "start": 2012,
+    "seed": 121,
+    "years": 6
+   },
+   {
+    "arm": "M",
+    "start": 2012,
+    "seed": 121,
+    "years": 6
+   },
+   {
+    "arm": "L",
+    "start": 2012,
+    "seed": 122,
+    "years": 6
+   },
+   {
+    "arm": "M",
+    "start": 2012,
+    "seed": 122,
+    "years": 6
+   },
+   {
+    "arm": "L",
+    "start": 2012,
+    "seed": 123,
+    "years": 6
+   },
+   {
+    "arm": "M",
+    "start": 2012,
+    "seed": 123,
+    "years": 6
+   },
+   {
+    "arm": "L",
+    "start": 2017,
+    "seed": 171,
+    "years": 6
+   },
+   {
+    "arm": "M",
+    "start": 2017,
+    "seed": 171,
+    "years": 6
+   },
+   {
+    "arm": "L",
+    "start": 2017,
+    "seed": 172,
+    "years": 6
+   },
+   {
+    "arm": "M",
+    "start": 2017,
+    "seed": 172,
+    "years": 6
+   },
+   {
+    "arm": "L",
+    "start": 2017,
+    "seed": 173,
+    "years": 6
+   },
+   {
+    "arm": "M",
+    "start": 2017,
+    "seed": 173,
+    "years": 6
+   }
+  ]
  }
 }

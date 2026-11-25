@@ -13,8 +13,8 @@ import { g, local } from "../../../src/worker/util/index.ts";
 import { prepare, resolveR5Arm } from "./formulas/r5.ts";
 import { lateAskCut, lateIncumbentRights } from "./r164_contract.ts";
 import { carriedShift, installFinishing, openingMarks, type FinishingPlayer } from "./r164_finishing.ts";
-import { classRule, fileLift, liftFileClasses, RULE } from "./r164_classes.ts";
-import { CORRECTION, corrected } from "./r164_growth.ts";
+import { classRule, fileLift, liftFileClasses, RULE, readyClass } from "./r164_classes.ts";
+import { COMPOSITION, composed, composedCalm, CORRECTION, corrected } from "./r164_growth.ts";
 import { V9 } from "./formulas/v9.ts";
 import { planYoungMinutes } from "./r164_rookies.ts";
 import { respond } from "./r164_style.ts";
@@ -224,6 +224,36 @@ describe.skipIf(process.env.R164_UNIT !== "1")("R16.4 growth correction and draf
 			expect(mean(corrected, age) - mean(V9.v9s_l4!, age)).toBeLessThan(expected + .35);
 		}
 		for (const [lo, hi] of CORRECTION) expect(lo).toBeLessThanOrEqual(hi);
+	});
+	it("changes what declines without changing OVR, and calms only players of 29 and more", () => {
+		const weight: Record<string, number> = { stre: .0777, spd: .123, jmp: .051, endu: .0632, ins: .0126, dnk: .0286, ft: .0202, tp: .0726, oiq: .133, diq: .159, drb: .059, pss: .062, fg: .01, reb: .01 };
+		for (const [, , shift] of COMPOSITION) expect(Math.abs(Object.entries(shift).reduce((s, [k, d]) => s + weight[k]! * d, 0))).toBeLessThan(.021);
+		const run = (develop: typeof corrected, age: number, key: string) => {
+			const v: number[] = [];
+			for (let i = 0; i < 5000; i++) {
+				const r: any = Object.fromEntries(["hgt", "stre", "spd", "jmp", "endu", "ins", "dnk", "ft", "fg", "tp", "oiq", "diq", "drb", "pss", "reb"].map(k => [k, 60]));
+				develop(r, age, 50);
+				v.push(r[key] - 60);
+			}
+			const m = v.reduce((a, b) => a + b, 0) / v.length;
+			return { m, sd: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length) };
+		};
+		for (const [age, key, expected] of [[21, "diq", -1.2], [27, "diq", 0], [30, "spd", .6], [33, "jmp", .9], [33, "fg", -.9], [41, "spd", 0]] as const) {
+			const a = run(corrected, age, key), b = run(composed, age, key);
+			expect(Math.abs(b.m - a.m - expected)).toBeLessThan(.35);
+			expect(Math.abs(b.sd - a.sd)).toBeLessThan(.25);
+		}
+		expect(Math.abs(run(composedCalm, 27, "drb").sd - run(composed, 27, "drb").sd)).toBeLessThan(.15);
+		expect(run(composedCalm, 30, "drb").sd / run(composed, 30, "drb").sd).toBeLessThan(.9);
+		expect(run(composedCalm, 34, "drb").sd / run(composed, 34, "drb").sd).toBeLessThan(.87);
+	});
+	it("brings generated prospects to the spread of real draftees without moving the class", async () => {
+		const players = [...Array(70).keys()].map(i => ({ draft: { year: 2031 }, born: { year: 2011 }, ratings: [{ ovr: 60 - i / 4, ...Object.fromEntries(["stre", "spd", "jmp", "endu", "ins", "dnk", "ft", "fg", "tp", "oiq", "diq", "drb", "pss", "reb"].map(k => [k, 30 + (i % 10) * 4])) }] }));
+		await readyClass(players, async () => {}, { stay: .2, noise: 8, points: {}, profile: {}, spread: { diq: .5 } });
+		const diq = players.map(p => (p.ratings[0] as any).diq), tp = players.map(p => (p.ratings[0] as any).tp);
+		expect(Math.max(...diq) - Math.min(...diq)).toBe(18);
+		expect(Math.max(...tp) - Math.min(...tp)).toBe(36);
+		expect(Math.abs(diq.reduce((a, b) => a + b, 0) - tp.reduce((a, b) => a + b, 0)) / 70).toBeLessThan(.6);
 	});
 	it("keeps the earlier class rule unless the growth component is on", () => {
 		const old = process.env.R164;

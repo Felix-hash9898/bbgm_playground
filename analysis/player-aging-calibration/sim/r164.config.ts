@@ -16,7 +16,7 @@ const plugin = {
 	transform(code, id) {
 		if (id.endsWith("/sim/full_league.test.ts")) {
 			code = once(code, "await loadProduct(ARM);", 'await loadProduct(ARM);\n\t\tr164 = await import("./r164_runtime.ts");');
-			code = once(code, "const candidate = V9[arm];", 'const candidate = arm === "v9s_l4g" ? (await import("./r164_growth.ts")).tilted : arm === "v9s_l4j" ? (await import("./r164_growth.ts")).corrected : V9[arm];');
+			code = once(code, "const candidate = V9[arm];", 'const candidate = arm === "v9s_l4g" ? (await import("./r164_growth.ts")).tilted : arm === "v9s_l4j" ? (await import("./r164_growth.ts")).corrected : arm === "v9s_l4l" ? (await import("./r164_growth.ts")).composed : arm === "v9s_l4m" ? (await import("./r164_growth.ts")).composedCalm : V9[arm];');
 			code = once(code, "const calls: Record<string, number> = {};\n\tconst choiceLog", `const r164Season: Record<string, unknown> = { season, factor };
 	if (r164!.enabled().has("style")) r164Season.style = r164!.seasonStyle(all, prepared, season, factor);
 	const calls: Record<string, number> = {};

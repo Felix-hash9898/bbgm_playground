@@ -29,6 +29,8 @@ describe.skipIf(!process.env.R164_CLASSES_TEST)("draft classes", () => {
 			vi.doMock(DEV_PATH, async () => {
 				if (arm === "playground") return vi.importActual(DEV_PATH);
 				if (arm === "official") return import("./formulas/official.developSeason.basketball.ts");
+				if (arm === "v9s_l4l") return { default: (await import("./r164_growth.ts")).composed };
+				if (arm === "v9s_l4m") return { default: (await import("./r164_growth.ts")).composedCalm };
 				if (arm === "v9s_l4j") return { default: (await import("./r164_growth.ts")).corrected };
 				return { default: (await import("./formulas/v9.ts")).V9[arm!] };
 			});

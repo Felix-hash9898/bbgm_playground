@@ -13,6 +13,7 @@ export type ClassRule = {
 	noise: number; // half-width of the random term in who declares first (product 50)
 	points: Record<number, number>; // added to the trainable skills by draft age, once, at creation
 	profile: Record<string, number>; // added to every generated prospect, once, at creation
+	spread?: Record<string, number>; // distance to the mean of the best 40 kept at creation (1 = unchanged)
 };
 const TRAINED = ["ins", "dnk", "ft", "fg", "tp", "oiq", "diq", "drb", "pss", "reb", "stre", "endu"] as const;
 // Gap of the best 30-40 per class, real drafts 2012-25 minus generated (H, 24 classes): year 1, with the finishing, shooting and
@@ -23,11 +24,22 @@ export const RULE: ClassRule = { stay: .2, noise: 8, points: { 19: 1, 20: 1, 22:
 // With the corrected growth (r164_growth.ts) rookies start higher and grow less: class test 2026-11-25 (results/r164_local/classes/gridj2, K2), 24 classes.
 export const RULE_GROWTH: ClassRule = { stay: .2, noise: 8, points: { 19: 2, 20: 4, 21: 3, 22: 3 },
 	profile: { stre: -4, ins: 8, dnk: 10, ft: 5, fg: 10, tp: 4, oiq: 6, diq: 2, drb: -3, pss: -2, reb: 8 } };
-export const classRule = (): ClassRule => ({ ...((process.env.R164 ?? "").split(",").includes("growth") ? RULE_GROWTH : RULE), ...(globalThis as any).r164Classes });
+// With the composition of growth corrected (arms L, M): defensive IQ grows less after the draft, so it starts higher; and generated
+// prospects are brought to the spread of real draftees (best 40 at year 1, sd of defensive IQ 10.1 to 8.4, real 6.4-7.5; offensive IQ
+// 10.0 to 8.2, real 5.4-8.3; speed 13.4 to 9.6, real 8.8). Class test 2026-11-25 (results/r164_local/classes/gridl2, S1), 24 classes.
+export const RULE_COMPOSITION: ClassRule = { ...RULE_GROWTH, spread: { spd: .7, oiq: .75, diq: .75 },
+	profile: { ...RULE_GROWTH.profile, ins: 6, fg: 8, diq: 5, pss: -3 } };
+export const classRule = (): ClassRule => {
+	const on = (process.env.R164 ?? "").split(",");
+	return { ...(on.includes("composition") ? RULE_COMPOSITION : on.includes("growth") ? RULE_GROWTH : RULE), ...(globalThis as any).r164Classes };
+};
 
 export const readyClass = async (players: any[], refresh: (p: any) => Promise<unknown>, rule = classRule()) => {
+	const best = [...players].sort((a, b) => b.ratings.at(-1).ovr - a.ratings.at(-1).ovr).slice(0, 40).map(p => p.ratings.at(-1));
+	const middle = Object.fromEntries(Object.keys(rule.spread ?? {}).map(key => [key, best.reduce((s, r) => s + r[key], 0) / Math.max(1, best.length)]));
 	for (const p of players) {
 		const r = p.ratings.at(-1);
+		for (const [key, keep] of Object.entries(rule.spread ?? {})) r[key] = limitRating(Math.round(middle[key]! + keep * (r[key] - middle[key]!)));
 		const points = rule.points[Math.max(19, Math.min(22, p.draft.year - p.born.year))] ?? 0;
 		for (const key of TRAINED) r[key] = limitRating(r[key] + points + (rule.profile[key] ?? 0));
 		await refresh(p);
