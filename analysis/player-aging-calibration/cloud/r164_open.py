@@ -15,8 +15,8 @@ from r164_open_freeze import checksum, digest  # noqa: E402
 review = import_module("147_r164_open_review")
 MATRIX = r16.read_json(HERE / "cloud/r164_open_matrix.json")
 ARMS = {"A": ("playground", None), "B": ("v9s_l4", None), "C": ("v9s_l4", "r16_midrange"), "F": ("v9s_l4", "r16_midrange"),
-        "G": ("v9s_l4g", "r16_midrange"), "H": ("v9s_l4", "r16_midrange")}
-CANDIDATES = ("F", "G", "H")
+        "G": ("v9s_l4g", "r16_midrange"), "H": ("v9s_l4", "r16_midrange"), "I": ("v9s_l4", "r16_midrange")}
+CANDIDATES = ("F", "G", "H", "I")
 
 
 def cells(stage):
@@ -59,7 +59,10 @@ def read_cell(folder, cell, release):
         r16.require(arm in CANDIDATES, f"{folder}: market trial in control")
         if row["event"] == "lateSign":
             r16.require(row["postPayroll"] == row["after"] and row["daysLeft"] <= 8 and row["injury"] == 0 and
-                        row["exception"] in ("bird", "capSpace"), f"{folder}: illegal late signing {row['sid']}")
+                        row["exception"] in ("bird", "capSpace"), f"{folder}: illegal late signing {row.get('sid', row['pid'])}")
+    made = lines(folder / "classes.jsonl")
+    r16.require(bool(made) == (arm == "I" and years > 6), f"{folder}: draft class rule activity")
+    r16.require(all(set(c["ages"]) <= {19, 20, 21, 22} and c["n"] >= 60 for c in made), f"{folder}: draft class receipt")
     for row in lines(folder / "rotation.jsonl"):
         r16.require(row["teamGames"] > 0 and (arm in CANDIDATES) == bool(row["rows"]), f"{folder}: rotation activity")
     return run
@@ -174,7 +177,7 @@ def score(stage, artifacts, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest="action", required=True)
-    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession"))
+    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession", "classes"))
     c = subs.add_parser("cell"); c.add_argument("folder", type=Path); c.add_argument("arm", choices=ARMS)
     for k in ("start", "seed", "years"):
         c.add_argument(k, type=int)
@@ -185,7 +188,7 @@ if __name__ == "__main__":
         print(json.dumps({"include": [dict(c, timeout=350 if c["years"] > 6 else 90) for c in todo]}))
     elif a.action == "cell":
         cell = {k: getattr(a, k) for k in ("arm", "start", "seed", "years")}
-        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession") for x in cells(stage)], "Cell outside the matrix")
+        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession", "classes") for x in cells(stage)], "Cell outside the matrix")
         read_cell(a.folder, cell, digest())
         print("cell verified")
     elif not score(a.stage, a.artifacts, a.output):

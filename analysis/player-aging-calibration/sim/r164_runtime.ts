@@ -13,7 +13,7 @@ import { applyStyleResponse164 } from "./r164_style.ts";
 import type { StyleMemory163 } from "./r163_style.ts";
 
 type StylePlayer = Player & { r164Style?: { season: number; skill: number; role: number; tid: number } };
-export const COMPONENTS = ["finish", "rookies", "market", "style", "prospects"] as const;
+export const COMPONENTS = ["finish", "rookies", "market", "style", "prospects", "classes"] as const;
 export const enabled = () => new Set((process.env.R164 ?? "").split(",").map(x => x.trim()).filter(Boolean));
 for (const name of enabled()) if (!(COMPONENTS as readonly string[]).includes(name)) throw new Error(`Unknown R16.4 component ${name}`);
 
@@ -89,7 +89,7 @@ if (enabled().has("rookies") || process.env.R164_ROOKIE_LOG === "1") {
 hooks.r163MarketArm = enabled().has("market") ? "late-term" : "baseline";
 hooks.r164MarketLog = (event: string, p: Player, detail: Record<string, unknown>) => {
 	if (event !== "lateSign" && !(event === "lateBid" && ["player declined", "player declined price", "team declined price"].includes(String(detail.reason)))) return;
-	note("market.jsonl", { event, season: g.get("season"), daysLeft: g.get("daysLeft"), pid: p.pid, sid: p.srID,
+	note("market.jsonl", { event, season: g.get("season"), daysLeft: g.get("daysLeft"), pid: p.pid, sid: p.srID ?? `generated_${p.pid}`,
 		age: g.get("season") - p.born.year, ovr: p.ratings.at(-1)!.ovr, injury: p.injury.gamesRemaining, ...detail });
 };
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 r=analysis/player-aging-calibration
-[[ $# == 5 || ( $# == 6 && ${6} == day ) ]] || { echo 'Usage: run_r164_open.sh <A|B|C|F|G|H> <start> <seed> <years> <new-output-dir> [day]' >&2; exit 2; }
+[[ $# == 5 || ( $# == 6 && ${6} == day ) ]] || { echo 'Usage: run_r164_open.sh <A|B|C|F|G|H|I> <start> <seed> <years> <new-output-dir> [day]' >&2; exit 2; }
 arm=$1 start=$2 seed=$3 years=$4 out=$5
 release=$(python3 -B "$r/cloud/r164_open_freeze.py" verify)
 components=
@@ -13,6 +13,7 @@ case "$arm" in
     F) dev=v9s_l4; gs=r16_midrange; components=finish,rookies,market,style ;;
     G) dev=v9s_l4g; gs=r16_midrange; components=finish,rookies,market,style ;;
     H) dev=v9s_l4; gs=r16_midrange; components=finish,rookies,market,style,prospects ;;
+    I) dev=v9s_l4; gs=r16_midrange; components=finish,rookies,market,style,classes ;;
     *) exit 2 ;;
 esac
 probe=0

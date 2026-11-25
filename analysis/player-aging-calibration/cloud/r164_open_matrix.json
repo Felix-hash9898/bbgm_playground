@@ -207,5 +207,47 @@
     "years": 18
    }
   ]
+ },
+ "succession_note": "Succession ran as 45539949243 with its own freeze (results/r164_cloud/run_45539949243): HOLD.",
+ "classes": {
+  "note": "I = F plus the second draft class rule (who declares early, ability by draft age, skill profile). 2021/31-32 and 2024/51 pair with archived A/F/H; 2024/52 is a seed nothing was tuned on, with its own A and F.",
+  "cells": [
+   {
+    "arm": "I",
+    "start": 2021,
+    "seed": 31,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2021,
+    "seed": 32,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2024,
+    "seed": 51,
+    "years": 18
+   },
+   {
+    "arm": "A",
+    "start": 2024,
+    "seed": 52,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 52,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2024,
+    "seed": 52,
+    "years": 18
+   }
+  ]
  }
 }

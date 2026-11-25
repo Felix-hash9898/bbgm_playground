@@ -49,6 +49,14 @@ const plugin = {
 	for (const p of enteringDraft) {\n\t\tdelete p.fudgeFactor;`);
 			return `import { DECLARE, readyClass } from "${SIM}/r164_prospects.ts";\n` + code;
 		}
+		// Second version: who declares early, ability by draft age and skill profile (see r164_classes.ts).
+		if (id.endsWith("/src/worker/core/draft/genPlayersWithoutSaving.ts") && (on("classes") || process.env.R164_CLASSES_TEST)) {
+			code = once(code, "return defaultFractionPerYear;", "return classRule().stay;");
+			code = once(code, "random.randInt(-50, 50)", "random.randInt(-classRule().noise, classRule().noise)");
+			code = once(code, "for (const p of enteringDraft) {\n\t\tdelete p.fudgeFactor;", `if (existingPlayers.length === 0 && !forceScrubs) await readyClass(enteringDraft, async (p) => player.develop(p, 0, false, DEFAULT_LEVEL, false, context));
+	for (const p of enteringDraft) {\n\t\tdelete p.fudgeFactor;`);
+			return `import { classRule, readyClass } from "${SIM}/r164_classes.ts";\n` + code;
+		}
 		if (id.endsWith("/src/worker/core/freeAgents/autoSign.ts") && on("market")) {
 			code = once(code, "const context = captureSigningContext();", `const context = captureSigningContext();
 				const ordinaryIncumbents = new Map();
