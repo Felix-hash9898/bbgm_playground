@@ -42,6 +42,13 @@ const plugin = {
 			}
 			${attach}`);
 		}
+		// Generated classes: real draftees are about 1.3-2 years older than product prospects (see r164_prospects.ts).
+		if (id.endsWith("/src/worker/core/draft/genPlayersWithoutSaving.ts") && (on("prospects") || process.env.R164_PROSPECTS_TEST)) {
+			code = once(code, "return defaultFractionPerYear;", "return globalThis.r164Prospects?.stay ?? DECLARE;");
+			code = once(code, "for (const p of enteringDraft) {\n\t\tdelete p.fudgeFactor;", `if (existingPlayers.length === 0 && !forceScrubs) await readyClass(enteringDraft, async (p) => player.develop(p, 0, false, DEFAULT_LEVEL, false, context), globalThis.r164Prospects?.ready);
+	for (const p of enteringDraft) {\n\t\tdelete p.fudgeFactor;`);
+			return `import { DECLARE, readyClass } from "${SIM}/r164_prospects.ts";\n` + code;
+		}
 		if (id.endsWith("/src/worker/core/freeAgents/autoSign.ts") && on("market")) {
 			code = once(code, "const context = captureSigningContext();", `const context = captureSigningContext();
 				const ordinaryIncumbents = new Map();

@@ -171,5 +171,41 @@
     "years": 18
    }
   ]
+ },
+ "long_note": "Long and guard ran as 45518982285 with their own freeze (results/r164_cloud/run_45518982285): long HOLD.",
+ "succession": {
+  "note": "H = F plus draft classes with a real age mix. 2021 seeds 31/32 pair with the archived A/B/C/F of run 45518982285; 2024/51 is a new opening and seed with its own A and F.",
+  "cells": [
+   {
+    "arm": "H",
+    "start": 2021,
+    "seed": 31,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2021,
+    "seed": 32,
+    "years": 18
+   },
+   {
+    "arm": "A",
+    "start": 2024,
+    "seed": 51,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 51,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2024,
+    "seed": 51,
+    "years": 18
+   }
+  ]
  }
 }
