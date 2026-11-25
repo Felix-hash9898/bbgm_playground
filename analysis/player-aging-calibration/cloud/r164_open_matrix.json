@@ -399,5 +399,191 @@
     "years": 18
    }
   ]
+ },
+ "replication_note": "Replication ran as 45580643418 with its own freeze (results/r164_cloud/run_45580643418): HOLD, 43 of 44.",
+ "growth": {
+  "note": "K = J + lifted opening classes; J = I + corrected mean growth + generated classes recalibrated for it. 18 seasons pair with archived F, H, I of the same seeds. Six seasons: eras the correction was not fitted on.",
+  "cells": [
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 53,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 54,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 55,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 56,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 57,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 33,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 34,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 35,
+    "years": 18
+   },
+   {
+    "arm": "J",
+    "start": 2024,
+    "seed": 53,
+    "years": 18
+   },
+   {
+    "arm": "J",
+    "start": 2024,
+    "seed": 54,
+    "years": 18
+   },
+   {
+    "arm": "J",
+    "start": 2021,
+    "seed": 33,
+    "years": 18
+   },
+   {
+    "arm": "J",
+    "start": 2021,
+    "seed": 34,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2008,
+    "seed": 81,
+    "years": 6
+   },
+   {
+    "arm": "J",
+    "start": 2008,
+    "seed": 81,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2008,
+    "seed": 82,
+    "years": 6
+   },
+   {
+    "arm": "J",
+    "start": 2008,
+    "seed": 82,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2008,
+    "seed": 83,
+    "years": 6
+   },
+   {
+    "arm": "J",
+    "start": 2008,
+    "seed": 83,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2012,
+    "seed": 121,
+    "years": 6
+   },
+   {
+    "arm": "J",
+    "start": 2012,
+    "seed": 121,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2012,
+    "seed": 122,
+    "years": 6
+   },
+   {
+    "arm": "J",
+    "start": 2012,
+    "seed": 122,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2012,
+    "seed": 123,
+    "years": 6
+   },
+   {
+    "arm": "J",
+    "start": 2012,
+    "seed": 123,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2017,
+    "seed": 171,
+    "years": 6
+   },
+   {
+    "arm": "J",
+    "start": 2017,
+    "seed": 171,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2017,
+    "seed": 172,
+    "years": 6
+   },
+   {
+    "arm": "J",
+    "start": 2017,
+    "seed": 172,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2017,
+    "seed": 173,
+    "years": 6
+   },
+   {
+    "arm": "J",
+    "start": 2017,
+    "seed": 173,
+    "years": 6
+   }
+  ]
  }
 }

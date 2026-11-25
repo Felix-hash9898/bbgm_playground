@@ -16,12 +16,13 @@ const plugin = {
 	transform(code, id) {
 		if (id.endsWith("/sim/full_league.test.ts")) {
 			code = once(code, "await loadProduct(ARM);", 'await loadProduct(ARM);\n\t\tr164 = await import("./r164_runtime.ts");');
-			code = once(code, "const candidate = V9[arm];", 'const candidate = arm === "v9s_l4g" ? (await import("./r164_growth.ts")).tilted : V9[arm];');
+			code = once(code, "const candidate = V9[arm];", 'const candidate = arm === "v9s_l4g" ? (await import("./r164_growth.ts")).tilted : arm === "v9s_l4j" ? (await import("./r164_growth.ts")).corrected : V9[arm];');
 			code = once(code, "const calls: Record<string, number> = {};\n\tconst choiceLog", `const r164Season: Record<string, unknown> = { season, factor };
 	if (r164!.enabled().has("style")) r164Season.style = r164!.seasonStyle(all, prepared, season, factor);
 	const calls: Record<string, number> = {};
 	const choiceLog`);
-			code = once(code, "gsState.choice = choiceLog; gsState.calls = calls;", `if (r164!.enabled().has("finish")) r164Season.finish = await r164!.seasonFinishing(all, armDef, season, START, factor);
+			code = once(code, "gsState.choice = choiceLog; gsState.calls = calls;", `if (r164!.enabled().has("files")) r164Season.files = await r164!.openingClasses(season, START);
+	if (r164!.enabled().has("finish")) r164Season.finish = await r164!.seasonFinishing(all, armDef, season, START, factor);
 	if (r164!.enabled().size) for (const p of all) if ((p as any).r164Finishing || (p as any).r164Style) await idb.cache.players.put(p);
 	r164!.noteSeason(r164Season);
 	gsState.choice = choiceLog; gsState.calls = calls;`);

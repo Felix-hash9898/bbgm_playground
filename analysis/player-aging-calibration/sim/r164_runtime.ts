@@ -2,24 +2,41 @@
 import { appendFileSync } from "node:fs";
 import path from "node:path";
 import type { Player } from "../../../src/common/types.ts";
+import { PLAYER } from "../../../src/common/index.ts";
+import { DEFAULT_LEVEL } from "../../../src/common/budgetLevels.ts";
+import { player } from "../../../src/worker/core/index.ts";
 import potEstimator from "../../../src/worker/core/player/potEstimator.ts";
 import getPayroll from "../../../src/worker/core/team/getPayroll.ts";
 import { idb } from "../../../src/worker/db/index.ts";
 import { g } from "../../../src/worker/util/index.ts";
 import { prepare, type R5Arm, type R5Player } from "./formulas/r5.ts";
 import { installFinishing, openingMarks, type FinishingPlayer } from "./r164_finishing.ts";
+import { liftFileClasses } from "./r164_classes.ts";
 import { planYoungMinutes, type YoungDecision } from "./r164_rookies.ts";
 import { applyStyleResponse164 } from "./r164_style.ts";
 import type { StyleMemory163 } from "./r163_style.ts";
 
 type StylePlayer = Player & { r164Style?: { season: number; skill: number; role: number; tid: number } };
-export const COMPONENTS = ["finish", "rookies", "market", "style", "prospects", "classes"] as const;
+export const COMPONENTS = ["finish", "rookies", "market", "style", "prospects", "classes", "growth", "files"] as const;
 export const enabled = () => new Set((process.env.R164 ?? "").split(",").map(x => x.trim()).filter(Boolean));
 for (const name of enabled()) if (!(COMPONENTS as readonly string[]).includes(name)) throw new Error(`Unknown R16.4 component ${name}`);
 
 const note = (file: string, row: object) => {
 	if (process.env.FULL_OUT) appendFileSync(path.join(process.env.FULL_OUT, file), JSON.stringify(row) + "\n");
 };
+
+/** Open league, opening season only: raise the speculative real draft classes of the file (r164_classes.ts). */
+export async function openingClasses(season: number, start: number) {
+	if (season !== start) return undefined;
+	const list = (await idb.cache.players.getAll()).filter(p => p.tid === PLAYER.UNDRAFTED);
+	const out = await liftFileClasses(list, start, async (p: Player) => {
+		await player.develop(p, 0, false, DEFAULT_LEVEL);
+		await player.updateValues(p);
+		await idb.cache.players.put(p);
+	});
+	note("files.jsonl", { season, classes: out });
+	return out;
+}
 
 /** After prepare(): move the three-point choice with last season's saved role/skill snapshot. */
 export function seasonStyle(players: Player[], prepared: Map<number, R5Player>, season: number, factor: number) {

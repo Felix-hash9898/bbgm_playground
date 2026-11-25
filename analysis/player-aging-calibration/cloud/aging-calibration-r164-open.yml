@@ -3,7 +3,7 @@ name: aging-calibration-r164-open
 # Runs only when one of these exact tags is pushed to the isolated research commit. Stage 2 follows a reviewed stage 1.
 on:
   push:
-    tags: [aging-r164-stage1, aging-r164-stage2, aging-r164-long, aging-r164-succession, aging-r164-classes, aging-r164-replication]
+    tags: [aging-r164-stage1, aging-r164-stage2, aging-r164-long, aging-r164-succession, aging-r164-classes, aging-r164-replication, aging-r164-growth]
 
 permissions:
   contents: read
