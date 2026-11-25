@@ -249,5 +249,155 @@
     "years": 18
    }
   ]
+ },
+ "classes_note": "Classes ran as 45557113862 with its own freeze (results/r164_cloud/run_45557113862): HOLD, 40 of 44.",
+ "replication": {
+  "note": "Unchanged I with F and H on seeds no arm has seen; archived A. Only these seeds decide, with unchanged bounds.",
+  "cells": [
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 53,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2024,
+    "seed": 53,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2024,
+    "seed": 53,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 54,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2024,
+    "seed": 54,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2024,
+    "seed": 54,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 55,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2024,
+    "seed": 55,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2024,
+    "seed": 55,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 56,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2024,
+    "seed": 56,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2024,
+    "seed": 56,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 57,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2024,
+    "seed": 57,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2024,
+    "seed": 57,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 33,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2021,
+    "seed": 33,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2021,
+    "seed": 33,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 34,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2021,
+    "seed": 34,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2021,
+    "seed": 34,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 35,
+    "years": 18
+   },
+   {
+    "arm": "H",
+    "start": 2021,
+    "seed": 35,
+    "years": 18
+   },
+   {
+    "arm": "I",
+    "start": 2021,
+    "seed": 35,
+    "years": 18
+   }
+  ]
  }
 }

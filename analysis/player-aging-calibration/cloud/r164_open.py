@@ -177,7 +177,7 @@ def score(stage, artifacts, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest="action", required=True)
-    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession", "classes"))
+    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession", "classes", "replication"))
     c = subs.add_parser("cell"); c.add_argument("folder", type=Path); c.add_argument("arm", choices=ARMS)
     for k in ("start", "seed", "years"):
         c.add_argument(k, type=int)
@@ -188,7 +188,7 @@ if __name__ == "__main__":
         print(json.dumps({"include": [dict(c, timeout=350 if c["years"] > 6 else 90) for c in todo]}))
     elif a.action == "cell":
         cell = {k: getattr(a, k) for k in ("arm", "start", "seed", "years")}
-        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession", "classes") for x in cells(stage)], "Cell outside the matrix")
+        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession", "classes", "replication") for x in cells(stage)], "Cell outside the matrix")
         read_cell(a.folder, cell, digest())
         print("cell verified")
     elif not score(a.stage, a.artifacts, a.output):
