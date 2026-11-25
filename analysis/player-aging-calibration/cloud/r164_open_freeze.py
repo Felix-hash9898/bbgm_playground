@@ -14,7 +14,7 @@ ROUTE = Path(".github/workflows/aging-calibration-r164-open.yml")
 FILES = (
     WORKFLOW, "cloud/r164_open.py", "cloud/r164_open_matrix.json", "cloud/r164_open_freeze.py", "cloud/run_r164_open.sh",
     "cloud/r164_long.py", "scripts/147_r164_open_review.py", "scripts/149_r164_career_acceptance.py", "scripts/152_r164_long.py",
-    "sim/r164.config.ts", "sim/r164_contract.ts", "sim/r164_finishing.ts", "sim/r164_rookies.ts", "sim/r164_runtime.ts", "sim/r164_style.ts", "sim/r164_growth.ts", "sim/r164_prospects.ts", "cloud/r164_succession.py", "sim/r164_classes.ts", "cloud/r164_classes.py", "cloud/r164_replication.py", "cloud/r164_growth_score.py", "scripts/156_r164_growth_audit.py",
+    "sim/r164.config.ts", "sim/r164_contract.ts", "sim/r164_finishing.ts", "sim/r164_rookies.ts", "sim/r164_runtime.ts", "sim/r164_style.ts", "sim/r164_growth.ts", "sim/r164_prospects.ts", "cloud/r164_succession.py", "sim/r164_classes.ts", "cloud/r164_classes.py", "cloud/r164_replication.py", "cloud/r164_growth_score.py", "cloud/r164_final_score.py", "scripts/156_r164_growth_audit.py",
     "sim/r163_market.ts", "sim/r163_style.ts",
 )
 

@@ -585,5 +585,208 @@
     "years": 6
    }
   ]
+ },
+ "final": {
+  "note": "K unchanged. Unseen seeds of the two modern windows (F same seeds, archived A and H), eighteen seasons from 2008 (A, F, K), and openings 1998 and 2001 whose outcome years no fit has touched.",
+  "cells": [
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 36,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 36,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 37,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 37,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 38,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2021,
+    "seed": 38,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 58,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 58,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 59,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 59,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 60,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2024,
+    "seed": 60,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2008,
+    "seed": 91,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2008,
+    "seed": 91,
+    "years": 18
+   },
+   {
+    "arm": "A",
+    "start": 2008,
+    "seed": 91,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2008,
+    "seed": 92,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2008,
+    "seed": 92,
+    "years": 18
+   },
+   {
+    "arm": "A",
+    "start": 2008,
+    "seed": 92,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2008,
+    "seed": 93,
+    "years": 18
+   },
+   {
+    "arm": "F",
+    "start": 2008,
+    "seed": 93,
+    "years": 18
+   },
+   {
+    "arm": "A",
+    "start": 2008,
+    "seed": 93,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 1998,
+    "seed": 981,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 1998,
+    "seed": 981,
+    "years": 6
+   },
+   {
+    "arm": "K",
+    "start": 1998,
+    "seed": 982,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 1998,
+    "seed": 982,
+    "years": 6
+   },
+   {
+    "arm": "K",
+    "start": 1998,
+    "seed": 983,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 1998,
+    "seed": 983,
+    "years": 6
+   },
+   {
+    "arm": "K",
+    "start": 2001,
+    "seed": 11,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2001,
+    "seed": 11,
+    "years": 6
+   },
+   {
+    "arm": "K",
+    "start": 2001,
+    "seed": 12,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2001,
+    "seed": 12,
+    "years": 6
+   },
+   {
+    "arm": "K",
+    "start": 2001,
+    "seed": 13,
+    "years": 6
+   },
+   {
+    "arm": "F",
+    "start": 2001,
+    "seed": 13,
+    "years": 6
+   }
+  ]
  }
 }
