@@ -1,7 +1,6 @@
 {
   "growth_base": "N",
   "optional": [
-    "openingPot",
     "draftAlignment"
   ],
   "source_runs": {
@@ -116,31 +115,7 @@
       "start": 2021,
       "seed": 76,
       "years": 18,
-      "arm": "K"
-    },
-    {
-      "start": 2021,
-      "seed": 76,
-      "years": 18,
-      "arm": "U"
-    },
-    {
-      "start": 2021,
-      "seed": 76,
-      "years": 18,
       "arm": "T"
-    },
-    {
-      "start": 2024,
-      "seed": 90,
-      "years": 18,
-      "arm": "K"
-    },
-    {
-      "start": 2024,
-      "seed": 90,
-      "years": 18,
-      "arm": "U"
     },
     {
       "start": 2024,
@@ -159,7 +134,6 @@
       "classes",
       "growth",
       "files",
-      "openingPot",
       "draftAlignment"
     ]
   },
@@ -188,5 +162,44 @@
         "files"
       ]
     }
-  }
+  },
+  "fresh_controls": {
+    "launch": {
+      "run": 45855924022,
+      "commit": "c2d757677a0c2bb1074a6de6c55f4953c32dc140",
+      "release": "9398ed2d32ead53ff7396dd6dbb3680f59f1746ee7f3642de91fd8fd8c406621",
+      "tag": "aging-r164-combo",
+      "branch": "aging-calibration-cloud-r164-combo",
+      "scheduled_cells": 17,
+      "runner": "ubuntu-24.04",
+      "visibility": "public"
+    },
+    "cells": [
+      {
+        "start": 2021,
+        "seed": 76,
+        "years": 18,
+        "arm": "K"
+      },
+      {
+        "start": 2021,
+        "seed": 76,
+        "years": 18,
+        "arm": "U"
+      },
+      {
+        "start": 2024,
+        "seed": 90,
+        "years": 18,
+        "arm": "K"
+      },
+      {
+        "start": 2024,
+        "seed": 90,
+        "years": 18,
+        "arm": "U"
+      }
+    ]
+  },
+  "prior_combo_receipt_sha256": "cb91decc20598105212564e0e51267f75f3ddc12046293881ef30b6bee777230"
 }

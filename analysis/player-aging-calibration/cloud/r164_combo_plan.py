@@ -8,6 +8,7 @@ import sys
 ABLATION = "45765401275"
 QUALITY = "45769475243"
 POT = "45766883169"
+COMBINATION = "45855924022"
 MATCHED = {
     2021: (18, (71, 72, 73)),
     2024: (18, (81, 82, 83)),
@@ -84,7 +85,7 @@ def matrix(base, optional):
                                   component_flags=list(COMPONENTS if a == "K" else base_components)) for a in controls})
 
 
-def build(archive):
+def build_full(archive):
     stage_paths = {
         ABLATION: archive / f"run_{ABLATION}/ablation_score/receipt.json",
         QUALITY: archive / f"run_{QUALITY}/quality_score/receipt.json",
@@ -135,6 +136,37 @@ def build(archive):
     return dict(growth_base=base, optional=features, source_runs=launches,
                 receipt_sha256={run: sha256(path.read_bytes()).hexdigest() for run, path in stage_paths.items()},
                 **(matrix(base, features) if features else {"include": []}))
+
+
+def build(archive):
+    full = build_full(archive)
+    expected = {(r["start"], r["seed"], r["arm"], r["years"]) for r in full["include"]}
+    root, launch = identity(archive, COMBINATION, "combo", expected)
+    score_path = root / "combo_score/receipt.json"
+    score = read(score_path)
+    check_score(launch, score)
+    if score["plan"] != full or score["verdict"] != "HOLD" or check_verdict(score["gates"]) != "HOLD":
+        raise ValueError("Subtraction requires the frozen full combination HOLD")
+    failed = [g for g in score["gates"] if not g["passed"]]
+    if full["growth_base"] != "N" or set(full["optional"]) != {"openingPot", "draftAlignment"} or (
+            {g["area"] for g in failed} != {"POT", "generated"} or
+            not any(g["metric"] == "2025 rookies: T minus U" and g["value"] <= -.10 for g in failed) or
+            not all(g["value"] > 0 for g in failed if g["area"] == "generated")):
+        raise ValueError("Subtraction does not match the opportunity loss and positive generated outcomes specified in R164_MINUS_POT.md")
+    for w, seed, arm, _ in sorted(expected):
+        if (w, arm) != (2024, "T"):
+            continue
+        ledger = root / "cells" / f"r164-cell-{w}-{seed}-{arm}" / "classes.jsonl"
+        aligned = [row["draft"] for line in ledger.read_text().splitlines()
+                   if (row := json.loads(line))["alignment"]["pairs"] > 0]
+        if not aligned or min(aligned) <= 2025:
+            raise ValueError(f"{ledger}: cannot isolate the near-term opportunity loss from R")
+    options = ["draftAlignment"]
+    rerun = matrix("N", options)
+    controls = [cell for cell in rerun["include"] if cell["arm"] in rerun["controls"]]
+    rerun["include"] = [cell for cell in rerun["include"] if cell["arm"] == "T"]
+    return dict(full, optional=options, **rerun, fresh_controls=dict(launch=launch, cells=controls),
+                prior_combo_receipt_sha256=sha256(score_path.read_bytes()).hexdigest())
 
 
 def main():

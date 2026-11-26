@@ -31,18 +31,27 @@ def load(cells, workspace, plan):
     source = plan["source_runs"][planning.ABLATION]
     release = op.digest()
     identities, worlds, folders, ledgers = set(), {}, {}, {}
-    for spec in plan["include"]:
+    fresh = plan["fresh_controls"]
+    control_source = fresh["launch"]
+    prior = archive / f"run_{control_source['run']}/cells"
+    inputs = [(spec, cells, release) for spec in plan["include"]]
+    inputs += [(spec, prior, control_source["release"]) for spec in fresh["cells"]]
+    for spec, source_cells, cell_release in inputs:
         w, seed, arm, years = (spec[k] for k in ("start", "seed", "arm", "years"))
-        folder = cells / f"r164-cell-{op.r16.key(spec)}"
+        folder = source_cells / f"r164-cell-{op.r16.key(spec)}"
         config = plan["treatment"] if arm == "T" else plan["controls"][arm]
         metadata = json.loads((folder / "cell.json").read_text())
         if metadata["components"] != ",".join(config["component_flags"]):
             raise ValueError(f"Wrong component receipt in {folder}")
         if not metadata["sha"] or not metadata["run"]:
             raise ValueError(f"Missing cloud release in {folder}")
-        identities.add((metadata["sha"], metadata["run"]))
+        if source_cells == prior:
+            if (metadata["sha"], str(metadata["run"])) != (control_source["commit"], str(control_source["run"])):
+                raise ValueError(f"Wrong fresh control in {folder}")
+        else:
+            identities.add((metadata["sha"], metadata["run"]))
         key = str(w), seed, arm
-        worlds[key] = read_certified(folder, arm, w, seed, years, release)
+        worlds[key] = read_certified(folder, arm, w, seed, years, cell_release)
         folders[key] = folder
         pot = op.lines(folder / "opening_pot.jsonl")
         markets = op.lines(folder / "combo_opening_market.jsonl")
@@ -191,14 +200,13 @@ def main():
         for origin, kind, bound in (("all", "two_way", 1), ("all", "corr", .05), ("generated", "corr", .05)):
             delta = groups2024["T"][origin][kind] - groups2024[baseline][origin][kind]
             gates.append(row("2024", "generated", f"{origin} {kind} minus base", delta, f">= {bound}", delta >= bound))
-    if "openingPot" in plan["optional"]:
-        report["potential"] = {}
-        for w in MODERN:
-            pairs = [(worlds[w, seed, baseline], t, *ledgers[w, seed, "T"])
-                     for (window, seed, arm), t in worlds.items() if (window, arm) == (w, "T")]
-            rows, details = potential.gates(w, pairs)
-            gates += rows
-            report["potential"][w] = details
+    report["early_opportunities"] = {}
+    for w in MODERN:
+        pairs = [(worlds[w, seed, baseline], t, *ledgers[w, seed, "T"])
+                 for (window, seed, arm), t in worlds.items() if (window, arm) == (w, "T")]
+        rows, details = potential.gates(w, pairs, require_calibration=False)
+        gates += rows
+        report["early_opportunities"][w] = details
 
     args.output.mkdir()
     result = dict(release=release, commit=commit, run=run, plan=plan, gates=gates,
