@@ -48,6 +48,15 @@ export const composed = makeV9(mixed);
 // Arm M: L with smaller permanent random steps after 29 (NBA production of 32-35 year olds five years on .74-.82, K .61). The small
 // offset at 32-38 only restores the mean that the change limits add when the random terms are larger.
 export const NOISE_29 = .8, NOISE_32 = .7, MEAN_32 = .15;
-const calmed = structuredClone(mixed);
-for (const ages of Object.values(calmed.off) as Record<string, number>[]) for (let age = 32; age <= 38; age++) ages[String(age)]! += MEAN_32;
-export const composedCalm = makeV9(calmed, age => age >= 32 ? NOISE_32 : age >= 29 ? NOISE_29 : 1);
+function withCalmerVeteranGrowth(base: typeof fixed) {
+	const calmed = structuredClone(base);
+	for (const ages of Object.values(calmed.off) as Record<string, number>[]) {
+		for (let age = 32; age <= 38; age++) {
+			ages[String(age)]! += MEAN_32;
+		}
+	}
+	return makeV9(calmed, age => age >= 32 ? NOISE_32 : age >= 29 ? NOISE_29 : 1);
+}
+
+export const correctedCalm = withCalmerVeteranGrowth(fixed);
+export const composedCalm = withCalmerVeteranGrowth(mixed);

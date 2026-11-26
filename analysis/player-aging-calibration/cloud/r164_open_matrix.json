@@ -973,5 +973,273 @@
     "years": 6
    }
   ]
+ },
+ "ablation": {
+  "cells": [
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 71,
+    "years": 18
+   },
+   {
+    "arm": "N",
+    "start": 2021,
+    "seed": 71,
+    "years": 18
+   },
+   {
+    "arm": "O",
+    "start": 2021,
+    "seed": 71,
+    "years": 18
+   },
+   {
+    "arm": "Q",
+    "start": 2021,
+    "seed": 71,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 72,
+    "years": 18
+   },
+   {
+    "arm": "N",
+    "start": 2021,
+    "seed": 72,
+    "years": 18
+   },
+   {
+    "arm": "O",
+    "start": 2021,
+    "seed": 72,
+    "years": 18
+   },
+   {
+    "arm": "Q",
+    "start": 2021,
+    "seed": 72,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 73,
+    "years": 18
+   },
+   {
+    "arm": "N",
+    "start": 2021,
+    "seed": 73,
+    "years": 18
+   },
+   {
+    "arm": "O",
+    "start": 2021,
+    "seed": 73,
+    "years": 18
+   },
+   {
+    "arm": "Q",
+    "start": 2021,
+    "seed": 73,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 81,
+    "years": 18
+   },
+   {
+    "arm": "N",
+    "start": 2024,
+    "seed": 81,
+    "years": 18
+   },
+   {
+    "arm": "O",
+    "start": 2024,
+    "seed": 81,
+    "years": 18
+   },
+   {
+    "arm": "Q",
+    "start": 2024,
+    "seed": 81,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 82,
+    "years": 18
+   },
+   {
+    "arm": "N",
+    "start": 2024,
+    "seed": 82,
+    "years": 18
+   },
+   {
+    "arm": "O",
+    "start": 2024,
+    "seed": 82,
+    "years": 18
+   },
+   {
+    "arm": "Q",
+    "start": 2024,
+    "seed": 82,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 83,
+    "years": 18
+   },
+   {
+    "arm": "N",
+    "start": 2024,
+    "seed": 83,
+    "years": 18
+   },
+   {
+    "arm": "O",
+    "start": 2024,
+    "seed": 83,
+    "years": 18
+   },
+   {
+    "arm": "Q",
+    "start": 2024,
+    "seed": 83,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2008,
+    "seed": 95,
+    "years": 18
+   },
+   {
+    "arm": "N",
+    "start": 2008,
+    "seed": 95,
+    "years": 18
+   },
+   {
+    "arm": "O",
+    "start": 2008,
+    "seed": 95,
+    "years": 18
+   },
+   {
+    "arm": "Q",
+    "start": 2008,
+    "seed": 95,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2008,
+    "seed": 96,
+    "years": 18
+   },
+   {
+    "arm": "N",
+    "start": 2008,
+    "seed": 96,
+    "years": 18
+   },
+   {
+    "arm": "O",
+    "start": 2008,
+    "seed": 96,
+    "years": 18
+   },
+   {
+    "arm": "Q",
+    "start": 2008,
+    "seed": 96,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2008,
+    "seed": 97,
+    "years": 18
+   },
+   {
+    "arm": "N",
+    "start": 2008,
+    "seed": 97,
+    "years": 18
+   },
+   {
+    "arm": "O",
+    "start": 2008,
+    "seed": 97,
+    "years": 18
+   },
+   {
+    "arm": "Q",
+    "start": 2008,
+    "seed": 97,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 1998,
+    "seed": 101,
+    "years": 6
+   },
+   {
+    "arm": "N",
+    "start": 1998,
+    "seed": 101,
+    "years": 6
+   },
+   {
+    "arm": "O",
+    "start": 1998,
+    "seed": 101,
+    "years": 6
+   },
+   {
+    "arm": "Q",
+    "start": 1998,
+    "seed": 101,
+    "years": 6
+   },
+   {
+    "arm": "K",
+    "start": 1998,
+    "seed": 102,
+    "years": 6
+   },
+   {
+    "arm": "N",
+    "start": 1998,
+    "seed": 102,
+    "years": 6
+   },
+   {
+    "arm": "O",
+    "start": 1998,
+    "seed": 102,
+    "years": 6
+   },
+   {
+    "arm": "Q",
+    "start": 1998,
+    "seed": 102,
+    "years": 6
+   }
+  ]
  }
 }
