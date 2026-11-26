@@ -22,8 +22,17 @@ ARMS = {"A": ("playground", None), "B": ("v9s_l4", None), "C": ("v9s_l4", "r16_m
 CANDIDATES = ("F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "Q", "R")
 
 
+COMBO_PATH = HERE / "cloud/r164_combo_matrix.json"
+if COMBO_PATH.is_file():
+    combo = r16.read_json(COMBO_PATH)
+    MATRIX["combo"] = {"cells": combo["include"]}
+    for name, config in {"T": combo["treatment"], **combo["controls"]}.items():
+        ARMS[name] = (config["growth"], "r16_midrange")
+    CANDIDATES = (*CANDIDATES, "T", "U")
+
+
 def cells(stage):
-    return MATRIX[stage]["cells"]
+    return MATRIX.get(stage, {}).get("cells", [])
 
 
 def lines(path):
@@ -51,7 +60,10 @@ def read_cell(folder, cell, release):
     if arm in CANDIDATES:
         r16.require([c["season"] for c in components] == seasons, f"{folder}: components inactive")
         # Information boundary: identity is learned at the opening only and nobody who arrives later carries one.
-        r16.require(all(c["finish"]["late"] == 0 and c["finish"]["installed"] > 0 for c in components), f"{folder}: finishing boundary")
+        r16.require(components[0]["finish"]["installed"] > 0 and all(
+            c["finish"]["late"] == 0 and c["finish"]["installed"] >= 0
+            and c["finish"]["zone"] + c["finish"]["box"] == c["finish"]["installed"] for c in components
+        ), f"{folder}: finishing boundary")
         marks = [c["finish"]["installed"] for c in components]
         r16.require(all(b <= a for a, b in zip(marks, marks[1:])), f"{folder}: finishing identity grew after the opening")
         r16.require(components[0]["style"]["adjusted"] == 0 and
@@ -64,10 +76,10 @@ def read_cell(folder, cell, release):
             r16.require(row["postPayroll"] == row["after"] and row["daysLeft"] <= 8 and row["injury"] == 0 and
                         row["exception"] in ("bird", "capSpace"), f"{folder}: illegal late signing {row.get('sid', row['pid'])}")
     made = lines(folder / "classes.jsonl")
-    r16.require(bool(made) == (arm in "IJKLMNOQRR" and start + years > 2030), f"{folder}: draft class rule activity")
+    r16.require(bool(made) == (arm in "IJKLMNOQRTU" and start + years > 2030), f"{folder}: draft class rule activity")
     r16.require(all(set(c["ages"]) <= {19, 20, 21, 22} and c["n"] >= 60 for c in made), f"{folder}: draft class receipt")
     lifted = lines(folder / "files.jsonl")
-    r16.require(bool(lifted) == (arm in "KLMNOQR") and (arm not in "KLMNOQR" or (len(lifted) == 1 and lifted[0]["season"] == start and
+    r16.require(bool(lifted) == (arm in "KLMNOQRTU") and (arm not in "KLMNOQRTU" or (len(lifted) == 1 and lifted[0]["season"] == start and
                 any(c["lift"] > 0 for c in lifted[0]["classes"]) and all(0 <= c["lift"] <= 4 and c["draft"] >= max(2026, start + 1) for c in lifted[0]["classes"]))), f"{folder}: opening class lift")
     for row in lines(folder / "rotation.jsonl"):
         r16.require(row["teamGames"] > 0 and (arm in CANDIDATES) == bool(row["rows"]), f"{folder}: rotation activity")
@@ -183,7 +195,7 @@ def score(stage, artifacts, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest="action", required=True)
-    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "quality"))
+    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "quality", "combo"))
     c = subs.add_parser("cell"); c.add_argument("folder", type=Path); c.add_argument("arm", choices=ARMS)
     for k in ("start", "seed", "years"):
         c.add_argument(k, type=int)
@@ -194,7 +206,7 @@ if __name__ == "__main__":
         print(json.dumps({"include": [dict(c, timeout=350 if c["years"] > 6 else 90) for c in todo]}))
     elif a.action == "cell":
         cell = {k: getattr(a, k) for k in ("arm", "start", "seed", "years")}
-        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "quality") for x in cells(stage)], "Cell outside the matrix")
+        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "quality", "combo") for x in cells(stage)], "Cell outside the matrix")
         read_cell(a.folder, cell, digest())
         print("cell verified")
     elif not score(a.stage, a.artifacts, a.output):

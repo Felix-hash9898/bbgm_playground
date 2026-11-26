@@ -28,6 +28,15 @@ const plugin = {
 	gsState.choice = choiceLog; gsState.calls = calls;`);
 			code = once(code, 'async function preseasonSnapshot() {\n\tconst season = g.get("season");',
 				'async function preseasonSnapshot() {\n\tconst season = g.get("season");\n\tawait r164!.payrollSnapshot(season);');
+			code = once(code,
+				"const opening = ACCEPTANCE ? await openingReceipt() : undefined;",
+				`const opening = ACCEPTANCE ? await openingReceipt() : undefined;
+		if (process.env.R164_COMBO === "1") await r164!.recordCombinationOpening(START);
+		if (r164!.enabled().has("openingPot")) {
+			const rows = await r164!.recalculateOpeningPotential(START, ARM);
+			const after = await openingReceipt();
+			appendFileSync(path.join(OUT, "opening_pot.jsonl"), JSON.stringify({ season: START, after, rows }) + "\\n");
+		}`);
 			return 'let r164: typeof import("./r164_runtime.ts") | undefined;\n' + code;
 		}
 		if (id.endsWith("/src/worker/core/GameSim.basketball/index.ts") && process.env.AGING_RUN === "1") {

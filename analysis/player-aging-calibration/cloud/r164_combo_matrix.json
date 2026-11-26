@@ -1,0 +1,192 @@
+{
+  "growth_base": "N",
+  "optional": [
+    "openingPot",
+    "draftAlignment"
+  ],
+  "source_runs": {
+    "45765401275": {
+      "run": 45765401275,
+      "commit": "d96ebf8c06844d6c198df6f6f4b5c4119960dbb7",
+      "release": "b341f9cec24cd91364bd9cff73c54e76bdf7a9e2b4cb717e58deb6df470481dc",
+      "tag": "aging-r164-ablation",
+      "branch": "aging-calibration-cloud-r164-ablation",
+      "scheduled_cells": 44,
+      "runner": "ubuntu-24.04",
+      "visibility": "public"
+    },
+    "45769475243": {
+      "run": 45769475243,
+      "commit": "d4f4dcfc67d8d88c2a0769b63c7e744a2abb2c03",
+      "release": "da055fadfc9d3bafd96a6ea66fef44c010f5c0d91cfe755e3dc6262fe68f2d86",
+      "tag": "aging-r164-quality",
+      "branch": "aging-calibration-cloud-r164-quality",
+      "scheduled_cells": 8,
+      "runner": "ubuntu-24.04",
+      "visibility": "public"
+    },
+    "45766883169": {
+      "run": 45766883169,
+      "commit": "cc3eb66bbf01334ccec833ea37c3198b3b7ae7c0",
+      "release": "cbafaf3e04062cabd2f36ec874ff9ab4e03b04036a91a22b0f665e20e236ba04",
+      "tag": "aging-r164-pot",
+      "branch": "aging-calibration-cloud-r164-pot",
+      "scheduled_cells": 8,
+      "runner": "ubuntu-24.04",
+      "visibility": "public"
+    }
+  },
+  "receipt_sha256": {
+    "45765401275": "5bc42c36f12a478187a52b9b80cf0fe537d7113cce753bcec7c050644706dd34",
+    "45769475243": "4bf0fb05adb0a3052995b4059d326b342607a0f852524be0b4ef26b1b6855b7a",
+    "45766883169": "dd71e3cd8410042049040c3448c9801f7dfd1b6ffcdca8432159899357e442ad"
+  },
+  "archive_comparison": {
+    "K": "K",
+    "U": "N"
+  },
+  "include": [
+    {
+      "start": 2021,
+      "seed": 71,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 2021,
+      "seed": 72,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 2021,
+      "seed": 73,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 2024,
+      "seed": 81,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 2024,
+      "seed": 82,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 2024,
+      "seed": 83,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 2008,
+      "seed": 95,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 2008,
+      "seed": 96,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 2008,
+      "seed": 97,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 1998,
+      "seed": 101,
+      "years": 6,
+      "arm": "T"
+    },
+    {
+      "start": 1998,
+      "seed": 102,
+      "years": 6,
+      "arm": "T"
+    },
+    {
+      "start": 2021,
+      "seed": 76,
+      "years": 18,
+      "arm": "K"
+    },
+    {
+      "start": 2021,
+      "seed": 76,
+      "years": 18,
+      "arm": "U"
+    },
+    {
+      "start": 2021,
+      "seed": 76,
+      "years": 18,
+      "arm": "T"
+    },
+    {
+      "start": 2024,
+      "seed": 90,
+      "years": 18,
+      "arm": "K"
+    },
+    {
+      "start": 2024,
+      "seed": 90,
+      "years": 18,
+      "arm": "U"
+    },
+    {
+      "start": 2024,
+      "seed": 90,
+      "years": 18,
+      "arm": "T"
+    }
+  ],
+  "treatment": {
+    "growth": "v9s_l4l",
+    "component_flags": [
+      "finish",
+      "rookies",
+      "market",
+      "style",
+      "classes",
+      "growth",
+      "files",
+      "openingPot",
+      "draftAlignment"
+    ]
+  },
+  "controls": {
+    "K": {
+      "growth": "v9s_l4j",
+      "component_flags": [
+        "finish",
+        "rookies",
+        "market",
+        "style",
+        "classes",
+        "growth",
+        "files"
+      ]
+    },
+    "U": {
+      "growth": "v9s_l4l",
+      "component_flags": [
+        "finish",
+        "rookies",
+        "market",
+        "style",
+        "classes",
+        "growth",
+        "files"
+      ]
+    }
+  }
+}

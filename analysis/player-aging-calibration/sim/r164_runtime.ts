@@ -11,19 +11,60 @@ import { idb } from "../../../src/worker/db/index.ts";
 import { g } from "../../../src/worker/util/index.ts";
 import { prepare, type R5Arm, type R5Player } from "./formulas/r5.ts";
 import { installFinishing, openingMarks, type FinishingPlayer } from "./r164_finishing.ts";
+import { estimateOpeningPotential, potentialSeed } from "./r164_potential.ts";
+import { corrected, composed, correctedCalm, composedCalm } from "./r164_growth.ts";
+import type { PlayerRatings } from "../../../src/common/types.basketball.ts";
 import { liftFileClasses } from "./r164_classes.ts";
 import { planYoungMinutes, type YoungDecision } from "./r164_rookies.ts";
 import { applyStyleResponse164 } from "./r164_style.ts";
 import type { StyleMemory163 } from "./r163_style.ts";
 
 type StylePlayer = Player & { r164Style?: { season: number; skill: number; role: number; tid: number } };
-export const COMPONENTS = ["finish", "rookies", "market", "style", "prospects", "classes", "growth", "files", "composition", "calm", "draftAlignment"] as const;
+export const COMPONENTS = ["finish", "rookies", "market", "style", "prospects", "classes", "growth", "files", "composition", "calm", "draftAlignment", "openingPot"] as const;
 export const enabled = () => new Set((process.env.R164 ?? "").split(",").map(x => x.trim()).filter(Boolean));
 for (const name of enabled()) if (!(COMPONENTS as readonly string[]).includes(name)) throw new Error(`Unknown R16.4 component ${name}`);
 
 const note = (file: string, row: object) => {
 	if (process.env.FULL_OUT) appendFileSync(path.join(process.env.FULL_OUT, file), JSON.stringify(row) + "\n");
 };
+
+const openingDevelopment = new Map([
+	["v9s_l4j", corrected],
+	["v9s_l4l", composed],
+	["v9s_l4o", correctedCalm],
+	["v9s_l4m", composedCalm],
+]);
+
+export async function recordCombinationOpening(season: number) {
+	const players = (await idb.cache.players.getAll()).filter(p => p.tid >= PLAYER.FREE_AGENT).sort((a, b) => a.pid - b.pid);
+	note("combo_opening_market.jsonl", {
+		season,
+		market: players.map(p => [p.pid, p.tid, p.contract.amount, p.contract.exp, p.injury.gamesRemaining]),
+	});
+}
+
+export async function recalculateOpeningPotential(season: number, arm: string) {
+	const develop = openingDevelopment.get(arm);
+	if (!develop) throw new Error(`Unknown opening POT growth arm ${arm}`);
+	const changed = [];
+	for (const p of await idb.cache.players.getAll()) {
+		const age = season - p.born.year;
+		const rating = p.ratings.at(-1)!;
+		if (!p.real || p.tid < PLAYER.FREE_AGENT || p.draft.year >= season || rating.locked || age < 19 || age > 26) {
+			continue;
+		}
+		const before = rating.pot;
+		const valueBefore = p.value;
+		const potential = estimateOpeningPotential(rating as PlayerRatings, age, potentialSeed(`${p.srID ?? p.pid}/${season}`), develop);
+		if (potential !== before) {
+			rating.pot = potential;
+			await player.updateValues(p);
+			await idb.cache.players.put(p);
+		}
+		changed.push({ pid: p.pid, age, ovr: rating.ovr, before, after: potential, valueBefore, valueAfter: p.value });
+	}
+	return changed;
+}
 
 /** Open league, opening season only: raise the speculative real draft classes of the file (r164_classes.ts). */
 export async function openingClasses(season: number, start: number) {

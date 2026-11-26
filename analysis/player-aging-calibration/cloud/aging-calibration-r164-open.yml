@@ -3,7 +3,7 @@ name: aging-calibration-r164-open
 # Runs only when one of these exact tags is pushed to the isolated research commit. Stage 2 follows a reviewed stage 1.
 on:
   push:
-    tags: [aging-r164-quality]
+    tags: [aging-r164-combo]
 
 permissions:
   contents: read
@@ -17,6 +17,7 @@ defaults:
     shell: bash
 
 env:
+  R164_COMBO: "1"
   R: analysis/player-aging-calibration
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
 
@@ -41,7 +42,7 @@ jobs:
     timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
-      max-parallel: 8
+      max-parallel: 18
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     env:
       ARM: ${{ matrix.arm }}

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 r=analysis/player-aging-calibration
-[[ $# == 5 || ( $# == 6 && ${6} == day ) ]] || { echo 'Usage: run_r164_open.sh <A|B|C|F|G|H|I|J|K|L|M|N|O|Q|R> <start> <seed> <years> <new-output-dir> [day]' >&2; exit 2; }
+[[ $# == 5 || ( $# == 6 && ${6} == day ) ]] || { echo 'Usage: run_r164_open.sh <A|B|C|F|G|H|I|J|K|L|M|N|O|Q|R|T|U> <start> <seed> <years> <new-output-dir> [day]' >&2; exit 2; }
 arm=$1 start=$2 seed=$3 years=$4 out=$5
 release=$(python3 -B "$r/cloud/r164_open_freeze.py" verify)
 components=
@@ -22,6 +22,19 @@ case "$arm" in
     O) dev=v9s_l4o; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,calm ;;
     Q) dev=v9s_l4m; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,calm ;;
     R) dev=v9s_l4j; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,draftAlignment ;;
+    T|U)
+        read -r dev components < <(python3 -B - "$r/cloud/r164_combo_matrix.json" "$arm" <<'MATRIX'
+import json
+from pathlib import Path
+import sys
+
+matrix = json.loads(Path(sys.argv[1]).read_text())
+config = matrix["treatment"] if sys.argv[2] == "T" else matrix["controls"][sys.argv[2]]
+print(config["growth"], ",".join(config["component_flags"]))
+MATRIX
+        )
+        gs=r16_midrange
+        ;;
     *) exit 2 ;;
 esac
 probe=0
