@@ -2,7 +2,7 @@
 set -euo pipefail
 
 r=analysis/player-aging-calibration
-[[ $# == 5 || ( $# == 6 && ${6} == day ) ]] || { echo 'Usage: run_r164_open.sh <A|B|C|F|G|H|I|J|K|L|M|N|O|Q> <start> <seed> <years> <new-output-dir> [day]' >&2; exit 2; }
+[[ $# == 5 || ( $# == 6 && ${6} == day ) ]] || { echo 'Usage: run_r164_open.sh <A|B|C|F|G|H|I|J|K|L|M|N|O|P|Q> <start> <seed> <years> <new-output-dir> [day]' >&2; exit 2; }
 arm=$1 start=$2 seed=$3 years=$4 out=$5
 release=$(python3 -B "$r/cloud/r164_open_freeze.py" verify)
 components=
@@ -20,6 +20,7 @@ case "$arm" in
     M) dev=v9s_l4m; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,composition,calm ;;
     N) dev=v9s_l4l; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files ;;
     O) dev=v9s_l4o; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,calm ;;
+    P) dev=v9s_l4j; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,openingPot ;;
     Q) dev=v9s_l4m; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,calm ;;
     *) exit 2 ;;
 esac

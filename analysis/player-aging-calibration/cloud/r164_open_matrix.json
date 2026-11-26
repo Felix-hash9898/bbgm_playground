@@ -1241,5 +1241,57 @@
     "years": 6
    }
   ]
+ },
+ "pot": {
+  "cells": [
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 74,
+    "years": 2
+   },
+   {
+    "arm": "P",
+    "start": 2021,
+    "seed": 74,
+    "years": 2
+   },
+   {
+    "arm": "K",
+    "start": 2021,
+    "seed": 75,
+    "years": 2
+   },
+   {
+    "arm": "P",
+    "start": 2021,
+    "seed": 75,
+    "years": 2
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 84,
+    "years": 2
+   },
+   {
+    "arm": "P",
+    "start": 2024,
+    "seed": 84,
+    "years": 2
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 85,
+    "years": 2
+   },
+   {
+    "arm": "P",
+    "start": 2024,
+    "seed": 85,
+    "years": 2
+   }
+  ]
  }
 }

@@ -18,8 +18,8 @@ ARMS = {"A": ("playground", None), "B": ("v9s_l4", None), "C": ("v9s_l4", "r16_m
         "G": ("v9s_l4g", "r16_midrange"), "H": ("v9s_l4", "r16_midrange"), "I": ("v9s_l4", "r16_midrange"),
         "J": ("v9s_l4j", "r16_midrange"), "K": ("v9s_l4j", "r16_midrange"),
         "L": ("v9s_l4l", "r16_midrange"), "M": ("v9s_l4m", "r16_midrange"),
-        "N": ("v9s_l4l", "r16_midrange"), "O": ("v9s_l4o", "r16_midrange"), "Q": ("v9s_l4m", "r16_midrange")}
-CANDIDATES = ("F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "Q")
+        "N": ("v9s_l4l", "r16_midrange"), "O": ("v9s_l4o", "r16_midrange"), "Q": ("v9s_l4m", "r16_midrange"), "P": ("v9s_l4j", "r16_midrange")}
+CANDIDATES = ("F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q")
 
 
 def cells(stage):
@@ -64,10 +64,10 @@ def read_cell(folder, cell, release):
             r16.require(row["postPayroll"] == row["after"] and row["daysLeft"] <= 8 and row["injury"] == 0 and
                         row["exception"] in ("bird", "capSpace"), f"{folder}: illegal late signing {row.get('sid', row['pid'])}")
     made = lines(folder / "classes.jsonl")
-    r16.require(bool(made) == (arm in "IJKLMNOQ" and start + years > 2030), f"{folder}: draft class rule activity")
+    r16.require(bool(made) == (arm in "IJKLMNOPQ" and start + years > 2030), f"{folder}: draft class rule activity")
     r16.require(all(set(c["ages"]) <= {19, 20, 21, 22} and c["n"] >= 60 for c in made), f"{folder}: draft class receipt")
     lifted = lines(folder / "files.jsonl")
-    r16.require(bool(lifted) == (arm in "KLMNOQ") and (arm not in "KLMNOQ" or (len(lifted) == 1 and lifted[0]["season"] == start and
+    r16.require(bool(lifted) == (arm in "KLMNOPQ") and (arm not in "KLMNOPQ" or (len(lifted) == 1 and lifted[0]["season"] == start and
                 any(c["lift"] > 0 for c in lifted[0]["classes"]) and all(0 <= c["lift"] <= 4 and c["draft"] >= max(2026, start + 1) for c in lifted[0]["classes"]))), f"{folder}: opening class lift")
     for row in lines(folder / "rotation.jsonl"):
         r16.require(row["teamGames"] > 0 and (arm in CANDIDATES) == bool(row["rows"]), f"{folder}: rotation activity")
@@ -183,7 +183,7 @@ def score(stage, artifacts, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest="action", required=True)
-    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation"))
+    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "pot"))
     c = subs.add_parser("cell"); c.add_argument("folder", type=Path); c.add_argument("arm", choices=ARMS)
     for k in ("start", "seed", "years"):
         c.add_argument(k, type=int)
@@ -194,7 +194,7 @@ if __name__ == "__main__":
         print(json.dumps({"include": [dict(c, timeout=350 if c["years"] > 6 else 90) for c in todo]}))
     elif a.action == "cell":
         cell = {k: getattr(a, k) for k in ("arm", "start", "seed", "years")}
-        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation") for x in cells(stage)], "Cell outside the matrix")
+        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "pot") for x in cells(stage)], "Cell outside the matrix")
         read_cell(a.folder, cell, digest())
         print("cell verified")
     elif not score(a.stage, a.artifacts, a.output):
