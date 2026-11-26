@@ -17,7 +17,7 @@ import { applyStyleResponse164 } from "./r164_style.ts";
 import type { StyleMemory163 } from "./r163_style.ts";
 
 type StylePlayer = Player & { r164Style?: { season: number; skill: number; role: number; tid: number } };
-export const COMPONENTS = ["finish", "rookies", "market", "style", "prospects", "classes", "growth", "files", "composition", "calm"] as const;
+export const COMPONENTS = ["finish", "rookies", "market", "style", "prospects", "classes", "growth", "files", "composition", "calm", "draftAlignment"] as const;
 export const enabled = () => new Set((process.env.R164 ?? "").split(",").map(x => x.trim()).filter(Boolean));
 for (const name of enabled()) if (!(COMPONENTS as readonly string[]).includes(name)) throw new Error(`Unknown R16.4 component ${name}`);
 

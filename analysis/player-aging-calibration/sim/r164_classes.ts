@@ -1,5 +1,6 @@
 import { appendFileSync } from "node:fs";
 import path from "node:path";
+import { alignGeneratedDefense } from "./r164_quality.ts";
 import limitRating from "../../../src/worker/core/player/limitRating.ts";
 
 // Generated draft classes only (classes with real prospects are untouched). Replaces r164_prospects.ts.
@@ -13,6 +14,7 @@ export type ClassRule = {
 	noise: number; // half-width of the random term in who declares first (product 50)
 	points: Record<number, number>; // added to the trainable skills by draft age, once, at creation
 	profile: Record<string, number>; // added to every generated prospect, once, at creation
+	alignDefense?: boolean;
 	spread?: Record<string, number>; // distance to the mean of the best 40 kept at creation (1 = unchanged)
 };
 const TRAINED = ["ins", "dnk", "ft", "fg", "tp", "oiq", "diq", "drb", "pss", "reb", "stre", "endu"] as const;
@@ -31,10 +33,11 @@ export const RULE_COMPOSITION: ClassRule = { ...RULE_GROWTH, spread: { spd: .7, 
 	profile: { ...RULE_GROWTH.profile, ins: 6, fg: 8, diq: 5, pss: -3 } };
 export const classRule = (): ClassRule => {
 	const on = (process.env.R164 ?? "").split(",");
-	return { ...(on.includes("composition") ? RULE_COMPOSITION : on.includes("growth") ? RULE_GROWTH : RULE), ...(globalThis as any).r164Classes };
+	return { ...(on.includes("composition") ? RULE_COMPOSITION : on.includes("growth") ? RULE_GROWTH : RULE), alignDefense: on.includes("draftAlignment"), ...(globalThis as any).r164Classes };
 };
 
 export const readyClass = async (players: any[], refresh: (p: any) => Promise<unknown>, rule = classRule()) => {
+	const alignment = rule.alignDefense ? alignGeneratedDefense(players) : undefined;
 	const best = [...players].sort((a, b) => b.ratings.at(-1).ovr - a.ratings.at(-1).ovr).slice(0, 40).map(p => p.ratings.at(-1));
 	const middle = Object.fromEntries(Object.keys(rule.spread ?? {}).map(key => [key, best.reduce((s, r) => s + r[key], 0) / Math.max(1, best.length)]));
 	for (const p of players) {
@@ -44,7 +47,7 @@ export const readyClass = async (players: any[], refresh: (p: any) => Promise<un
 		for (const key of TRAINED) r[key] = limitRating(r[key] + points + (rule.profile[key] ?? 0));
 		await refresh(p);
 	}
-	if (process.env.FULL_OUT) appendFileSync(path.join(process.env.FULL_OUT, "classes.jsonl"), JSON.stringify({ draft: players[0]?.draft.year, n: players.length,
+	if (process.env.FULL_OUT) appendFileSync(path.join(process.env.FULL_OUT, "classes.jsonl"), JSON.stringify({ draft: players[0]?.draft.year, n: players.length, alignment,
 		ages: players.map(p => p.draft.year - p.born.year).sort(), ovr: Math.max(...players.map(p => p.ratings.at(-1).ovr)) }) + "\n");
 };
 

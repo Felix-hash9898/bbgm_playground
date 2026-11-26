@@ -1241,5 +1241,57 @@
     "years": 6
    }
   ]
+ },
+ "quality": {
+  "cells": [
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 86,
+    "years": 18
+   },
+   {
+    "arm": "R",
+    "start": 2024,
+    "seed": 86,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 87,
+    "years": 18
+   },
+   {
+    "arm": "R",
+    "start": 2024,
+    "seed": 87,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 88,
+    "years": 18
+   },
+   {
+    "arm": "R",
+    "start": 2024,
+    "seed": 88,
+    "years": 18
+   },
+   {
+    "arm": "K",
+    "start": 2024,
+    "seed": 89,
+    "years": 18
+   },
+   {
+    "arm": "R",
+    "start": 2024,
+    "seed": 89,
+    "years": 18
+   }
+  ]
  }
 }
