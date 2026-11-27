@@ -1,0 +1,92 @@
+[
+  {
+    "start": 2021,
+    "seed": 77,
+    "years": 18,
+    "arm": "K"
+  },
+  {
+    "start": 2021,
+    "seed": 77,
+    "years": 18,
+    "arm": "V"
+  },
+  {
+    "start": 2021,
+    "seed": 77,
+    "years": 18,
+    "arm": "Y"
+  },
+  {
+    "start": 2021,
+    "seed": 78,
+    "years": 18,
+    "arm": "K"
+  },
+  {
+    "start": 2021,
+    "seed": 78,
+    "years": 18,
+    "arm": "V"
+  },
+  {
+    "start": 2021,
+    "seed": 78,
+    "years": 18,
+    "arm": "Y"
+  },
+  {
+    "start": 2024,
+    "seed": 91,
+    "years": 18,
+    "arm": "K"
+  },
+  {
+    "start": 2024,
+    "seed": 91,
+    "years": 18,
+    "arm": "V"
+  },
+  {
+    "start": 2024,
+    "seed": 91,
+    "years": 18,
+    "arm": "Y"
+  },
+  {
+    "start": 2024,
+    "seed": 92,
+    "years": 18,
+    "arm": "K"
+  },
+  {
+    "start": 2024,
+    "seed": 92,
+    "years": 18,
+    "arm": "V"
+  },
+  {
+    "start": 2024,
+    "seed": 92,
+    "years": 18,
+    "arm": "Y"
+  },
+  {
+    "start": 2008,
+    "seed": 98,
+    "years": 18,
+    "arm": "K"
+  },
+  {
+    "start": 2008,
+    "seed": 98,
+    "years": 18,
+    "arm": "V"
+  },
+  {
+    "start": 2008,
+    "seed": 98,
+    "years": 18,
+    "arm": "Y"
+  }
+]

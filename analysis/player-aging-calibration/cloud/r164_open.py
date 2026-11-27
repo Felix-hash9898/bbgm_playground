@@ -30,6 +30,12 @@ if COMBO_PATH.is_file():
         ARMS[name] = (config["growth"], "r16_midrange")
     CANDIDATES = (*CANDIDATES, "T", "U")
 
+NEXT_PATH = HERE / "cloud/growth_next_composition_matrix.json"
+if NEXT_PATH.is_file():
+    MATRIX["next-composition"] = {"cells": r16.read_json(NEXT_PATH)}
+    ARMS.update({"V": ("v9s_next_veteran", "r16_midrange"), "Y": ("v9s_next_young", "r16_midrange")})
+    CANDIDATES = (*CANDIDATES, "V", "Y")
+
 
 def cells(stage):
     return MATRIX.get(stage, {}).get("cells", [])
@@ -76,10 +82,10 @@ def read_cell(folder, cell, release):
             r16.require(row["postPayroll"] == row["after"] and row["daysLeft"] <= 8 and row["injury"] == 0 and
                         row["exception"] in ("bird", "capSpace"), f"{folder}: illegal late signing {row.get('sid', row['pid'])}")
     made = lines(folder / "classes.jsonl")
-    r16.require(bool(made) == (arm in "IJKLMNOQRTU" and start + years > 2030), f"{folder}: draft class rule activity")
+    r16.require(bool(made) == (arm in "IJKLMNOQRTUVY" and start + years > 2030), f"{folder}: draft class rule activity")
     r16.require(all(set(c["ages"]) <= {19, 20, 21, 22} and c["n"] >= 60 for c in made), f"{folder}: draft class receipt")
     lifted = lines(folder / "files.jsonl")
-    r16.require(bool(lifted) == (arm in "KLMNOQRTU") and (arm not in "KLMNOQRTU" or (len(lifted) == 1 and lifted[0]["season"] == start and
+    r16.require(bool(lifted) == (arm in "KLMNOQRTUVY") and (arm not in "KLMNOQRTUVY" or (len(lifted) == 1 and lifted[0]["season"] == start and
                 any(c["lift"] > 0 for c in lifted[0]["classes"]) and all(0 <= c["lift"] <= 4 and c["draft"] >= max(2026, start + 1) for c in lifted[0]["classes"]))), f"{folder}: opening class lift")
     for row in lines(folder / "rotation.jsonl"):
         r16.require(row["teamGames"] > 0 and (arm in CANDIDATES) == bool(row["rows"]), f"{folder}: rotation activity")
@@ -195,7 +201,7 @@ def score(stage, artifacts, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest="action", required=True)
-    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "quality", "minus-pot"))
+    m = subs.add_parser("matrix"); m.add_argument("stage", choices=("stage1", "stage2", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "quality", "minus-pot", "next-composition"))
     c = subs.add_parser("cell"); c.add_argument("folder", type=Path); c.add_argument("arm", choices=ARMS)
     for k in ("start", "seed", "years"):
         c.add_argument(k, type=int)
@@ -206,7 +212,7 @@ if __name__ == "__main__":
         print(json.dumps({"include": [dict(c, timeout=350 if c["years"] > 6 else 90) for c in todo]}))
     elif a.action == "cell":
         cell = {k: getattr(a, k) for k in ("arm", "start", "seed", "years")}
-        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "quality", "minus-pot") for x in cells(stage)], "Cell outside the matrix")
+        r16.require(cell in [x for stage in ("stage1", "stage2", "guard", "long", "succession", "classes", "replication", "growth", "final", "trajectory", "ablation", "quality", "minus-pot", "next-composition") for x in cells(stage)], "Cell outside the matrix")
         read_cell(a.folder, cell, digest())
         print("cell verified")
     elif not score(a.stage, a.artifacts, a.output):

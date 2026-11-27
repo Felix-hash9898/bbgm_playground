@@ -22,6 +22,8 @@ case "$arm" in
     O) dev=v9s_l4o; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,calm ;;
     Q) dev=v9s_l4m; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,calm ;;
     R) dev=v9s_l4j; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files,draftAlignment ;;
+    V) dev=v9s_next_veteran; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files ;;
+    Y) dev=v9s_next_young; gs=r16_midrange; components=finish,rookies,market,style,classes,growth,files ;;
     T|U)
         read -r dev components < <(python3 -B - "$r/cloud/r164_combo_matrix.json" "$arm" <<'MATRIX'
 import json

@@ -3,13 +3,13 @@ name: aging-calibration-r164-open
 # Runs only when one of these exact tags is pushed to the isolated research commit. Stage 2 follows a reviewed stage 1.
 on:
   push:
-    tags: [aging-r164-minus-pot]
+    tags: [aging-r164-next-composition]
 
 permissions:
   contents: read
 
 concurrency:
-  group: aging-calibration-r164-minus-pot
+  group: aging-r164-next-composition
   cancel-in-progress: false
 
 defaults:

@@ -17,6 +17,8 @@ FILES = (
     "sim/r164.config.ts", "sim/r164_contract.ts", "sim/r164_finishing.ts", "sim/r164_rookies.ts", "sim/r164_runtime.ts", "sim/r164_style.ts", "sim/r164_growth.ts", "sim/r164_prospects.ts", "cloud/r164_succession.py", "sim/r164_classes.ts", "cloud/r164_classes.py", "cloud/r164_replication.py", "cloud/r164_growth_score.py", "cloud/r164_final_score.py", "cloud/r164_trajectory_score.py", "cloud/r164_ablation.py", "cloud/R164_ABLATION.md", "cloud/R164_QUALITY.md", "cloud/R164_COMBINATION.md",
     "cloud/r164_combo_plan.py", "cloud/r164_combo_score.py", "cloud/r164_combo_pot.py", "cloud/r164_ablation_archive_audit.py", "cloud/R164_MINUS_POT.md",
     "cloud/r164_combo_matrix.json", "sim/r164_potential.ts", "cloud/r164_quality_score.py", "sim/r164_quality.ts", "scripts/157_r164_trajectory_panel.py", "scripts/159_r164_trajectory_acceptance.py", "scripts/156_r164_growth_audit.py",
+    "cloud/GROWTH_NEXT_COMPOSITION.md", "cloud/r165_composition.py", "cloud/growth_next_composition_matrix.json",
+    "sim/growthNextComposition.ts", "sim/growthNextComposition.test.ts", "scripts/160_r164_individual_audit.py",
     "sim/r163_market.ts", "sim/r163_style.ts",
 )
 
